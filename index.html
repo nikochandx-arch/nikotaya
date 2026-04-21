@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Mini Roguelike</title>
+  <style>
+    body {
+      background: #111;
+      color: #0f0;
+      font-family: monospace;
+      padding: 16px;
+    }
+    #log {
+      white-space: pre-line;
+      margin-bottom: 16px;
+    }
+    button {
+      display: block;
+      margin: 8px 0;
+      padding: 8px;
+      width: 100%;
+      background: #222;
+      color: #0f0;
+      border: 1px solid #0f0;
+    }
+  </style>
+</head>
+<body>
+<h2>Mini Roguelike</h2>
+<div id="status"></div>
+<div id="log"></div>
+<div id="actions"></div>
+<script defer>
+let state = {
+  hp: 10,
+  floor: 1,
+  log: []
+};
+
+function addLog(text) {
+  state.log.unshift(text);
+  state.log = state.log.slice(0, 5);
+}
+
+function render() {
+  document.getElementById("status").innerText =
+    `HP: ${state.hp} | Floor: ${state.floor}`;
+
+  document.getElementById("log").innerText =
+    state.log.join("\n");
+
+  let actions = document.getElementById("actions");
+  actions.innerHTML = "";
+
+  createButton("進む", next);
+}
+
+function createButton(text, onClick) {
+  let btn = document.createElement("button");
+  btn.innerText = text;
+  btn.onclick = onClick;
+  document.getElementById("actions").appendChild(btn);
+}
+
+function next() {
+  state.floor++;
+
+  let r = Math.random();
+
+  if (r < 0.5) {
+    let dmg = Math.floor(Math.random() * 3) + 1;
+    state.hp -= dmg;
+    addLog(`敵に遭遇！ ${dmg} ダメージ`);
+  } else if (r < 0.8) {
+    let heal = Math.floor(Math.random() * 3) + 1;
+    state.hp += heal;
+    addLog(`回復した！ +${heal}`);
+  } else {
+    addLog("宝箱を見つけた！");
+  }
+
+  if (state.hp <= 0) {
+    addLog("ゲームオーバー");
+    gameOver();
+    return;
+  }
+
+  render();
+}
+
+function gameOver() {
+  let actions = document.getElementById("actions");
+  actions.innerHTML = "";
+  createButton("リスタート", restart);
+}
+
+function restart() {
+  state = {
+    hp: 10,
+    floor: 1,
+    log: []
+  };
+  addLog("冒険開始！");
+  render();
+}
+
+// 初期化
+addLog("冒険開始！");
+render();
+</script>
+</body>
+</html>
