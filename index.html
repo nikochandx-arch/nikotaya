@@ -4,25 +4,39 @@
   <meta charset="UTF-8">
   <title>Mini Roguelike</title>
   <style>
-    body {
-      background: #111;
-      color: #0f0;
-      font-family: monospace;
-      padding: 16px;
-    }
-    #log {
-      white-space: pre-line;
-      margin-bottom: 16px;
-    }
-    button {
-      display: block;
-      margin: 8px 0;
-      padding: 8px;
-      width: 100%;
-      background: #222;
-      color: #0f0;
-      border: 1px solid #0f0;
-    }
+body {
+  background: #111;
+  color: #0f0;
+  font-family: monospace;
+  padding: 16px;
+  font-size: 18px; /* ← 文字を大きく */
+}
+
+h2 {
+  font-size: 24px;
+}
+
+#status {
+  margin-bottom: 8px;
+  font-size: 20px;
+}
+
+#log {
+  white-space: pre-line;
+  margin-bottom: 16px;
+  font-size: 16px;
+}
+
+button {
+  display: block;
+  margin: 12px auto;     /* ←中央寄せ */
+  padding: 16px 0;       /* ←縦を大きく */
+  width: 160px;          /* ←横幅を固定で狭く */
+  background: #222;
+  color: #0f0;
+  border: 1px solid #0f0;
+  font-size: 18px;
+}
   </style>
 </head>
 <body>
