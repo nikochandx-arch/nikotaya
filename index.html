@@ -404,6 +404,7 @@ function checkDeath(){
 // --- 帰還 ---
 function confirmReturn(){
   if(confirm("本当に帰還しますか？（スクラップの半分を持ち帰ります）")){
+    state.mode = "result";  // returnモードを先に抜ける
     doReturn();
   }
 }
