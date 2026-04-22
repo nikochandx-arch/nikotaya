@@ -164,14 +164,15 @@ function checkDeath() {
 }
 
 // ■帰還
-let carry = Math.floor(state.scrap / 2); // 半分持ち帰り
+function doReturn() {
+  let carry = Math.floor(state.scrap / 2); // 半分持ち帰り
 
-state.totalScrap += carry;
-localStorage.setItem("totalScrap", state.totalScrap);
+  state.totalScrap += carry;
+  localStorage.setItem("totalScrap", state.totalScrap);
 
-addLog(`帰還した。スクラップ${carry}を持ち帰った（半分消費）`, "scrap");
+  addLog(`帰還した。スクラップ${carry}を持ち帰った（半分消費）`, "scrap");
 
-state.scrap = 0;
+  state.scrap = 0;
   state.mode = "explore";
   render();
 }
