@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Nikotaya Roguelike</title>
+<title>Nikotaya Mining Roguelike</title>
 <style>
 body {
   background-color: #111;
@@ -15,29 +15,31 @@ h2 { font-size: 24px; }
 #status { margin-bottom: 8px; font-size: 20px; }
 #log { margin-bottom: 16px; font-size: 16px; }
 button {
-  display: block;
-  margin: 12px auto;
-  padding: 16px 0;
-  width: 160px;
-  background: #222;
-  color: #0f0;
-  border: 1px solid #0f0;
-  font-size: 18px;
+display: block;
+margin: 12px auto;
+padding: 16px 0;
+width: 160px;
+background: #222;
+color: #0f0;
+border: 1px solid #0f0;
+font-size: 18px;
 }
+
 #log div { margin-bottom: 4px; color: #fff; }
 .log-new { font-weight: bold; font-size: 18px; }
 .log-damage { color: #f55; }
 .log-heal { color: #5f5; }
-</style>
+.log-scrap { color: #ffcc66; } /* スクラップ色 */
 </head>
 <body>
-<h2>Nikotaya Roguelike</h2>
+<h2>Nikotaya Mining Roguelike</h2>
 <div id="status"></div>
 <div id="log"></div>
 <div id="actions"></div>
 <script>
 let state = {
   hp: 10,
+  scrap: 0,
   floor: 1,
   log: [],
   mode: "explore",
@@ -51,7 +53,7 @@ function addLog(text, type = "normal") {
 
 function render() {
   document.getElementById("status").innerText =
-    `HP: ${state.hp} | Floor: ${state.floor}`;
+    `HP: ${state.hp} | Scrap: ${state.scrap} | Floor: ${state.floor}`;
 
   let logHTML = "";
   state.log.forEach((entry, index) => {
@@ -59,6 +61,7 @@ function render() {
     if (index === 0) cls += "log-new ";
     if (entry.type === "damage") cls += "log-damage ";
     if (entry.type === "heal") cls += "log-heal ";
+    if (entry.type === "scrap") cls += "log-scrap ";
     logHTML += `<div class="${cls}">${entry.text}</div>`;
   });
   document.getElementById("log").innerHTML = logHTML;
@@ -67,7 +70,7 @@ function render() {
   actions.innerHTML = "";
 
   if (state.mode === "explore") {
-    createButton("進む", next);
+    createButton("採掘する", next);
   } else if (state.mode === "event") {
     createButton("開ける", openChest);
     createButton("無視する", ignoreChest);
@@ -86,26 +89,29 @@ function next() {
 
   let r = Math.random();
 
-  if (r < 0.4) {
+  if (r < 0.5) {
+    // 採掘成功
+    let gain = Math.floor(Math.random() * 3) + 1;
+    state.scrap += gain;
+    addLog(`採掘した スクラップ+${gain}`, "scrap");
+
+  } else if (r < 0.75) {
+    // 事故ダメージ
     let dmg = Math.floor(Math.random() * 3) + 1;
     state.hp -= dmg;
-    addLog(`敵に遭遇！ ${dmg} ダメージ`, "damage");
-
-  } else if (r < 0.7) {
-    let heal = Math.floor(Math.random() * 3) + 1;
-    state.hp += heal;
-    addLog(`回復した！ +${heal}`, "heal");
+    addLog(`落石！ ${dmg} ダメージ`, "damage");
 
   } else {
+    // 宝箱イベント
     state.mode = "event";
     state.event = "chest";
-    addLog("宝箱を見つけた！");
+    addLog("コンテナを発見した！");
     render();
     return;
   }
 
   if (state.hp <= 0) {
-    addLog("ゲームオーバー");
+    addLog("力尽きた…");
     gameOver();
     return;
   }
@@ -117,17 +123,18 @@ function openChest() {
   let r = Math.random();
 
   if (r < 0.6) {
-    let heal = Math.floor(Math.random() * 5) + 2;
-    state.hp += heal;
-    addLog(`宝箱から回復薬！ +${heal}`, "heal");
+    let gain = Math.floor(Math.random() * 5) + 2;
+    state.scrap += gain;
+    addLog(`資源を発見！ スクラップ+${gain}`, "scrap");
+
   } else {
     let dmg = Math.floor(Math.random() * 5) + 2;
     state.hp -= dmg;
-    addLog(`罠だった！ ${dmg} ダメージ`, "damage");
+    addLog(`トラップ作動！ ${dmg} ダメージ`, "damage");
   }
 
   if (state.hp <= 0) {
-    addLog("ゲームオーバー");
+    addLog("力尽きた…");
     gameOver();
     return;
   }
@@ -138,7 +145,7 @@ function openChest() {
 }
 
 function ignoreChest() {
-  addLog("宝箱を無視した");
+  addLog("コンテナを無視した");
   state.mode = "explore";
   state.event = null;
   render();
@@ -153,16 +160,18 @@ function gameOver() {
 function restart() {
   state = {
     hp: 10,
+    scrap: 0,
     floor: 1,
     log: [],
     mode: "explore",
     event: null
   };
-  addLog("冒険開始！");
+  addLog("採掘開始！");
   render();
 }
 
-addLog("冒険開始！");
+// 初期化
+addLog("採掘開始！");
 render();
 </script>
 </body>
