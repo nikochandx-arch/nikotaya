@@ -110,9 +110,10 @@ background: #111;
 
 <script>
 // --- 永続データ読み込み ---
-let savedUpgrades = JSON.parse(localStorage.getItem("upgrades") || '{"hp":0,"power":0}');
-let savedScrap    = parseInt(localStorage.getItem("totalScrap")) || 0;
-let savedName     = localStorage.getItem("playerName") || "プレイヤー";
+let savedUpgrades  = JSON.parse(localStorage.getItem("upgrades") || '{"hp":0,"power":0}');
+let savedScrap     = parseInt(localStorage.getItem("totalScrap")) || 0;
+let savedName      = localStorage.getItem("playerName") || "プレイヤー";
+let savedBestFloor = parseInt(localStorage.getItem("bestFloor")) || 1;
 
 let state = {
   name:       savedName,
@@ -125,15 +126,18 @@ let state = {
   scrap:      0,
   totalScrap: savedScrap,
   floor:      1,
+  bestFloor:  savedBestFloor,
   log:        [],
   mode:       "home",
-  upgrades:   savedUpgrades   // ← 読み込んだものをそのまま使う
+  upgrades:   savedUpgrades,
+  lastResult: null  // リザルト用（帰還・死亡時にセット）
 };
 
 // --- 保存ヘルパー ---
 function saveAll() {
   localStorage.setItem("totalScrap", state.totalScrap);
   localStorage.setItem("upgrades",   JSON.stringify(state.upgrades));
+  localStorage.setItem("bestFloor",  state.bestFloor);
 }
 
 // --- コスト ---
@@ -164,7 +168,22 @@ function render(){
 最大HP：${state.maxHp}
 最大MP：${state.maxMp}
 採掘力：${state.power}
-スキル：${state.skills.length ? state.skills.join(",") : "なし"}`;
+スキル：${state.skills.length ? state.skills.join(",") : "なし"}
+最高到達階：${state.bestFloor}階`;
+
+  // リザルト画面
+  if(state.mode === "result" && state.lastResult){
+    let r = state.lastResult;
+    let survived = r.survived ? "帰還成功" : "力尽きた…";
+    document.getElementById("log").innerHTML = `
+<div style="color:#ff0;font-size:36px;margin-bottom:12px;">── リザルト ──</div>
+<div>${survived}</div>
+<div>到達階層：${r.floor} 階</div>
+<div style="color:#ffcc66;">持ち帰ったスクラップ：${r.carry}</div>
+<div style="color:#aaa;margin-top:8px;">最高到達階：${state.bestFloor} 階</div>
+`;
+    return;
+  }
 
   let logHTML = "";
   state.log.forEach((e, i) => {
@@ -181,6 +200,9 @@ function render(){
   a.innerHTML = "";
 
   switch(state.mode){
+    case "result":
+      btn("ホームへ戻る", goHome);
+      break;
     case "home":
       btn("採掘開始", startRun);
       btn("名前変更", changeName);
@@ -389,24 +411,32 @@ function confirmReturn(){
 function doReturn(){
   let carry = Math.floor(state.scrap / 2);
   state.totalScrap += carry;
+
+  // 最高到達階を更新
+  if(state.floor > state.bestFloor) state.bestFloor = state.floor;
   saveAll();
 
-  addLog(`帰還した。スクラップ${carry}を持ち帰った`, "scrap");
-
-  state.hp    = state.maxHp;
-  state.scrap = 0;
-  state.floor = 1;
-  state.log   = [];
-  state.mode  = "home";
+  state.lastResult = { survived: true, floor: state.floor, carry };
+  state.mode = "result";
   render();
 }
 
 function forceReturn(){
-  addLog("撤退した…");
+  // 最高到達階を更新
+  if(state.floor > state.bestFloor) state.bestFloor = state.floor;
+  saveAll();
+
+  state.lastResult = { survived: false, floor: state.floor, carry: 0 };
+  state.mode = "result";
+  render();
+}
+
+function goHome(){
   state.hp    = state.maxHp;
   state.scrap = 0;
   state.floor = 1;
   state.log   = [];
+  state.lastResult = null;
   state.mode  = "home";
   render();
 }
