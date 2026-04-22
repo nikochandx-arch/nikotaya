@@ -43,6 +43,11 @@ h2 { font-size: 40px; }
   font-size: 28px;
 }
 
+#shop button {
+  width: 100%;
+  margin-top: 8px;
+}
+
 button {
   min-width: 180px;
   max-width: 260px;
@@ -115,44 +120,33 @@ let state = {
   floor: 1,
   log: [],
   mode: "home",
-  upgrades: {
-    hp: 0,
-    power: 0
-  }
+  upgrades: { hp: 0, power: 0 }
 };
 
-// 保存読み込み
+// 保存
 let savedScrap = localStorage.getItem("totalScrap");
 if (savedScrap) state.totalScrap = parseInt(savedScrap);
 
 let savedName = localStorage.getItem("playerName");
 if (savedName) state.name = savedName;
 
-// 計算
-function getHpCost() {
-  return 30 + state.upgrades.hp * 20;
-}
-function getPowerCost() {
-  return 100 + state.upgrades.power * 50;
-}
+// コスト
+function getHpCost(){ return 30 + state.upgrades.hp * 20; }
+function getPowerCost(){ return 100 + state.upgrades.power * 50; }
 
 // HP処理
-function damage(dmg) {
-  state.hp = Math.max(0, state.hp - dmg);
-}
-function heal(val) {
-  state.hp = Math.min(state.maxHp, state.hp + val);
-}
+function damage(d){ state.hp = Math.max(0, state.hp - d); }
+function heal(v){ state.hp = Math.min(state.maxHp, state.hp + v); }
 
 // ログ
-function addLog(text, type="normal") {
-  let prefix = (type === "divider") ? "" : `【${state.floor}階】`;
-  state.log.unshift({ text: prefix + text, type });
-  state.log = state.log.slice(0, 12);
+function addLog(text, type="normal"){
+  let prefix = (type==="divider") ? "" : `【${state.floor}階】`;
+  state.log.unshift({text:prefix+text,type});
+  state.log = state.log.slice(0,12);
 }
 
 // 描画
-function render() {
+function render(){
   document.getElementById("status").innerText =
     `HP:${state.hp}/${state.maxHp} | MP:${state.mp}/${state.maxMp} | スクラップ:${state.scrap} | 現在地:${state.floor}階`;
 
@@ -166,20 +160,8 @@ function render() {
 採掘力：${state.power}
 スキル：${state.skills.length ? state.skills.join(",") : "なし"}`;
 
-  let shopText = "";
-  if (state.mode === "home") {
-    shopText =
-`▼ショップ
-最大HP +1
-（スクラップ ${getHpCost()}）
-
-採掘力 +1
-（スクラップ ${getPowerCost()}）`;
-  }
-  document.getElementById("shop").innerText = shopText;
-
-  // ログ
-  let logHTML = "";
+  // ログ描画
+  let logHTML="";
   state.log.forEach((e,i)=>{
     let cls="";
     if(i===0)cls+="log-new ";
@@ -190,16 +172,14 @@ function render() {
   });
   document.getElementById("log").innerHTML = logHTML;
 
-  // ボタン
-  let a = document.getElementById("actions");
-  a.innerHTML = "";
+  // 行動ボタン（←ここはゲーム専用）
+  let a=document.getElementById("actions");
+  a.innerHTML="";
 
   switch(state.mode){
     case "home":
       btn("採掘開始", startRun);
       btn("名前変更", changeName);
-      btn(`最大HP +1\n（${getHpCost()}）`, buyHp);
-      btn(`採掘力 +1\n（${getPowerCost()}）`, buyPower);
       break;
 
     case "explore":
@@ -220,6 +200,23 @@ function render() {
       btn("帰還する", forceReturn);
       break;
   }
+
+  // ★ショップ（完全分離）
+  let shopHTML="";
+  if(state.mode==="home"){
+    shopHTML = `
+<div>▼ショップ</div>
+
+<button onclick="buyHp()">
+最大HP +1<br>（スクラップ ${getHpCost()}）
+</button>
+
+<button onclick="buyPower()">
+採掘力 +1<br>（スクラップ ${getPowerCost()}）
+</button>
+`;
+  }
+  document.getElementById("shop").innerHTML = shopHTML;
 }
 
 function btn(t,f){
@@ -323,7 +320,7 @@ function checkDeath(){
   }
 }
 
-// ★帰還確認
+// 帰還確認
 function confirmReturn(){
   if(confirm("本当に帰還しますか？（スクラップの半分を消費します）")){
     doReturn();
