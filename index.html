@@ -54,7 +54,7 @@ let state = {
   totalScrap: 0,
   floor: 1,
   log: [],
-  mode: "explore"
+  mode: "home" // home / explore / event / return / dead
 };
 
 // 永続読み込み
@@ -62,8 +62,9 @@ let saved = localStorage.getItem("totalScrap");
 if (saved) state.totalScrap = parseInt(saved) || 0;
 
 function addLog(text, type = "normal") {
-  state.log.unshift({ text, type });
-  state.log = state.log.slice(0, 10);
+  let prefix = `【${state.floor}階】`;
+  state.log.unshift({ text: prefix + text, type });
+  state.log = state.log.slice(0, 12);
 }
 
 function render() {
@@ -87,16 +88,28 @@ function render() {
   let actions = document.getElementById("actions");
   actions.innerHTML = "";
 
-  if (state.mode === "explore") {
-    createButton("採掘する", next);
+  switch (state.mode) {
+    case "home":
+      createButton("採掘開始", startRun);
+      break;
 
-  } else if (state.mode === "event") {
-    createButton("開ける", openChest);
-    createButton("無視する", ignoreChest);
+    case "explore":
+      createButton("採掘する", next);
+      break;
 
-  } else if (state.mode === "return") {
-    createButton("帰還する", doReturn);
-    createButton("続行する", continueRun);
+    case "event":
+      createButton("開ける", openChest);
+      createButton("無視する", ignoreChest);
+      break;
+
+    case "return":
+      createButton("帰還する", doReturn);
+      createButton("続行する", continueRun);
+      break;
+
+    case "dead":
+      createButton("帰還する", forceReturn);
+      break;
   }
 }
 
@@ -105,6 +118,18 @@ function createButton(text, fn) {
   b.innerText = text;
   b.onclick = fn;
   document.getElementById("actions").appendChild(b);
+}
+
+// ■ホーム→開始
+function startRun() {
+  state.hp = state.maxHp;
+  state.scrap = 0;
+  state.floor = 1;
+  state.log = [];
+  state.mode = "explore";
+
+  addLog("採掘開始！");
+  render();
 }
 
 function next() {
@@ -169,11 +194,11 @@ function ignoreChest() {
 function checkDeath() {
   if (state.hp <= 0) {
     addLog("HPが0になった…");
-    gameOver();
+    state.mode = "dead";
   }
 }
 
-// 帰還（半分持ち帰り＋完全リセット）
+// ■通常帰還（10階）
 function doReturn() {
   let carry = Math.floor(state.scrap / 2);
 
@@ -182,11 +207,15 @@ function doReturn() {
 
   addLog(`帰還した。スクラップ${carry}を持ち帰った`, "scrap");
 
-  state.hp = state.maxHp;
-  state.scrap = 0;
-  state.floor = 1;
-  state.mode = "explore";
+  state.mode = "home";
+  render();
+}
 
+// ■死亡時の帰還
+function forceReturn() {
+  addLog("撤退した…");
+
+  state.mode = "home";
   render();
 }
 
@@ -196,25 +225,7 @@ function continueRun() {
   render();
 }
 
-function gameOver() {
-  let actions = document.getElementById("actions");
-  actions.innerHTML = "";
-  createButton("リスタート", restart);
-}
-
-function restart() {
-  state.hp = state.maxHp;
-  state.scrap = 0;
-  state.floor = 1;
-  state.log = [];
-  state.mode = "explore";
-
-  addLog("採掘開始！");
-  render();
-}
-
-// 初期化
-addLog("採掘開始！");
+// 初期表示
 render();
 </script>
 </body>
