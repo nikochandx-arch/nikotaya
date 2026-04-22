@@ -8,8 +8,10 @@ body {
   background-color: #111;
   color: #0f0;
   font-family: monospace;
-  padding: 16px;
-  font-size: 18px;
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 h2 { font-size: 24px; }
 #status { margin-bottom: 8px; font-size: 20px; }
@@ -38,14 +40,38 @@ font-size: 18px;
 .log-damage { color: #f55; }
 .log-scrap { color: #ffcc66; }
 .log-divider { color: #888; text-align: center; }
+
+#top {
+  flex: 1;
+  overflow-y: auto; /* ←ログだけスクロール */
+  padding: 16px;
+}
+
+#bottom {
+  border-top: 1px solid #0f0;
+  padding: 12px;
+  background: #111;
+}
+
+#actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 </style>
 </head>
 <body>
-<h2>Nikotaya Mining Roguelike</h2>
-<div id="status"></div>
-<div id="log"></div>
-<div id="actions"></div>
-<div id="storage"></div>
+<div id="top">
+  <h2>Nikotaya Mining Roguelike</h2>
+  <div id="status"></div>
+  <div id="log"></div>
+</div>
+
+<div id="bottom">
+  <div id="actions"></div>
+  <div id="storage"></div>
+</div>
 <script>
 let state = {
   hp: 10,
@@ -207,6 +233,12 @@ function doReturn() {
 
   addLog(`帰還した。スクラップ${carry}を持ち帰った`, "scrap");
 
+  // ★ここ追加
+  state.hp = state.maxHp;
+  state.scrap = 0;
+  state.floor = 1;
+  state.log = [];
+
   state.mode = "home";
   render();
 }
@@ -214,6 +246,11 @@ function doReturn() {
 // ■死亡時の帰還
 function forceReturn() {
   addLog("撤退した…");
+
+  state.hp = state.maxHp;
+  state.scrap = 0;
+  state.floor = 1;
+  state.log = [];
 
   state.mode = "home";
   render();
