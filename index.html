@@ -18,7 +18,7 @@ button {
 display: block;
 margin: 12px auto;
 padding: 16px 0;
-width: 160px;
+width: 180px;
 background: #222;
 color: #0f0;
 border: 1px solid #0f0;
@@ -26,10 +26,10 @@ font-size: 18px;
 }
 
 #log div { margin-bottom: 4px; color: #fff; }
-.log-new { font-weight: bold; font-size: 18px; }
+.log-new { font-weight: bold; }
 .log-damage { color: #f55; }
-.log-heal { color: #5f5; }
-.log-scrap { color: #ffcc66; } /* スクラップ色 */
+.log-scrap { color: #ffcc66; }
+.log-divider { color: #888; text-align: center; }
 </style>
 </head>
 <body>
@@ -40,33 +40,33 @@ font-size: 18px;
 <script>
 let state = {
   hp: 10,
-  scrap: 0,
-  totalScrap: 0,
+  scrap: 0,        // 今回の探索で持ってる
+  totalScrap: 0,   // 累計
   floor: 1,
   log: [],
-  mode: "explore",
-  event: null
+  mode: "explore", // explore / event / return
 };
+
+// 永続読み込み
+let saved = localStorage.getItem("totalScrap");
+if (saved) state.totalScrap = parseInt(saved) || 0;
 
 function addLog(text, type = "normal") {
   state.log.unshift({ text, type });
-  state.log = state.log.slice(0, 8);
+  state.log = state.log.slice(0, 10);
 }
-
-let saved = localStorage.getItem("totalScrap");
-if (saved) state.totalScrap = parseInt(saved);
 
 function render() {
   document.getElementById("status").innerText =
-    `HP: ${state.hp} | Scrap: ${state.scrap} | Total: ${state.totalScrap} | Floor: ${state.floor}`;
+    `HP:${state.hp} | Scrap:${state.scrap} | Total:${state.totalScrap} | Floor:${state.floor}`;
 
   let logHTML = "";
-  state.log.forEach((entry, index) => {
+  state.log.forEach((entry, i) => {
     let cls = "";
-    if (index === 0) cls += "log-new ";
+    if (i === 0) cls += "log-new ";
     if (entry.type === "damage") cls += "log-damage ";
-    if (entry.type === "heal") cls += "log-heal ";
     if (entry.type === "scrap") cls += "log-scrap ";
+    if (entry.type === "divider") cls += "log-divider ";
     logHTML += `<div class="${cls}">${entry.text}</div>`;
   });
   document.getElementById("log").innerHTML = logHTML;
@@ -76,65 +76,66 @@ function render() {
 
   if (state.mode === "explore") {
     createButton("採掘する", next);
+
   } else if (state.mode === "event") {
     createButton("開ける", openChest);
     createButton("無視する", ignoreChest);
+
+  } else if (state.mode === "return") {
+    createButton("帰還する", doReturn);
+    createButton("続行する", continueRun);
   }
 }
 
-function createButton(text, onClick) {
-  let btn = document.createElement("button");
-  btn.innerText = text;
-  btn.onclick = onClick;
-  document.getElementById("actions").appendChild(btn);
+function createButton(text, fn) {
+  let b = document.createElement("button");
+  b.innerText = text;
+  b.onclick = fn;
+  document.getElementById("actions").appendChild(b);
 }
 
 function next() {
   state.floor++;
 
+  // ■10階ごと
+  if (state.floor % 10 === 0) {
+    addLog(`－－－ ${state.floor}階層 －－－`, "divider");
+    state.mode = "return";
+    render();
+    return;
+  }
+
   let r = Math.random();
 
   if (r < 0.5) {
-    // 採掘成功
     let gain = Math.floor(Math.random() * 3) + 1;
     state.scrap += gain;
-    state.totalScrap += gain;
- localStorage.setItem("totalScrap", state.totalScrap);
     addLog(`採掘した スクラップ+${gain}`, "scrap");
 
   } else if (r < 0.75) {
-    // 事故ダメージ
     let dmg = Math.floor(Math.random() * 3) + 1;
     state.hp -= dmg;
     addLog(`落石！ ${dmg} ダメージ`, "damage");
 
   } else {
-    // 宝箱イベント
     state.mode = "event";
-    state.event = "chest";
     addLog("コンテナを発見した！");
     render();
     return;
   }
 
-  if (state.hp <= 0) {
-    addLog("力尽きた…");
-    gameOver();
-    return;
-  }
-
+  checkDeath();
   render();
 }
 
+// ■コンテナ
 function openChest() {
   let r = Math.random();
 
   if (r < 0.6) {
     let gain = Math.floor(Math.random() * 5) + 2;
     state.scrap += gain;
-state.totalScrap += gain;
-localStorage.setItem("totalScrap", state.totalScrap);
-    addLog(`資源を発見！ スクラップ+${gain}`, "scrap");
+    addLog(`資源を発見！ +${gain}`, "scrap");
 
   } else {
     let dmg = Math.floor(Math.random() * 5) + 2;
@@ -142,21 +143,42 @@ localStorage.setItem("totalScrap", state.totalScrap);
     addLog(`トラップ作動！ ${dmg} ダメージ`, "damage");
   }
 
-  if (state.hp <= 0) {
-    addLog("力尽きた…");
-    gameOver();
-    return;
-  }
+  checkDeath();
 
   state.mode = "explore";
-  state.event = null;
   render();
 }
 
 function ignoreChest() {
   addLog("コンテナを無視した");
   state.mode = "explore";
-  state.event = null;
+  render();
+}
+
+// ■死亡処理（ログ保証）
+function checkDeath() {
+  if (state.hp <= 0) {
+    addLog("HPが0になった…");
+    gameOver();
+  }
+}
+
+// ■帰還
+let carry = Math.floor(state.scrap / 2); // 半分持ち帰り
+
+state.totalScrap += carry;
+localStorage.setItem("totalScrap", state.totalScrap);
+
+addLog(`帰還した。スクラップ${carry}を持ち帰った（半分消費）`, "scrap");
+
+state.scrap = 0;
+  state.mode = "explore";
+  render();
+}
+
+function continueRun() {
+  addLog("さらに深く潜る…");
+  state.mode = "explore";
   render();
 }
 
@@ -173,8 +195,7 @@ function restart() {
     totalScrap: state.totalScrap,
     floor: 1,
     log: [],
-    mode: "explore",
-    event: null
+    mode: "explore"
   };
   addLog("採掘開始！");
   render();
@@ -186,3 +207,4 @@ render();
 </script>
 </body>
 </html>
+
