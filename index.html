@@ -192,6 +192,14 @@ function render(){
       btn("開ける",   openChest);
       btn("無視する", ignoreChest);
       break;
+    case "event_vein":
+      btn("掘る",       digVein);
+      btn("無視して進む", ignoreEvent);
+      break;
+    case "event_mushroom":
+      btn("食べる",     eatMushroom);
+      btn("無視して進む", ignoreEvent);
+      break;
     case "return":
       btn("帰還する", confirmReturn);
       btn("続行する", continueRun);
@@ -261,11 +269,25 @@ function next(){
 
   let r = Math.random();
 
-  if(r < 0.5){
+  // 鉱脈：約10階に1回（確率10%）、コンテナより優先チェック
+  if(r < 0.10){
+    state.mode = "event_vein";
+    addLog("鉱脈だ！だけど地盤が脆そうだ…");
+    render();
+    return;
+
+  // キノコ：約8%
+  } else if(r < 0.18){
+    state.mode = "event_mushroom";
+    addLog("謎のキノコだ！");
+    render();
+    return;
+
+  } else if(r < 0.59){
     let g = calcScrap();
     state.scrap += g;
     addLog(`採掘した スクラップ +${g}`, "scrap");
-  } else if(r < 0.75){
+  } else if(r < 0.79){
     let d = Math.floor(Math.random()*3) + 1;
     damage(d);
     addLog(`落石！ ${d} ダメージ`, "damage");
@@ -299,6 +321,56 @@ function openChest(){
 
 function ignoreChest(){
   addLog("コンテナを無視した");
+  state.mode = "explore";
+  render();
+}
+
+// --- 共通：無視して進む ---
+function ignoreEvent(){
+  addLog("無視して先へ進んだ");
+  state.mode = "explore";
+  render();
+}
+
+// --- 鉱脈イベント ---
+function digVein(){
+  if(Math.random() < 0.5){
+    let g = calcScrap() * 2;
+    state.scrap += g;
+    addLog(`鉱脈を掘り当てた！ スクラップ +${g}`, "scrap");
+  } else {
+    let d = 3 + Math.floor(state.floor / 10);
+    damage(d);
+    addLog(`地盤が崩れた！ ${d} ダメージ`, "damage");
+  }
+  checkDeath();
+  state.mode = "explore";
+  render();
+}
+
+// --- キノコイベント ---
+function eatMushroom(){
+  let r = Math.random();
+  if(r < 0.40){
+    // ダメージ
+    damage(3);
+    addLog("苦い！ 3 ダメージを受けた", "damage");
+  } else if(r < 0.80){
+    // 回復
+    heal(3);
+    addLog("甘い香り… HP +3 回復した", "scrap");
+  } else if(r < 0.90){
+    // 階層戻り
+    let back = Math.min(2, state.floor - 1);
+    state.floor -= back;
+    addLog(`錯乱した！ ${back}階層戻された`, "damage");
+  } else {
+    // スクラップ10%消失
+    let lost = Math.floor(state.scrap * 0.1);
+    state.scrap = Math.max(0, state.scrap - lost);
+    addLog(`錯乱した！ スクラップ ${lost} をばらまいた`, "damage");
+  }
+  checkDeath();
   state.mode = "explore";
   render();
 }
