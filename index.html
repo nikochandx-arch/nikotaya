@@ -14,6 +14,14 @@ body {
 h2 { font-size: 24px; }
 #status { margin-bottom: 8px; font-size: 20px; }
 #log { margin-bottom: 16px; font-size: 16px; }
+
+#storage {
+margin-top: 20px;
+padding-top: 10px;
+border-top: 1px solid #0f0;
+color: #ffcc66;
+}
+
 button {
 display: block;
 margin: 12px auto;
@@ -37,14 +45,16 @@ font-size: 18px;
 <div id="status"></div>
 <div id="log"></div>
 <div id="actions"></div>
+<div id="storage"></div>
 <script>
 let state = {
   hp: 10,
-  scrap: 0,        // 今回の探索で持ってる
-  totalScrap: 0,   // 累計
+  maxHp: 10,
+  scrap: 0,
+  totalScrap: 0,
   floor: 1,
   log: [],
-  mode: "explore", // explore / event / return
+  mode: "explore"
 };
 
 // 永続読み込み
@@ -58,7 +68,10 @@ function addLog(text, type = "normal") {
 
 function render() {
   document.getElementById("status").innerText =
-    `HP:${state.hp} | Scrap:${state.scrap} | Total:${state.totalScrap} | Floor:${state.floor}`;
+    `HP:${state.hp}/${state.maxHp} | Scrap:${state.scrap} | Floor:${state.floor}`;
+
+  document.getElementById("storage").innerText =
+    `倉庫：スクラップ ${state.totalScrap}`;
 
   let logHTML = "";
   state.log.forEach((entry, i) => {
@@ -97,7 +110,6 @@ function createButton(text, fn) {
 function next() {
   state.floor++;
 
-  // ■10階ごと
   if (state.floor % 10 === 0) {
     addLog(`－－－ ${state.floor}階層 －－－`, "divider");
     state.mode = "return";
@@ -128,7 +140,6 @@ function next() {
   render();
 }
 
-// ■コンテナ
 function openChest() {
   let r = Math.random();
 
@@ -155,7 +166,6 @@ function ignoreChest() {
   render();
 }
 
-// ■死亡処理（ログ保証）
 function checkDeath() {
   if (state.hp <= 0) {
     addLog("HPが0になった…");
@@ -163,17 +173,20 @@ function checkDeath() {
   }
 }
 
-// ■帰還
+// 帰還（半分持ち帰り＋完全リセット）
 function doReturn() {
-  let carry = Math.floor(state.scrap / 2); // 半分持ち帰り
+  let carry = Math.floor(state.scrap / 2);
 
   state.totalScrap += carry;
   localStorage.setItem("totalScrap", state.totalScrap);
 
-  addLog(`帰還した。スクラップ${carry}を持ち帰った（半分消費）`, "scrap");
+  addLog(`帰還した。スクラップ${carry}を持ち帰った`, "scrap");
 
+  state.hp = state.maxHp;
   state.scrap = 0;
+  state.floor = 1;
   state.mode = "explore";
+
   render();
 }
 
@@ -190,14 +203,12 @@ function gameOver() {
 }
 
 function restart() {
-  state = {
-    hp: 10,
-    scrap: 0,
-    totalScrap: state.totalScrap,
-    floor: 1,
-    log: [],
-    mode: "explore"
-  };
+  state.hp = state.maxHp;
+  state.scrap = 0;
+  state.floor = 1;
+  state.log = [];
+  state.mode = "explore";
+
   addLog("採掘開始！");
   render();
 }
@@ -208,4 +219,3 @@ render();
 </script>
 </body>
 </html>
-
