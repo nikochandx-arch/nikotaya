@@ -150,7 +150,7 @@ function heal(v)  { state.hp = Math.min(state.maxHp, state.hp + v); }
 
 // --- ログ ---
 function addLog(text, type="normal"){
-  let prefix = (type==="divider") ? "" : `【${state.floor}階】`;
+  let prefix = (type==="divider" || type==="sub") ? "" : `【${state.floor}階】`;
   state.log.unshift({text: prefix+text, type});
   state.log = state.log.slice(0, 12);
 }
@@ -195,7 +195,11 @@ function render(){
     if(e.type==="damage") cls += "log-damage ";
     if(e.type==="scrap")  cls += "log-scrap ";
     if(e.type==="divider")cls += "log-divider ";
-    logHTML += `<div class="${cls}">${e.text}</div>`;
+    if(e.type==="sub"){
+      logHTML += `<div class="${cls}" style="padding-left:2em;color:#aaa;">→ ${e.text}</div>`;
+    } else {
+      logHTML += `<div class="${cls}">${e.text}</div>`;
+    }
   });
   document.getElementById("log").innerHTML = logHTML;
 
@@ -330,11 +334,11 @@ function openChest(){
   if(r < 0.6){
     let g = Math.floor(Math.random()*5) + 2;
     state.scrap += g;
-    addLog(`資源を発見！ スクラップ +${g}`, "scrap");
+    addLog(`資源を発見！ スクラップ +${g}`, "sub");
   } else {
     let d = Math.floor(Math.random()*5) + 2;
     damage(d);
-    addLog(`トラップ作動！ ${d} ダメージ`, "damage");
+    addLog(`トラップ作動！ ${d} ダメージ`, "sub");
   }
   checkDeath();
   if(state.mode !== "dead") state.mode = "explore";
@@ -342,14 +346,14 @@ function openChest(){
 }
 
 function ignoreChest(){
-  addLog("コンテナを無視した");
+  addLog("無視した", "sub");
   state.mode = "explore";
   render();
 }
 
 // --- 共通：無視して進む ---
 function ignoreEvent(){
-  addLog("無視して先へ進んだ");
+  addLog("無視した", "sub");
   state.mode = "explore";
   render();
 }
@@ -359,11 +363,11 @@ function digVein(){
   if(Math.random() < 0.5){
     let g = calcScrap() * 2;
     state.scrap += g;
-    addLog(`鉱脈を掘り当てた！ スクラップ +${g}`, "scrap");
+    addLog(`鉱脈を掘り当てた！ スクラップ +${g}`, "sub");
   } else {
     let d = 3 + Math.floor(state.floor / 10);
     damage(d);
-    addLog(`地盤が崩れた！ ${d} ダメージ`, "damage");
+    addLog(`地盤が崩れた！ ${d} ダメージ`, "sub");
   }
   checkDeath();
   if(state.mode !== "dead") state.mode = "explore";
@@ -375,18 +379,18 @@ function eatMushroom(){
   let r = Math.random();
   if(r < 0.40){
     damage(3);
-    addLog("苦い！ 3 ダメージを受けた", "damage");
+    addLog("苦い！ 3 ダメージを受けた", "sub");
   } else if(r < 0.80){
     heal(3);
-    addLog("甘い香り… HP +3 回復した", "scrap");
+    addLog("甘い香り… HP +3 回復した", "sub");
   } else if(r < 0.90){
     let back = Math.min(2, state.floor - 1);
     state.floor -= back;
-    addLog(`錯乱した！ ${back}階層戻された`, "damage");
+    addLog(`錯乱した！ ${back}階層戻された`, "sub");
   } else {
     let lost = Math.floor(state.scrap * 0.1);
     state.scrap = Math.max(0, state.scrap - lost);
-    addLog(`錯乱した！ スクラップ ${lost} をばらまいた`, "damage");
+    addLog(`錯乱した！ スクラップ ${lost} をばらまいた`, "sub");
   }
   checkDeath();
   if(state.mode !== "dead") state.mode = "explore";
