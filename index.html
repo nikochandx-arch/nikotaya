@@ -171,7 +171,7 @@ function render(){
 スキル：${state.skills.length ? state.skills.join(",") : "なし"}
 最高到達階：${state.bestFloor}階`;
 
-  // リザルト画面
+  // リザルト画面（完全独立描画）
   if(state.mode === "result" && state.lastResult){
     let r = state.lastResult;
     let survived = r.survived ? "帰還成功" : "力尽きた…";
@@ -182,6 +182,9 @@ function render(){
 <div style="color:#ffcc66;">持ち帰ったスクラップ：${r.carry}</div>
 <div style="color:#aaa;margin-top:8px;">最高到達階：${state.bestFloor} 階</div>
 `;
+    document.getElementById("actions").innerHTML = "";
+    btn("ホームへ戻る", goHome);
+    document.getElementById("shop").innerHTML = "";
     return;
   }
 
@@ -200,9 +203,6 @@ function render(){
   a.innerHTML = "";
 
   switch(state.mode){
-    case "result":
-      btn("ホームへ戻る", goHome);
-      break;
     case "home":
       btn("採掘開始", startRun);
       btn("名前変更", changeName);
