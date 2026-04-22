@@ -12,10 +12,8 @@ body {
   height: 100vh;
   display: flex;
   flex-direction: column;
+  font-size: 32px;
 }
-
-/* 全体文字サイズを約2倍 */
-body { font-size: 32px; }
 
 h2 { font-size: 40px; }
 #status { margin-bottom: 12px; font-size: 34px; }
@@ -41,10 +39,8 @@ button {
   min-width: 180px;
   max-width: 240px;
   flex: 1;
-
   margin: 8px;
   padding: 20px 0;
-
   background: #222;
   color: #0f0;
   border: 2px solid #0f0;
@@ -58,7 +54,7 @@ button {
 .log-divider { color: #888; text-align: center; }
 
 #top {
-  height: 700px;
+  height: 400px;
   overflow-y: auto;
   padding: 16px;
 }
@@ -72,9 +68,9 @@ button {
 
 #actions {
   display: flex;
-  flex-wrap: wrap;          /* 複数行OK */
-  justify-content: center;  /* 中央寄せ */
-  gap: 12px;                /* ボタン間の余白 */
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
 }
 </style>
 </head>
@@ -102,7 +98,6 @@ let state = {
   maxMp: 0,
   power: 1,
   skills: [],
-
   scrap: 0,
   totalScrap: 0,
   floor: 1,
@@ -111,21 +106,23 @@ let state = {
 };
 
 // 永続読み込み
-let saved = localStorage.getItem("totalScrap");
-if (saved) state.totalScrap = parseInt(saved) || 0;
+let savedScrap = localStorage.getItem("totalScrap");
+if (savedScrap) state.totalScrap = parseInt(savedScrap) || 0;
+
+let savedName = localStorage.getItem("playerName");
+if (savedName) state.name = savedName;
 
 // --- HP操作 ---
 function damage(dmg) {
   state.hp = Math.max(0, state.hp - dmg);
 }
-
 function heal(amount) {
   state.hp = Math.min(state.hp + amount, state.maxHp);
 }
 
 // --- ログ ---
 function addLog(text, type = "normal") {
-  let prefix = `【${state.floor}階】`;
+  let prefix = (type === "divider") ? "" : `【${state.floor}階】`;
   state.log.unshift({ text: prefix + text, type });
   state.log = state.log.slice(0, 12);
 }
@@ -133,12 +130,11 @@ function addLog(text, type = "normal") {
 // --- 描画 ---
 function render() {
   document.getElementById("status").innerText =
-    `HP:${state.hp}/${state.maxHp} | Scrap:${state.scrap} | Floor:${state.floor}`;
+    `HP:${state.hp}/${state.maxHp} | スクラップ:${state.scrap} | 現在地:${state.floor}階`;
 
   document.getElementById("storage").innerText =
     `倉庫：スクラップ ${state.totalScrap}`;
 
-  // ★ステータス欄
   document.getElementById("playerStatus").innerText =
 `名前：${state.name}
 HP：${state.hp}/${state.maxHp}
@@ -196,7 +192,10 @@ function createButton(text, fn) {
 // --- 名前変更 ---
 function changeName() {
   let n = prompt("名前を入力");
-  if (n) state.name = n;
+  if (n) {
+    state.name = n;
+    localStorage.setItem("playerName", n);
+  }
   render();
 }
 
@@ -228,7 +227,7 @@ function next() {
   if (r < 0.5) {
     let gain = Math.floor(Math.random() * 3) + 1;
     state.scrap += gain;
-    addLog(`採掘した スクラップ+${gain}`, "scrap");
+    addLog(`採掘した スクラップ +${gain}`, "scrap");
 
   } else if (r < 0.75) {
     let dmg = Math.floor(Math.random() * 3) + 1;
@@ -253,7 +252,7 @@ function openChest() {
   if (r < 0.6) {
     let gain = Math.floor(Math.random() * 5) + 2;
     state.scrap += gain;
-    addLog(`資源を発見！ +${gain}`, "scrap");
+    addLog(`資源を発見！ スクラップ +${gain}`, "scrap");
 
   } else {
     let dmg = Math.floor(Math.random() * 5) + 2;
@@ -262,7 +261,6 @@ function openChest() {
   }
 
   checkDeath();
-
   state.mode = "explore";
   render();
 }
