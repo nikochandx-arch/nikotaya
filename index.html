@@ -41,6 +41,7 @@ font-size: 18px;
 let state = {
   hp: 10,
   scrap: 0,
+  totalScrap: 0,
   floor: 1,
   log: [],
   mode: "explore",
@@ -52,9 +53,12 @@ function addLog(text, type = "normal") {
   state.log = state.log.slice(0, 8);
 }
 
+let saved = localStorage.getItem("totalScrap");
+if (saved) state.totalScrap = parseInt(saved);
+
 function render() {
   document.getElementById("status").innerText =
-    `HP: ${state.hp} | Scrap: ${state.scrap} | Floor: ${state.floor}`;
+    `HP: ${state.hp} | Scrap: ${state.scrap} | Total: ${state.totalScrap} | Floor: ${state.floor}`;
 
   let logHTML = "";
   state.log.forEach((entry, index) => {
@@ -94,6 +98,8 @@ function next() {
     // 採掘成功
     let gain = Math.floor(Math.random() * 3) + 1;
     state.scrap += gain;
+    state.totalScrap += gain;
+ localStorage.setItem("totalScrap", state.totalScrap);
     addLog(`採掘した スクラップ+${gain}`, "scrap");
 
   } else if (r < 0.75) {
@@ -126,6 +132,8 @@ function openChest() {
   if (r < 0.6) {
     let gain = Math.floor(Math.random() * 5) + 2;
     state.scrap += gain;
+state.totalScrap += gain;
+localStorage.setItem("totalScrap", state.totalScrap);
     addLog(`資源を発見！ スクラップ+${gain}`, "scrap");
 
   } else {
@@ -162,6 +170,7 @@ function restart() {
   state = {
     hp: 10,
     scrap: 0,
+    totalScrap: state.totalScrap,
     floor: 1,
     log: [],
     mode: "explore",
