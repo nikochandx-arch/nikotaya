@@ -54,7 +54,7 @@ button {
 .log-divider { color: #888; text-align: center; }
 
 #top {
-  height: 400px;
+  height: 700px;
   overflow-y: auto;
   padding: 16px;
 }
@@ -211,6 +211,24 @@ function startRun() {
   render();
 }
 
+// --- 採掘 ---
+
+function calcScrapGain() {
+  // 10階ごとにボーナス（1階〜9階=1倍, 10〜19=2倍…）
+  let tier = Math.floor((state.floor - 1) / 10) + 1;
+
+  // 基本値
+  let base = state.power * tier;
+
+  // ブレ（±50%くらい）
+  let variance = Math.floor(base * (Math.random() * 1.0 - 0.5));
+
+  let result = base + variance;
+
+  // 最低1は保証
+  return Math.max(1, result);
+}
+
 // --- 探索 ---
 function next() {
   state.floor++;
@@ -225,8 +243,8 @@ function next() {
   let r = Math.random();
 
   if (r < 0.5) {
-    let gain = Math.floor(Math.random() * 3) + 1;
-    state.scrap += gain;
+    let gain = calcScrapGain();
+state.scrap += gain;
     addLog(`採掘した スクラップ +${gain}`, "scrap");
 
   } else if (r < 0.75) {
