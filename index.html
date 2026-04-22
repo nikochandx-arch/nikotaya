@@ -315,7 +315,7 @@ function openChest(){
     addLog(`トラップ作動！ ${d} ダメージ`, "damage");
   }
   checkDeath();
-  state.mode = "explore";
+  if(state.mode !== "dead") state.mode = "explore";
   render();
 }
 
@@ -344,7 +344,7 @@ function digVein(){
     addLog(`地盤が崩れた！ ${d} ダメージ`, "damage");
   }
   checkDeath();
-  state.mode = "explore";
+  if(state.mode !== "dead") state.mode = "explore";
   render();
 }
 
@@ -352,26 +352,22 @@ function digVein(){
 function eatMushroom(){
   let r = Math.random();
   if(r < 0.40){
-    // ダメージ
     damage(3);
     addLog("苦い！ 3 ダメージを受けた", "damage");
   } else if(r < 0.80){
-    // 回復
     heal(3);
     addLog("甘い香り… HP +3 回復した", "scrap");
   } else if(r < 0.90){
-    // 階層戻り
     let back = Math.min(2, state.floor - 1);
     state.floor -= back;
     addLog(`錯乱した！ ${back}階層戻された`, "damage");
   } else {
-    // スクラップ10%消失
     let lost = Math.floor(state.scrap * 0.1);
     state.scrap = Math.max(0, state.scrap - lost);
     addLog(`錯乱した！ スクラップ ${lost} をばらまいた`, "damage");
   }
   checkDeath();
-  state.mode = "explore";
+  if(state.mode !== "dead") state.mode = "explore";
   render();
 }
 
