@@ -25,11 +25,20 @@ h2 { font-size: 40px; }
   padding: 16px;
 }
 
+/* ★ボタンを中央エリアに戻す */
+#actions {
+  border-top: 2px solid #0f0;
+  border-bottom: 2px solid #0f0;
+  padding: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
 #bottom {
   flex: 1;
   display: flex;
   gap: 20px;
-  border-top: 2px solid #0f0;
   padding: 16px;
 }
 
@@ -55,13 +64,9 @@ h2 { font-size: 40px; }
   color: #0ff;
 }
 
-#shop {
-  color: #fff;
-}
-
 button {
   min-width: 180px;
-  max-width: 240px;
+  max-width: 260px;
   flex: 1;
   margin: 8px;
   padding: 20px 0;
@@ -69,12 +74,6 @@ button {
   color: #0f0;
   border: 2px solid #0f0;
   font-size: 28px;
-}
-
-#actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
 }
 
 #log div { margin-bottom: 6px; color: #fff; }
@@ -93,9 +92,11 @@ button {
   <div id="log"></div>
 </div>
 
+<!-- ★ここにボタン -->
+<div id="actions"></div>
+
 <div id="bottom">
   <div id="leftPanel">
-    <div id="actions"></div>
     <div id="storage"></div>
     <div id="playerStatus"></div>
   </div>
@@ -121,59 +122,55 @@ let state = {
   mode: "home"
 };
 
-// --- 永続読み込み ---
+// --- 永続 ---
 let savedScrap = localStorage.getItem("totalScrap");
 if (savedScrap) state.totalScrap = parseInt(savedScrap) || 0;
 
 let savedName = localStorage.getItem("playerName");
 if (savedName) state.name = savedName;
 
-// ★強化値も保存
 let savedMaxHp = localStorage.getItem("maxHp");
 if (savedMaxHp) state.maxHp = parseInt(savedMaxHp);
 
 let savedPower = localStorage.getItem("power");
 if (savedPower) state.power = parseInt(savedPower);
 
-// --- HP処理 ---
-function damage(dmg) {
-  state.hp = Math.max(0, state.hp - dmg);
-}
-function heal(val) {
-  state.hp = Math.min(state.hp + val, state.maxHp);
-}
+// --- HP ---
+function damage(dmg){ state.hp = Math.max(0, state.hp - dmg); }
+function heal(v){ state.hp = Math.min(state.hp + v, state.maxHp); }
 
-// --- 採掘量 ---
-function calcScrapGain() {
-  let tier = Math.floor((state.floor - 1) / 10) + 1;
+// --- 採掘 ---
+function calcScrapGain(){
+  let tier = Math.floor((state.floor - 1)/10)+1;
   let base = state.power * tier;
-  let variance = Math.floor(base * (Math.random() - 0.5));
+  let variance = Math.floor(base*(Math.random()-0.5));
   return Math.max(1, base + variance);
 }
 
 // --- ログ ---
-function addLog(text, type="normal") {
-  let prefix = (type === "divider") ? "" : `【${state.floor}階】`;
-  state.log.unshift({text: prefix + text, type});
-  state.log = state.log.slice(0, 12);
+function addLog(text, type="normal"){
+  let prefix = (type==="divider") ? "" : `【${state.floor}階】`;
+  state.log.unshift({text: prefix+text, type});
+  state.log = state.log.slice(0,12);
 }
 
 // --- 描画 ---
-function render() {
+function render(){
   document.getElementById("status").innerText =
     `HP:${state.hp}/${state.maxHp} | スクラップ:${state.scrap} | 現在地:${state.floor}階`;
 
   document.getElementById("storage").innerText =
     `倉庫：スクラップ ${state.totalScrap}`;
 
+  // ★ステータス表記変更
   document.getElementById("playerStatus").innerText =
 `名前：${state.name}
-HP：${state.hp}/${state.maxHp}
-MP：${state.mp}/${state.maxMp}
+最大HP：${state.maxHp}
+最大MP：${state.maxMp}
 採掘力：${state.power}
 スキル：${state.skills.length ? state.skills.join(", ") : "なし"}`;
 
-  let logHTML = "";
+  let logHTML="";
   state.log.forEach((e,i)=>{
     let cls="";
     if(i===0) cls+="log-new ";
@@ -184,8 +181,8 @@ MP：${state.mp}/${state.maxMp}
   });
   document.getElementById("log").innerHTML = logHTML;
 
-  let act = document.getElementById("actions");
-  act.innerHTML = "";
+  let act=document.getElementById("actions");
+  act.innerHTML="";
 
   switch(state.mode){
     case "home":
@@ -227,59 +224,49 @@ function renderShop(){
     return;
   }
 
-  let hpCost = 30 + (state.maxHp - 10) * 10;
-  let powerCost = 100 + (state.power - 1) * 50;
+  let hpCost = 30 + (state.maxHp - 10)*10;
+  let powerCost = 100 + (state.power - 1)*50;
 
   shop.innerHTML = `
   <div>【ショップ】</div>
-  <button onclick="buyHp()">最大HP +1（${hpCost}）</button>
-  <button onclick="buyPower()">採掘力 +1（${powerCost}）</button>
+  <button onclick="buyHp()">最大HP +1（スクラップ ${hpCost}）</button>
+  <button onclick="buyPower()">採掘力 +1（スクラップ ${powerCost}）</button>
   `;
 }
 
 function buyHp(){
-  let cost = 30 + (state.maxHp - 10) * 10;
-
-  if(state.totalScrap < cost){
-    alert("スクラップ不足");
-    return;
-  }
-
+  let cost = 30 + (state.maxHp - 10)*10;
+  if(state.totalScrap < cost){ alert("不足"); return; }
   if(!confirm(`スクラップ ${cost} で購入しますか？`)) return;
 
   state.totalScrap -= cost;
-  state.maxHp += 1;
+  state.maxHp++;
 
   localStorage.setItem("totalScrap", state.totalScrap);
   localStorage.setItem("maxHp", state.maxHp);
 
-  addLog("最大HPが増加した！");
+  addLog("最大HP増加！");
   render();
 }
 
 function buyPower(){
-  let cost = 100 + (state.power - 1) * 50;
-
-  if(state.totalScrap < cost){
-    alert("スクラップ不足");
-    return;
-  }
-
+  let cost = 100 + (state.power - 1)*50;
+  if(state.totalScrap < cost){ alert("不足"); return; }
   if(!confirm(`スクラップ ${cost} で購入しますか？`)) return;
 
   state.totalScrap -= cost;
-  state.power += 1;
+  state.power++;
 
   localStorage.setItem("totalScrap", state.totalScrap);
   localStorage.setItem("power", state.power);
 
-  addLog("採掘力が増加した！");
+  addLog("採掘力増加！");
   render();
 }
 
 // --- 名前 ---
 function changeName(){
-  let n = prompt("名前入力");
+  let n=prompt("名前入力");
   if(n){
     state.name=n;
     localStorage.setItem("playerName", n);
@@ -289,12 +276,11 @@ function changeName(){
 
 // --- ゲーム ---
 function startRun(){
-  state.hp = state.maxHp;
-  state.scrap = 0;
-  state.floor = 1;
-  state.log = [];
-  state.mode = "explore";
-
+  state.hp=state.maxHp;
+  state.scrap=0;
+  state.floor=1;
+  state.log=[];
+  state.mode="explore";
   addLog("採掘開始！");
   render();
 }
@@ -302,7 +288,7 @@ function startRun(){
 function next(){
   state.floor++;
 
-  if(state.floor % 10 === 0){
+  if(state.floor%10===0){
     addLog(`－－－ ${state.floor}階層（帰還可能）－－－`, "divider");
     state.mode="return";
     render();
@@ -312,12 +298,12 @@ function next(){
   let r=Math.random();
 
   if(r<0.5){
-    let gain = calcScrapGain();
-    state.scrap += gain;
+    let gain=calcScrapGain();
+    state.scrap+=gain;
     addLog(`採掘した スクラップ +${gain}`, "scrap");
 
   }else if(r<0.75){
-    let dmg = Math.floor(Math.random()*3)+1;
+    let dmg=Math.floor(Math.random()*3)+1;
     damage(dmg);
     addLog(`落石！ ${dmg} ダメージ`, "damage");
 
@@ -364,17 +350,17 @@ function checkDeath(){
 }
 
 function doReturn(){
-  let carry = Math.floor(state.scrap/2);
+  let carry=Math.floor(state.scrap/2);
 
-  state.totalScrap += carry;
+  state.totalScrap+=carry;
   localStorage.setItem("totalScrap", state.totalScrap);
 
   addLog(`帰還した。スクラップ${carry}を持ち帰った`, "scrap");
 
-  state.hp = state.maxHp;
-  state.scrap = 0;
-  state.floor = 1;
-  state.log = [];
+  state.hp=state.maxHp;
+  state.scrap=0;
+  state.floor=1;
+  state.log=[];
 
   state.mode="home";
   render();
@@ -383,10 +369,10 @@ function doReturn(){
 function forceReturn(){
   addLog("撤退した…");
 
-  state.hp = state.maxHp;
-  state.scrap = 0;
-  state.floor = 1;
-  state.log = [];
+  state.hp=state.maxHp;
+  state.scrap=0;
+  state.floor=1;
+  state.log=[];
 
   state.mode="home";
   render();
