@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>Nikotaya Roguelike</title>
+<meta charset="UTF-8">
+<title>Nikotaya Roguelike</title>
 <style>
 body {
   background-color: #111;
@@ -11,21 +11,9 @@ body {
   padding: 16px;
   font-size: 18px;
 }
-
-h2 {
-  font-size: 24px;
-}
-
-#status {
-  margin-bottom: 8px;
-  font-size: 20px;
-}
-
-#log {
-  margin-bottom: 16px;
-  font-size: 16px;
-}
-
+h2 { font-size: 24px; }
+#status { margin-bottom: 8px; font-size: 20px; }
+#log { margin-bottom: 16px; font-size: 16px; }
 button {
   display: block;
   margin: 12px auto;
@@ -36,24 +24,10 @@ button {
   border: 1px solid #0f0;
   font-size: 18px;
 }
-
-#log div {
-  margin-bottom: 4px;
-  color: #fff;
-}
-
-.log-new {
-  font-weight: bold;
-  font-size: 18px;
-}
-
-.log-damage {
-  color: #f55;
-}
-
-.log-heal {
-  color: #5f5;
-}
+#log div { margin-bottom: 4px; color: #fff; }
+.log-new { font-weight: bold; font-size: 18px; }
+.log-damage { color: #f55; }
+.log-heal { color: #5f5; }
 </style>
 </head>
 <body>
@@ -65,7 +39,9 @@ button {
 let state = {
   hp: 10,
   floor: 1,
-  log: []
+  log: [],
+  mode: "explore",
+  event: null
 };
 
 function addLog(text, type = "normal") {
@@ -78,23 +54,24 @@ function render() {
     `HP: ${state.hp} | Floor: ${state.floor}`;
 
   let logHTML = "";
-
   state.log.forEach((entry, index) => {
     let cls = "";
-
     if (index === 0) cls += "log-new ";
     if (entry.type === "damage") cls += "log-damage ";
     if (entry.type === "heal") cls += "log-heal ";
-
     logHTML += `<div class="${cls}">${entry.text}</div>`;
   });
-
   document.getElementById("log").innerHTML = logHTML;
 
   let actions = document.getElementById("actions");
   actions.innerHTML = "";
 
-  createButton("進む", next);
+  if (state.mode === "explore") {
+    createButton("進む", next);
+  } else if (state.mode === "event") {
+    createButton("開ける", openChest);
+    createButton("無視する", ignoreChest);
+  }
 }
 
 function createButton(text, onClick) {
@@ -109,18 +86,22 @@ function next() {
 
   let r = Math.random();
 
-  if (r < 0.5) {
+  if (r < 0.4) {
     let dmg = Math.floor(Math.random() * 3) + 1;
     state.hp -= dmg;
     addLog(`敵に遭遇！ ${dmg} ダメージ`, "damage");
 
-  } else if (r < 0.8) {
+  } else if (r < 0.7) {
     let heal = Math.floor(Math.random() * 3) + 1;
     state.hp += heal;
     addLog(`回復した！ +${heal}`, "heal");
 
   } else {
+    state.mode = "event";
+    state.event = "chest";
     addLog("宝箱を見つけた！");
+    render();
+    return;
   }
 
   if (state.hp <= 0) {
@@ -129,6 +110,37 @@ function next() {
     return;
   }
 
+  render();
+}
+
+function openChest() {
+  let r = Math.random();
+
+  if (r < 0.6) {
+    let heal = Math.floor(Math.random() * 5) + 2;
+    state.hp += heal;
+    addLog(`宝箱から回復薬！ +${heal}`, "heal");
+  } else {
+    let dmg = Math.floor(Math.random() * 5) + 2;
+    state.hp -= dmg;
+    addLog(`罠だった！ ${dmg} ダメージ`, "damage");
+  }
+
+  if (state.hp <= 0) {
+    addLog("ゲームオーバー");
+    gameOver();
+    return;
+  }
+
+  state.mode = "explore";
+  state.event = null;
+  render();
+}
+
+function ignoreChest() {
+  addLog("宝箱を無視した");
+  state.mode = "explore";
+  state.event = null;
   render();
 }
 
@@ -142,13 +154,14 @@ function restart() {
   state = {
     hp: 10,
     floor: 1,
-    log: []
+    log: [],
+    mode: "explore",
+    event: null
   };
   addLog("冒険開始！");
   render();
 }
 
-// 初期化
 addLog("冒険開始！");
 render();
 </script>
