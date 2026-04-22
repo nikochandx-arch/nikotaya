@@ -25,11 +25,22 @@ h2 { font-size: 40px; }
   padding: 16px;
 }
 
+/* ★ボタンエリアを中央固定 */
+#actions {
+  border-top: 2px solid #0f0;
+  border-bottom: 2px solid #0f0;
+  padding: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  background: #111;
+}
+
+/* ★下は純粋な情報エリア */
 #bottom {
   flex: 1;
   display: flex;
   gap: 20px;
-  border-top: 2px solid #0f0;
   padding: 16px;
 }
 
@@ -61,7 +72,7 @@ h2 { font-size: 40px; }
 
 button {
   min-width: 180px;
-  max-width: 240px;
+  max-width: 260px;
   flex: 1;
   margin: 8px;
   padding: 20px 0;
@@ -69,12 +80,6 @@ button {
   color: #0f0;
   border: 2px solid #0f0;
   font-size: 28px;
-}
-
-#actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
 }
 
 #log div { margin-bottom: 6px; color: #fff; }
@@ -93,9 +98,11 @@ button {
   <div id="log"></div>
 </div>
 
+<!-- ★ここに戻した -->
+<div id="actions"></div>
+
 <div id="bottom">
   <div id="leftPanel">
-    <div id="actions"></div>
     <div id="storage"></div>
     <div id="playerStatus"></div>
   </div>
@@ -121,21 +128,20 @@ let state = {
   mode: "home"
 };
 
-// --- 永続読み込み ---
+// --- 永続 ---
 let savedScrap = localStorage.getItem("totalScrap");
 if (savedScrap) state.totalScrap = parseInt(savedScrap) || 0;
 
 let savedName = localStorage.getItem("playerName");
 if (savedName) state.name = savedName;
 
-// ★強化値も保存
 let savedMaxHp = localStorage.getItem("maxHp");
 if (savedMaxHp) state.maxHp = parseInt(savedMaxHp);
 
 let savedPower = localStorage.getItem("power");
 if (savedPower) state.power = parseInt(savedPower);
 
-// --- HP処理 ---
+// --- HP ---
 function damage(dmg) {
   state.hp = Math.max(0, state.hp - dmg);
 }
@@ -143,7 +149,7 @@ function heal(val) {
   state.hp = Math.min(state.hp + val, state.maxHp);
 }
 
-// --- 採掘量 ---
+// --- 採掘 ---
 function calcScrapGain() {
   let tier = Math.floor((state.floor - 1) / 10) + 1;
   let base = state.power * tier;
@@ -168,8 +174,8 @@ function render() {
 
   document.getElementById("playerStatus").innerText =
 `名前：${state.name}
-HP：${state.hp}/${state.maxHp}
-MP：${state.mp}/${state.maxMp}
+最大HP：${state.maxHp}
+最大MP：${state.maxMp}
 採掘力：${state.power}
 スキル：${state.skills.length ? state.skills.join(", ") : "なし"}`;
 
@@ -232,8 +238,8 @@ function renderShop(){
 
   shop.innerHTML = `
   <div>【ショップ】</div>
-  <button onclick="buyHp()">最大HP +1（${hpCost}）</button>
-  <button onclick="buyPower()">採掘力 +1（${powerCost}）</button>
+  <button onclick="buyHp()">最大HP +1（スクラップ ${hpCost}）</button>
+  <button onclick="buyPower()">採掘力 +1（スクラップ ${powerCost}）</button>
   `;
 }
 
@@ -245,7 +251,7 @@ function buyHp(){
     return;
   }
 
-  if(!confirm(`スクラップ ${cost} で購入しますか？`)) return;
+  if(!confirm(\`スクラップ ${cost} で購入しますか？\`)) return;
 
   state.totalScrap -= cost;
   state.maxHp += 1;
@@ -265,7 +271,7 @@ function buyPower(){
     return;
   }
 
-  if(!confirm(`スクラップ ${cost} で購入しますか？`)) return;
+  if(!confirm(\`スクラップ ${cost} で購入しますか？\`)) return;
 
   state.totalScrap -= cost;
   state.power += 1;
@@ -398,7 +404,6 @@ function continueRun(){
   render();
 }
 
-// 初期表示
 render();
 </script>
 
