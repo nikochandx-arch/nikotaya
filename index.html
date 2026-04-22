@@ -19,42 +19,12 @@ h2 { font-size: 40px; }
 #status { margin-bottom: 12px; font-size: 34px; }
 #log { margin-bottom: 16px; font-size: 28px; }
 
-#top {
-  height: 700px;
-  overflow-y: auto;
-  padding: 16px;
-}
-
-/* ★ボタンを中央エリアに戻す */
-#actions {
-  border-top: 2px solid #0f0;
-  border-bottom: 2px solid #0f0;
-  padding: 16px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-#bottom {
-  flex: 1;
-  display: flex;
-  gap: 20px;
-  padding: 16px;
-}
-
-#leftPanel { flex: 1; }
-
-#rightPanel {
-  width: 40%;
-  border-left: 2px solid #0f0;
-  padding-left: 16px;
-}
-
 #storage {
   margin-top: 16px;
   padding-top: 10px;
   border-top: 2px solid #0f0;
   color: #ffcc66;
+  font-size: 28px;
 }
 
 #playerStatus {
@@ -62,6 +32,15 @@ h2 { font-size: 40px; }
   padding-top: 10px;
   border-top: 2px solid #0f0;
   color: #0ff;
+  font-size: 28px;
+}
+
+#shop {
+  margin-top: 16px;
+  padding-top: 10px;
+  border-top: 2px solid #0f0;
+  color: #ff99ff;
+  font-size: 28px;
 }
 
 button {
@@ -73,7 +52,7 @@ button {
   background: #222;
   color: #0f0;
   border: 2px solid #0f0;
-  font-size: 28px;
+  font-size: 26px;
 }
 
 #log div { margin-bottom: 6px; color: #fff; }
@@ -81,6 +60,28 @@ button {
 .log-damage { color: #f55; }
 .log-scrap { color: #ffcc66; }
 .log-divider { color: #888; text-align: center; }
+
+#top {
+  height: 700px;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+#actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  border-top: 2px solid #0f0;
+  border-bottom: 2px solid #0f0;
+  padding: 12px;
+}
+
+#bottom {
+  flex: 1;
+  padding: 16px;
+  background: #111;
+}
 </style>
 </head>
 
@@ -92,18 +93,12 @@ button {
   <div id="log"></div>
 </div>
 
-<!-- ★ここにボタン -->
 <div id="actions"></div>
 
 <div id="bottom">
-  <div id="leftPanel">
-    <div id="storage"></div>
-    <div id="playerStatus"></div>
-  </div>
-
-  <div id="rightPanel">
-    <div id="shop"></div>
-  </div>
+  <div id="storage"></div>
+  <div id="playerStatus"></div>
+  <div id="shop"></div>
 </div>
 
 <script>
@@ -119,162 +114,132 @@ let state = {
   totalScrap: 0,
   floor: 1,
   log: [],
-  mode: "home"
+  mode: "home",
+  upgrades: {
+    hp: 0,
+    power: 0
+  }
 };
 
-// --- 永続 ---
+// 保存読み込み
 let savedScrap = localStorage.getItem("totalScrap");
-if (savedScrap) state.totalScrap = parseInt(savedScrap) || 0;
+if (savedScrap) state.totalScrap = parseInt(savedScrap);
 
 let savedName = localStorage.getItem("playerName");
 if (savedName) state.name = savedName;
 
-let savedMaxHp = localStorage.getItem("maxHp");
-if (savedMaxHp) state.maxHp = parseInt(savedMaxHp);
-
-let savedPower = localStorage.getItem("power");
-if (savedPower) state.power = parseInt(savedPower);
-
-// --- HP ---
-function damage(dmg){ state.hp = Math.max(0, state.hp - dmg); }
-function heal(v){ state.hp = Math.min(state.hp + v, state.maxHp); }
-
-// --- 採掘 ---
-function calcScrapGain(){
-  let tier = Math.floor((state.floor - 1)/10)+1;
-  let base = state.power * tier;
-  let variance = Math.floor(base*(Math.random()-0.5));
-  return Math.max(1, base + variance);
+// 計算
+function getHpCost() {
+  return 30 + state.upgrades.hp * 20;
+}
+function getPowerCost() {
+  return 100 + state.upgrades.power * 50;
 }
 
-// --- ログ ---
-function addLog(text, type="normal"){
-  let prefix = (type==="divider") ? "" : `【${state.floor}階】`;
-  state.log.unshift({text: prefix+text, type});
-  state.log = state.log.slice(0,12);
+// HP処理
+function damage(dmg) {
+  state.hp = Math.max(0, state.hp - dmg);
+}
+function heal(val) {
+  state.hp = Math.min(state.maxHp, state.hp + val);
 }
 
-// --- 描画 ---
-function render(){
+// ログ
+function addLog(text, type="normal") {
+  let prefix = (type === "divider") ? "" : `【${state.floor}階】`;
+  state.log.unshift({ text: prefix + text, type });
+  state.log = state.log.slice(0, 12);
+}
+
+// 描画
+function render() {
   document.getElementById("status").innerText =
-    `HP:${state.hp}/${state.maxHp} | スクラップ:${state.scrap} | 現在地:${state.floor}階`;
+    `HP:${state.hp}/${state.maxHp} | MP:${state.mp}/${state.maxMp} | スクラップ:${state.scrap} | 現在地:${state.floor}階`;
 
   document.getElementById("storage").innerText =
     `倉庫：スクラップ ${state.totalScrap}`;
 
-  // ★ステータス表記変更
   document.getElementById("playerStatus").innerText =
 `名前：${state.name}
 最大HP：${state.maxHp}
 最大MP：${state.maxMp}
 採掘力：${state.power}
-スキル：${state.skills.length ? state.skills.join(", ") : "なし"}`;
+スキル：${state.skills.length ? state.skills.join(",") : "なし"}`;
 
-  let logHTML="";
+  let shopText = "";
+  if (state.mode === "home") {
+    shopText =
+`▼ショップ
+最大HP +1
+（スクラップ ${getHpCost()}）
+
+採掘力 +1
+（スクラップ ${getPowerCost()}）`;
+  }
+  document.getElementById("shop").innerText = shopText;
+
+  // ログ
+  let logHTML = "";
   state.log.forEach((e,i)=>{
     let cls="";
-    if(i===0) cls+="log-new ";
-    if(e.type==="damage") cls+="log-damage ";
-    if(e.type==="scrap") cls+="log-scrap ";
-    if(e.type==="divider") cls+="log-divider ";
+    if(i===0)cls+="log-new ";
+    if(e.type==="damage")cls+="log-damage ";
+    if(e.type==="scrap")cls+="log-scrap ";
+    if(e.type==="divider")cls+="log-divider ";
     logHTML += `<div class="${cls}">${e.text}</div>`;
   });
   document.getElementById("log").innerHTML = logHTML;
 
-  let act=document.getElementById("actions");
-  act.innerHTML="";
+  // ボタン
+  let a = document.getElementById("actions");
+  a.innerHTML = "";
 
   switch(state.mode){
     case "home":
-      createButton("採掘開始", startRun);
-      createButton("名前変更", changeName);
+      btn("採掘開始", startRun);
+      btn("名前変更", changeName);
+      btn(`最大HP +1\n（${getHpCost()}）`, buyHp);
+      btn(`採掘力 +1\n（${getPowerCost()}）`, buyPower);
       break;
+
     case "explore":
-      createButton("採掘する", next);
+      btn("採掘する", next);
       break;
+
     case "event":
-      createButton("開ける", openChest);
-      createButton("無視する", ignoreChest);
+      btn("開ける", openChest);
+      btn("無視する", ignoreChest);
       break;
+
     case "return":
-      createButton("帰還する", doReturn);
-      createButton("続行する", continueRun);
+      btn("帰還する", confirmReturn);
+      btn("続行する", continueRun);
       break;
+
     case "dead":
-      createButton("帰還する", forceReturn);
+      btn("帰還する", forceReturn);
       break;
   }
-
-  renderShop();
 }
 
-function createButton(t,fn){
+function btn(t,f){
   let b=document.createElement("button");
   b.innerText=t;
-  b.onclick=fn;
+  b.onclick=f;
   document.getElementById("actions").appendChild(b);
 }
 
-// --- ショップ ---
-function renderShop(){
-  let shop=document.getElementById("shop");
-
-  if(state.mode!=="home"){
-    shop.innerHTML="";
-    return;
-  }
-
-  let hpCost = 30 + (state.maxHp - 10)*10;
-  let powerCost = 100 + (state.power - 1)*50;
-
-  shop.innerHTML = `
-  <div>【ショップ】</div>
-  <button onclick="buyHp()">最大HP +1（スクラップ ${hpCost}）</button>
-  <button onclick="buyPower()">採掘力 +1（スクラップ ${powerCost}）</button>
-  `;
-}
-
-function buyHp(){
-  let cost = 30 + (state.maxHp - 10)*10;
-  if(state.totalScrap < cost){ alert("不足"); return; }
-  if(!confirm(`スクラップ ${cost} で購入しますか？`)) return;
-
-  state.totalScrap -= cost;
-  state.maxHp++;
-
-  localStorage.setItem("totalScrap", state.totalScrap);
-  localStorage.setItem("maxHp", state.maxHp);
-
-  addLog("最大HP増加！");
-  render();
-}
-
-function buyPower(){
-  let cost = 100 + (state.power - 1)*50;
-  if(state.totalScrap < cost){ alert("不足"); return; }
-  if(!confirm(`スクラップ ${cost} で購入しますか？`)) return;
-
-  state.totalScrap -= cost;
-  state.power++;
-
-  localStorage.setItem("totalScrap", state.totalScrap);
-  localStorage.setItem("power", state.power);
-
-  addLog("採掘力増加！");
-  render();
-}
-
-// --- 名前 ---
+// 名前変更
 function changeName(){
   let n=prompt("名前入力");
   if(n){
     state.name=n;
-    localStorage.setItem("playerName", n);
+    localStorage.setItem("playerName",n);
   }
   render();
 }
 
-// --- ゲーム ---
+// 開始
 function startRun(){
   state.hp=state.maxHp;
   state.scrap=0;
@@ -285,11 +250,20 @@ function startRun(){
   render();
 }
 
+// 採掘量
+function calcScrap(){
+  let bonus=Math.floor((state.floor-1)/10)+1;
+  let base=state.power*bonus;
+  let variance=Math.floor(base*(Math.random()-0.5));
+  return Math.max(1, base+variance);
+}
+
+// 探索
 function next(){
   state.floor++;
 
   if(state.floor%10===0){
-    addLog(`－－－ ${state.floor}階層（帰還可能）－－－`, "divider");
+    addLog(`－－－ ${state.floor}階層 －－－`,"divider");
     state.mode="return";
     render();
     return;
@@ -298,14 +272,14 @@ function next(){
   let r=Math.random();
 
   if(r<0.5){
-    let gain=calcScrapGain();
-    state.scrap+=gain;
-    addLog(`採掘した スクラップ +${gain}`, "scrap");
+    let g=calcScrap();
+    state.scrap+=g;
+    addLog(`採掘した スクラップ +${g}`,"scrap");
 
   }else if(r<0.75){
-    let dmg=Math.floor(Math.random()*3)+1;
-    damage(dmg);
-    addLog(`落石！ ${dmg} ダメージ`, "damage");
+    let d=Math.floor(Math.random()*3)+1;
+    damage(d);
+    addLog(`落石！ ${d} ダメージ`,"damage");
 
   }else{
     state.mode="event";
@@ -318,19 +292,18 @@ function next(){
   render();
 }
 
+// コンテナ
 function openChest(){
   let r=Math.random();
-
   if(r<0.6){
-    let gain=Math.floor(Math.random()*5)+2;
-    state.scrap+=gain;
-    addLog(`資源を発見！ スクラップ +${gain}`, "scrap");
+    let g=Math.floor(Math.random()*5)+2;
+    state.scrap+=g;
+    addLog(`資源を発見！ スクラップ +${g}`,"scrap");
   }else{
-    let dmg=Math.floor(Math.random()*5)+2;
-    damage(dmg);
-    addLog(`トラップ作動！ ${dmg} ダメージ`, "damage");
+    let d=Math.floor(Math.random()*5)+2;
+    damage(d);
+    addLog(`トラップ作動！ ${d} ダメージ`,"damage");
   }
-
   checkDeath();
   state.mode="explore";
   render();
@@ -342,6 +315,7 @@ function ignoreChest(){
   render();
 }
 
+// 死亡
 function checkDeath(){
   if(state.hp<=0){
     addLog("HPが0になった…");
@@ -349,31 +323,35 @@ function checkDeath(){
   }
 }
 
+// ★帰還確認
+function confirmReturn(){
+  if(confirm("本当に帰還しますか？（スクラップの半分を消費します）")){
+    doReturn();
+  }
+}
+
+// 帰還
 function doReturn(){
   let carry=Math.floor(state.scrap/2);
-
   state.totalScrap+=carry;
-  localStorage.setItem("totalScrap", state.totalScrap);
+  localStorage.setItem("totalScrap",state.totalScrap);
 
-  addLog(`帰還した。スクラップ${carry}を持ち帰った`, "scrap");
+  addLog(`帰還した。スクラップ${carry}を持ち帰った`,"scrap");
 
   state.hp=state.maxHp;
   state.scrap=0;
   state.floor=1;
   state.log=[];
-
   state.mode="home";
   render();
 }
 
 function forceReturn(){
   addLog("撤退した…");
-
   state.hp=state.maxHp;
   state.scrap=0;
   state.floor=1;
   state.log=[];
-
   state.mode="home";
   render();
 }
@@ -384,9 +362,32 @@ function continueRun(){
   render();
 }
 
-// 初期表示
+// 強化
+function buyHp(){
+  let cost=getHpCost();
+  if(state.totalScrap<cost){ alert("足りない"); return; }
+  if(confirm(`スクラップ ${cost} で購入しますか？`)){
+    state.totalScrap-=cost;
+    state.maxHp++;
+    state.upgrades.hp++;
+    localStorage.setItem("totalScrap",state.totalScrap);
+    render();
+  }
+}
+
+function buyPower(){
+  let cost=getPowerCost();
+  if(state.totalScrap<cost){ alert("足りない"); return; }
+  if(confirm(`スクラップ ${cost} で購入しますか？`)){
+    state.totalScrap-=cost;
+    state.power++;
+    state.upgrades.power++;
+    localStorage.setItem("totalScrap",state.totalScrap);
+    render();
+  }
+}
+
 render();
 </script>
-
 </body>
 </html>
