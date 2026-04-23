@@ -28,14 +28,6 @@ color: #ffcc66;
 font-size: 28px;
 }
 
-#playerStatus {
-margin-top: 16px;
-padding-top: 10px;
-border-top: 2px solid #0f0;
-color: #0ff;
-font-size: 28px;
-}
-
 #shop {
 margin-top: 16px;
 padding-top: 10px;
@@ -88,6 +80,28 @@ flex: 1;
 padding: 16px;
 background: #111;
 }
+
+#statusRow {
+display: flex;
+gap: 12px;
+margin-top: 16px;
+padding-top: 10px;
+border-top: 2px solid #0f0;
+}
+
+#playerStatus {
+flex: 1;
+color: #0ff;
+font-size: 24px;
+}
+
+#itemBox {
+flex: 1;
+color: #aaffaa;
+font-size: 24px;
+border-left: 2px solid #0f0;
+padding-left: 12px;
+}
 </style>
 
 </head>
@@ -104,7 +118,10 @@ background: #111;
 
 <div id="bottom">
   <div id="storage"></div>
-  <div id="playerStatus"></div>
+  <div id="statusRow">
+    <div id="playerStatus"></div>
+    <div id="itemBox"></div>
+  </div>
   <div id="shop"></div>
 </div>
 
@@ -123,6 +140,7 @@ let state = {
   maxMp:      0,
   power:      1  + savedUpgrades.power,
   skills:     [],
+  items:      [],   // 消耗品アイテム（最大5個）
   scrap:      0,
   totalScrap: savedScrap,
   floor:      1,
@@ -130,7 +148,7 @@ let state = {
   log:        [],
   mode:       "home",
   upgrades:   savedUpgrades,
-  lastResult: null  // リザルト用（帰還・死亡時にセット）
+  lastResult: null
 };
 
 // --- 保存ヘルパー ---
@@ -170,6 +188,18 @@ function render(){
 採掘力：${state.power}
 スキル：${state.skills.length ? state.skills.join(",") : "なし"}
 最高到達階：${state.bestFloor}階`;
+
+  // アイテム欄
+  let itemHTML = "<div>▼アイテム</div>";
+  for(let i = 0; i < 5; i++){
+    let item = state.items[i];
+    if(item){
+      itemHTML += `<div>${i+1}. ${item.name}</div>`;
+    } else {
+      itemHTML += `<div style="color:#444;">${i+1}. ────</div>`;
+    }
+  }
+  document.getElementById("itemBox").innerHTML = itemHTML;
 
   // リザルト画面（完全独立描画）
   if(state.mode === "result" && state.lastResult){
