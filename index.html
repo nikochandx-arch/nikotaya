@@ -267,8 +267,12 @@ function render(){
 
   let shopHTML = "";
   if(state.mode === "home"){
+    let itemFull = state.items.length >= 5;
     shopHTML = `
 <div>▼ショップ</div>
+<div style="color:#888;margin:6px 0;">－－－消耗品－－－</div>
+<button onclick="buyPotion()" ${itemFull ? 'disabled style="opacity:0.4;"' : ''}>ポーション　HP+3<br>（スクラップ 30）${itemFull ? "<br>※持ち物がいっぱい" : ""}</button>
+<div style="color:#888;margin:6px 0;">－－－永続－－－</div>
 <button onclick="buyHp()">最大HP +1<br>（スクラップ ${getHpCost()}）</button>
 <button onclick="buyPower()">採掘力 +1<br>（スクラップ ${getPowerCost()}）</button>
 `;
@@ -483,6 +487,18 @@ function continueRun(){
 }
 
 // --- ショップ購入 ---
+function buyPotion(){
+  const cost = 30;
+  if(state.totalScrap < cost){ alert("スクラップが足りない"); return; }
+  if(state.items.length >= 5){ alert("持ち物がいっぱい"); return; }
+  if(confirm(`スクラップ ${cost} でポーションを購入しますか？`)){
+    state.totalScrap -= cost;
+    state.items.push({ name: "ポーション", effect: "hp3" });
+    saveAll();
+    render();
+  }
+}
+
 function buyHp(){
   let cost = getHpCost();
   if(state.totalScrap < cost){ alert("スクラップが足りない"); return; }
