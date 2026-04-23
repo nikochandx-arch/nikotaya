@@ -160,14 +160,6 @@ button {
   -webkit-tap-highlight-color: transparent; /* スマホ特有の青い枠を消す */
 }
 
-/* スマホで「押した！」と確実にわかる設定 */
-button:active {
-  background: #0f0 !important;
-  color: #111 !important;
-  transform: scale(0.92) !important; /* 押し込みを少し強く(0.95 -> 0.92) */
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.8) !important; /* 光を強める */
-}
-
 /* ついでにイベント枠の角も丸く */
 #current-event {
   flex-shrink: 0;
