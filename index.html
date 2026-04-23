@@ -139,12 +139,6 @@ border-left: 2px solid #0f0;
 padding-left: 12px;
 }
 
-/* 枠線に少し光彩（グロー）を入れる */
-#current-event, button {
-  border: 1px solid #0f0;
-  box-shadow: 0 0 5px rgba(0, 255, 0, 0.2); 
-  border-radius: 4px; /* ほんの少し角を丸める */
-}
 
 /* ボタンのホバーエフェクト（操作時に「押せる」確信を持たせる） */
 button:hover {
@@ -153,12 +147,18 @@ button:hover {
   cursor: pointer;
 }
 
-/* ステータスバー風の演出 */
-#status {
-  background: rgba(0, 255, 0, 0.05);
-  padding: 10px;
-  border-radius: 8px;
+/* スマホでボタンを「押した瞬間」に色を変える */
+button:active {
+  background: #0f0;
+  color: #111;
+  transform: scale(0.95); /* ほんの少しだけボタンを小さくして「押し込み感」を出す */
 }
+
+/* 枠線の光を少しハッキリさせる（スマホ向け） */
+#current-event, button {
+  box-shadow: 0 0 8px rgba(0, 255, 0, 0.4);
+}
+
 
 </style>
 
