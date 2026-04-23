@@ -519,7 +519,7 @@ function next(){
   state.floor++;
 
   if(state.floor % 30 === 0){
-    addLog(`－－－ ${state.floor}階層 －－－\n女神像がある…祈れば無事に帰れそうだ`, "divider");
+    addLog(`－－－ ${state.floor}階層 －－－\n女神像がある…`, "divider");
     state.mode = "event_goddess";
     render();
     return;
@@ -532,39 +532,40 @@ function next(){
     return;
   }
 
-  let r = Math.random();
+  // --- 軽(70%) / 重(30%) の2段階抽選 ---
+  const LIGHT_EVENTS = [
+    () => {
+      let g = calcScrap();
+      state.scrap += g;
+      addLog(`採掘した スクラップ +${g}`, "scrap");
+    },
+    () => {
+      let d = Math.floor(Math.random()*3) + 1;
+      damage(d);
+      addLog(`落石！ ${d} ダメージ`, "damage");
+    },
+  ];
 
-  // 鉱脈：約10階に1回（確率10%）、コンテナより優先チェック
-  if(r < 0.10){
-    state.mode = "event_vein";
-    addLog("鉱脈だ！だけど地盤が脆そうだ…");
+  const HEAVY_EVENTS = [
+    () => { state.mode = "event";          addLog("コンテナを発見した！"); },
+    () => { state.mode = "event_vein";     addLog("鉱脈だ！だけど地盤が脆そうだ…"); },
+    () => { state.mode = "event_mushroom"; addLog("謎のキノコだ！"); },
+  ];
+
+  if(Math.random() < 0.70){
+    // 軽イベント：均等抽選
+    let ev = LIGHT_EVENTS[Math.floor(Math.random() * LIGHT_EVENTS.length)];
+    ev();
+    checkDeath();
     render();
-    return;
-
-  // キノコ：約8%
-  } else if(r < 0.18){
-    state.mode = "event_mushroom";
-    addLog("謎のキノコだ！");
-    render();
-    return;
-
-  } else if(r < 0.72){
-    let g = calcScrap();
-    state.scrap += g;
-    addLog(`採掘した スクラップ +${g}`, "scrap");
-  } else if(r < 0.92){
-    let d = Math.floor(Math.random()*3) + 1;
-    damage(d);
-    addLog(`落石！ ${d} ダメージ`, "damage");
   } else {
-    state.mode = "event";
-    addLog("コンテナを発見した！");
+    // 重イベント：均等抽選
+    let ev = HEAVY_EVENTS[Math.floor(Math.random() * HEAVY_EVENTS.length)];
+    ev();
+    if(state.mode !== "explore"){ render(); return; }
+    checkDeath();
     render();
-    return;
   }
-
-  checkDeath();
-  render();
 }
 
 // --- コンテナ ---
