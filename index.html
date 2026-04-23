@@ -269,18 +269,18 @@ function render(){
   let hpRatio = state.maxHp > 0 ? state.hp / state.maxHp : 1;
   let hpColor = hpRatio > 0.5 ? "#0f0" : hpRatio > 0.25 ? "#ff0" : "#f55";
   document.getElementById("status").innerHTML =
-    `<span style="color:${hpColor}">HP:${state.hp}/${state.maxHp}</span> | MP:${state.mp}/${state.maxMp} | スクラップ:${state.scrap} | 現在地:${state.floor}階`;
+    `<span style="color:${hpColor}">HP:${state.hp}/${state.maxHp}</span> | MP:${state.mp}/${state.maxMp} | スクラップ:<span style="color:#ffcc66;">${state.scrap}</span> | 現在地:${state.floor}階`;
 
   document.getElementById("storage").innerText =
     `倉庫：スクラップ ${state.totalScrap}`;
 
-  document.getElementById("playerStatus").innerText =
-`名前：${state.name}
+  document.getElementById("playerStatus").innerHTML =
+`<span onclick="changeName()" style="cursor:pointer;">名前：${state.name} ✏️</span>
 最大HP：${state.maxHp}
 最大MP：${state.maxMp}
 採掘力：${state.power}
 スキル：${state.skills.length ? state.skills.join(",") : "なし"}
-最高到達階：${state.bestFloor}階`;
+最高到達階：${state.bestFloor}階`.split("\n").map(l => `<div>${l}</div>`).join("");
 
   // アイテム欄
   let itemHTML = "<div>▼アイテム</div>";
@@ -353,7 +353,6 @@ function render(){
   switch(state.mode){
     case "home":
       btn("採掘開始", startRun);
-      btn("名前変更", changeName);
       break;
     case "explore":
       btn("採掘する", next);
@@ -372,8 +371,8 @@ function render(){
       btn("無視して進む", ignoreEvent);
       break;
     case "return":
-      btn("帰還する", confirmReturn);
       btn("続行する", continueRun);
+      btn("帰還する", confirmReturn);
       break;
     case "dead":
       btn("帰還する", forceReturn);
