@@ -220,6 +220,27 @@ function getPowerCost() { return 100 + state.upgrades.power * 50; }
 function damage(d){ state.hp = Math.max(0, state.hp - d); }
 function heal(v)  { state.hp = Math.min(state.maxHp, state.hp + v); }
 
+// --- ログテキスト色付け ---
+function colorizeLog(text, type){
+  // ダメージ数値を赤に（「X ダメージ」）
+  text = text.replace(/(\d+)( ダメージ)/g,
+    '<span style="color:#f55;font-weight:bold;">$1</span>$2');
+  // スクラップ数値をオレンジに（「+X」）
+  text = text.replace(/(\+\d+)/g,
+    '<span style="color:#ffcc66;font-weight:bold;">$1</span>');
+  // subのダメージ・回復も色付け
+  if(type === "sub"){
+    text = text.replace(/(\d+)( ダメージ)/g,
+      '<span style="color:#f55;font-weight:bold;">$1</span>$2');
+    text = text.replace(/(HP \+\d+)/g,
+      '<span style="color:#6f6;font-weight:bold;">$1</span>');
+    // スクラップ捨てはオレンジ
+    text = text.replace(/スクラップ (\d+)/g,
+      'スクラップ <span style="color:#ffcc66;font-weight:bold;">$1</span>');
+  }
+  return text;
+}
+
 // --- ログ ---
 function addLog(text, type="normal"){
   let emoji = "";
@@ -307,21 +328,21 @@ function render(){
     else if(latest.type==="divider") color = "color:#888;";
     else if(latest.type==="sub")     color = "color:#aaa;";
     document.getElementById("current-event-icon").innerText = icon;
+    let colorizedLatest = colorizeLog(latest.text, latest.type);
     document.getElementById("current-event-text").innerHTML =
-      `<span style="${color}font-size:30px;">${latest.text}</span>`;
+      `<span style="${color}font-size:30px;">${colorizedLatest}</span>`;
   }
 
   // 履歴ログ（最新除く）
   let logHTML = "";
   state.log.slice(1).forEach((e) => {
     let cls = "";
-    if(e.type==="damage") cls += "log-damage ";
-    if(e.type==="scrap")  cls += "log-scrap ";
-    if(e.type==="divider")cls += "log-divider ";
+    if(e.type==="divider") cls += "log-divider ";
+    let colored = colorizeLog(e.text, e.type);
     if(e.type==="sub"){
-      logHTML += `<div class="${cls}" style="padding-left:2em;color:#aaa;">→ ${e.text}</div>`;
+      logHTML += `<div class="${cls}" style="padding-left:2em;color:#aaa;">→ ${colored}</div>`;
     } else {
-      logHTML += `<div class="${cls}">${e.text}</div>`;
+      logHTML += `<div class="${cls}">${colored}</div>`;
     }
   });
   document.getElementById("log").innerHTML = logHTML;
