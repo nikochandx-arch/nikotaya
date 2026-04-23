@@ -51,6 +51,12 @@ background: #222;
 color: #0f0;
 border: 2px solid #0f0;
 font-size: 26px;
+font-family: monospace;
+border-radius: 12px;
+transition: all 0.1s;
+box-shadow: 0 0 10px rgba(0, 255, 0, 0.4);
+outline: none;
+-webkit-tap-highlight-color: transparent;
 }
 
 #log div { margin-bottom: 6px; color: #fff; }
@@ -81,6 +87,7 @@ color: #fff;
 display: flex;
 align-items: center;
 gap: 16px;
+border-radius: 12px;
 }
 
 #current-event-icon {
@@ -138,46 +145,6 @@ font-size: 24px;
 border-left: 2px solid #0f0;
 padding-left: 12px;
 }
-
-
-/* buttonの指定をひとつにまとめ、!importantを使わずに優先度を整理 */
-button {
-  min-width: 180px;
-  max-width: 260px;
-  flex: 1;
-  margin: 8px;
-  padding: 20px 0;
-  background: #222;
-  color: #0f0;
-  border: 2px solid #0f0;
-  font-size: 26px;
-  font-family: monospace;
-  /* ここから下が反映されにくいポイント */
-  border-radius: 12px !important; /* 角丸を12pxにして、体感しやすくしました */
-  transition: all 0.1s; /* 反応を速く */
-  box-shadow: 0 0 10px rgba(0, 255, 0, 0.4);
-  outline: none;
-  -webkit-tap-highlight-color: transparent; /* スマホ特有の青い枠を消す */
-}
-
-/* ついでにイベント枠の角も丸く */
-#current-event {
-  flex-shrink: 0;
-  min-height: 120px;
-  margin: 10px 16px;
-  padding: 16px;
-  border: 2px solid #0f0;
-  background: #1a1a1a;
-  font-size: 30px;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  border-radius: 12px; /* ここも丸く */
-}
-
-
-
 </style>
 
 </head>
