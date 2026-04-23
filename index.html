@@ -299,11 +299,12 @@ function render(){
     let r = state.lastResult;
     let survived = r.survived ? "帰還成功 🎉" : "力尽きた… 💀";
     document.getElementById("current-event-icon").innerText = r.survived ? "🎉" : "💀";
+    let carryNote = r.goddess ? "（女神の加護・全額）" : "（半分）";
     document.getElementById("current-event-text").innerHTML = `
 <div style="color:#ff0;font-size:28px;margin-bottom:6px;">── リザルト ──</div>
 <div>${survived}</div>
 <div>到達階層：${r.floor} 階</div>
-<div style="color:#ffcc66;">持ち帰ったスクラップ：${r.carry}</div>
+<div style="color:#ffcc66;">持ち帰ったスクラップ：${r.carry} ${carryNote}</div>
 <div style="color:#aaa;">最高到達階：${state.bestFloor} 階</div>
 `;
     document.getElementById("log").innerHTML = "";
@@ -320,7 +321,7 @@ function render(){
     if(latest.type==="damage")       icon = "💥";
     else if(latest.type==="scrap")   icon = "⛏️";
     else if(latest.type==="sub")     icon = "→";
-    else if(latest.type==="divider") icon = "🚪";
+    else if(latest.type==="divider") icon = state.mode==="event_goddess" ? "🗿" : "🚪";
     else                             icon = "📋";
     let color = "";
     if(latest.type==="damage")       color = "color:#f55;";
@@ -374,6 +375,10 @@ function render(){
     case "event_mushroom":
       btn("食べる",     eatMushroom);
       btn("無視して進む", ignoreEvent);
+      break;
+    case "event_goddess":
+      btn("スクラップが欲しい", goddessScrap);
+      btn("ホームに帰りたい",   goddessReturn);
       break;
     case "return":
       btn("続行する", continueRun);
@@ -512,6 +517,13 @@ function calcScrap(){
 // --- 探索 ---
 function next(){
   state.floor++;
+
+  if(state.floor % 30 === 0){
+    addLog(`－－－ ${state.floor}階層 －－－\n女神像がある…`, "divider");
+    state.mode = "event_goddess";
+    render();
+    return;
+  }
 
   if(state.floor % 10 === 0){
     addLog(`－－－ ${state.floor}階層 －－－\nスクラップを半分支払えば帰還できそうだ`, "divider");
@@ -670,6 +682,25 @@ function goHome(){
   state.log   = [];
   state.lastResult = null;
   state.mode  = "home";
+  render();
+}
+
+// --- 女神像イベント ---
+function goddessScrap(){
+  let gain = state.floor;
+  state.scrap += gain;
+  addLog(`女神の恵み！ スクラップ +${gain}`, "scrap");
+  state.mode = "explore";
+  render();
+}
+
+function goddessReturn(){
+  let carry = state.scrap;
+  state.totalScrap += carry;
+  if(state.floor > state.bestFloor) state.bestFloor = state.floor;
+  saveAll();
+  state.lastResult = { survived: true, floor: state.floor, carry, goddess: true };
+  state.mode = "result";
   render();
 }
 
