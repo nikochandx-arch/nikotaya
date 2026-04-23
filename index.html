@@ -54,15 +54,51 @@ font-size: 26px;
 }
 
 #log div { margin-bottom: 6px; color: #fff; }
-.log-new { font-weight: bold; }
 .log-damage { color: #f55; }
 .log-scrap { color: #ffcc66; }
 .log-divider { color: #888; text-align: center; }
 
 #top {
+display: flex;
+flex-direction: column;
 height: 700px;
-overflow-y: auto;
+}
+
+#header {
+padding: 12px 16px 0;
+flex-shrink: 0;
+}
+
+#current-event {
+flex-shrink: 0;
+min-height: 120px;
+margin: 10px 16px;
 padding: 16px;
+border: 2px solid #0f0;
+background: #1a1a1a;
+font-size: 30px;
+color: #fff;
+display: flex;
+align-items: center;
+gap: 16px;
+}
+
+#current-event-icon {
+font-size: 48px;
+width: 64px;
+text-align: center;
+flex-shrink: 0;
+}
+
+#current-event-text {
+flex: 1;
+}
+
+#log {
+flex: 1;
+overflow-y: auto;
+padding: 0 16px 12px;
+font-size: 24px;
 }
 
 #actions {
@@ -109,8 +145,14 @@ padding-left: 12px;
 <body>
 
 <div id="top">
-  <h2>Nikotaya Mining Roguelike</h2>
-  <div id="status"></div>
+  <div id="header">
+    <h2 style="margin:0 0 6px;">Nikotaya Mining Roguelike</h2>
+    <div id="status"></div>
+  </div>
+  <div id="current-event">
+    <div id="current-event-icon"></div>
+    <div id="current-event-text">採掘を開始しよう！</div>
+  </div>
   <div id="log"></div>
 </div>
 
@@ -216,24 +258,45 @@ function render(){
   // リザルト画面（完全独立描画）
   if(state.mode === "result" && state.lastResult){
     let r = state.lastResult;
-    let survived = r.survived ? "帰還成功" : "力尽きた…";
-    document.getElementById("log").innerHTML = `
-<div style="color:#ff0;font-size:36px;margin-bottom:12px;">── リザルト ──</div>
+    let survived = r.survived ? "帰還成功 🎉" : "力尽きた… 💀";
+    document.getElementById("current-event-icon").innerText = r.survived ? "🎉" : "💀";
+    document.getElementById("current-event-text").innerHTML = `
+<div style="color:#ff0;font-size:28px;margin-bottom:6px;">── リザルト ──</div>
 <div>${survived}</div>
 <div>到達階層：${r.floor} 階</div>
 <div style="color:#ffcc66;">持ち帰ったスクラップ：${r.carry}</div>
-<div style="color:#aaa;margin-top:8px;">最高到達階：${state.bestFloor} 階</div>
+<div style="color:#aaa;">最高到達階：${state.bestFloor} 階</div>
 `;
+    document.getElementById("log").innerHTML = "";
     document.getElementById("actions").innerHTML = "";
     btn("ホームへ戻る", goHome);
     document.getElementById("shop").innerHTML = "";
     return;
   }
 
+  // 最新ログ→current-event枠
+  if(state.log.length > 0){
+    let latest = state.log[0];
+    let icon = "";
+    if(latest.type==="damage")       icon = "💥";
+    else if(latest.type==="scrap")   icon = "⛏️";
+    else if(latest.type==="sub")     icon = "→";
+    else if(latest.type==="divider") icon = "🪜";
+    else                             icon = "📋";
+    let color = "";
+    if(latest.type==="damage")       color = "color:#f55;";
+    else if(latest.type==="scrap")   color = "color:#ffcc66;";
+    else if(latest.type==="divider") color = "color:#888;";
+    else if(latest.type==="sub")     color = "color:#aaa;";
+    document.getElementById("current-event-icon").innerText = icon;
+    document.getElementById("current-event-text").innerHTML =
+      `<span style="${color}font-size:30px;">${latest.text}</span>`;
+  }
+
+  // 履歴ログ（最新除く）
   let logHTML = "";
-  state.log.forEach((e, i) => {
+  state.log.slice(1).forEach((e) => {
     let cls = "";
-    if(i===0)             cls += "log-new ";
     if(e.type==="damage") cls += "log-damage ";
     if(e.type==="scrap")  cls += "log-scrap ";
     if(e.type==="divider")cls += "log-divider ";
