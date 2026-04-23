@@ -138,6 +138,28 @@ font-size: 24px;
 border-left: 2px solid #0f0;
 padding-left: 12px;
 }
+
+/* 枠線に少し光彩（グロー）を入れる */
+#current-event, button {
+  border: 1px solid #0f0;
+  box-shadow: 0 0 5px rgba(0, 255, 0, 0.2); 
+  border-radius: 4px; /* ほんの少し角を丸める */
+}
+
+/* ボタンのホバーエフェクト（操作時に「押せる」確信を持たせる） */
+button:hover {
+  background: #0f0;
+  color: #111;
+  cursor: pointer;
+}
+
+/* ステータスバー風の演出 */
+#status {
+  background: rgba(0, 255, 0, 0.05);
+  padding: 10px;
+  border-radius: 8px;
+}
+
 </style>
 
 </head>
