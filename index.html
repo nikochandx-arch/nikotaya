@@ -131,6 +131,7 @@ let savedUpgrades  = JSON.parse(localStorage.getItem("upgrades") || '{"hp":0,"po
 let savedScrap     = parseInt(localStorage.getItem("totalScrap")) || 0;
 let savedName      = localStorage.getItem("playerName") || "プレイヤー";
 let savedBestFloor = parseInt(localStorage.getItem("bestFloor")) || 1;
+let savedItems     = JSON.parse(localStorage.getItem("items") || "[]");
 
 let state = {
   name:       savedName,
@@ -140,7 +141,7 @@ let state = {
   maxMp:      0,
   power:      1  + savedUpgrades.power,
   skills:     [],
-  items:      [],   // 消耗品アイテム（最大5個）
+  items:      savedItems,   // 消耗品アイテム（最大5個）
   scrap:      0,
   totalScrap: savedScrap,
   floor:      1,
@@ -156,6 +157,7 @@ function saveAll() {
   localStorage.setItem("totalScrap", state.totalScrap);
   localStorage.setItem("upgrades",   JSON.stringify(state.upgrades));
   localStorage.setItem("bestFloor",  state.bestFloor);
+  localStorage.setItem("items",      JSON.stringify(state.items));
 }
 
 // --- コスト ---
