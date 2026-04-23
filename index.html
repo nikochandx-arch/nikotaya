@@ -140,24 +140,50 @@ padding-left: 12px;
 }
 
 
-/* ボタンのホバーエフェクト（操作時に「押せる」確信を持たせる） */
-button:hover {
-  background: #0f0;
-  color: #111;
-  cursor: pointer;
+/* buttonの指定をひとつにまとめ、!importantを使わずに優先度を整理 */
+button {
+  min-width: 180px;
+  max-width: 260px;
+  flex: 1;
+  margin: 8px;
+  padding: 20px 0;
+  background: #222;
+  color: #0f0;
+  border: 2px solid #0f0;
+  font-size: 26px;
+  font-family: monospace;
+  /* ここから下が反映されにくいポイント */
+  border-radius: 12px !important; /* 角丸を12pxにして、体感しやすくしました */
+  transition: all 0.1s; /* 反応を速く */
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.4);
+  outline: none;
+  -webkit-tap-highlight-color: transparent; /* スマホ特有の青い枠を消す */
 }
 
-/* スマホでボタンを「押した瞬間」に色を変える */
+/* スマホで「押した！」と確実にわかる設定 */
 button:active {
-  background: #0f0;
-  color: #111;
-  transform: scale(0.95); /* ほんの少しだけボタンを小さくして「押し込み感」を出す */
+  background: #0f0 !important;
+  color: #111 !important;
+  transform: scale(0.92) !important; /* 押し込みを少し強く(0.95 -> 0.92) */
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.8) !important; /* 光を強める */
 }
 
-/* 枠線の光を少しハッキリさせる（スマホ向け） */
-#current-event, button {
-  box-shadow: 0 0 8px rgba(0, 255, 0, 0.4);
+/* ついでにイベント枠の角も丸く */
+#current-event {
+  flex-shrink: 0;
+  min-height: 120px;
+  margin: 10px 16px;
+  padding: 16px;
+  border: 2px solid #0f0;
+  background: #1a1a1a;
+  font-size: 30px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-radius: 12px; /* ここも丸く */
 }
+
 
 
 </style>
