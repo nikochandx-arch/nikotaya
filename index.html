@@ -222,15 +222,33 @@ function heal(v)  { state.hp = Math.min(state.maxHp, state.hp + v); }
 
 // --- ログ ---
 function addLog(text, type="normal"){
+  let emoji = "";
+  if(type==="divider")     emoji = "🚪 ";
+  else if(type==="damage") emoji = "💥 ";
+  else if(type==="scrap")  emoji = "⛏️ ";
+  else if(type==="sub")    emoji = "";
+  else {
+    // normalのときはテキストで判断
+    if(text.includes("採掘開始"))       emoji = "⛏️ ";
+    else if(text.includes("コンテナ"))  emoji = "📦 ";
+    else if(text.includes("鉱脈"))      emoji = "💎 ";
+    else if(text.includes("キノコ"))    emoji = "🍄 ";
+    else if(text.includes("帰還"))      emoji = "🏠 ";
+    else if(text.includes("HPが0"))     emoji = "💀 ";
+    else                                emoji = "📋 ";
+  }
   let prefix = (type==="divider" || type==="sub") ? "" : `【${state.floor}階】`;
-  state.log.unshift({text: prefix+text, type});
+  state.log.unshift({text: prefix + emoji + text, type});
   state.log = state.log.slice(0, 12);
 }
 
 // --- 描画 ---
 function render(){
-  document.getElementById("status").innerText =
-    `HP:${state.hp}/${state.maxHp} | MP:${state.mp}/${state.maxMp} | スクラップ:${state.scrap} | 現在地:${state.floor}階`;
+  // HP色：満タン=緑、50%以下=黄、25%以下=赤
+  let hpRatio = state.maxHp > 0 ? state.hp / state.maxHp : 1;
+  let hpColor = hpRatio > 0.5 ? "#0f0" : hpRatio > 0.25 ? "#ff0" : "#f55";
+  document.getElementById("status").innerHTML =
+    `<span style="color:${hpColor}">HP:${state.hp}/${state.maxHp}</span> | MP:${state.mp}/${state.maxMp} | スクラップ:${state.scrap} | 現在地:${state.floor}階`;
 
   document.getElementById("storage").innerText =
     `倉庫：スクラップ ${state.totalScrap}`;
@@ -281,7 +299,7 @@ function render(){
     if(latest.type==="damage")       icon = "💥";
     else if(latest.type==="scrap")   icon = "⛏️";
     else if(latest.type==="sub")     icon = "→";
-    else if(latest.type==="divider") icon = "🪜";
+    else if(latest.type==="divider") icon = "🚪";
     else                             icon = "📋";
     let color = "";
     if(latest.type==="damage")       color = "color:#f55;";
