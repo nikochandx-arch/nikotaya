@@ -568,9 +568,9 @@ function next(){
   ];
 
   const HEAVY_EVENTS = [
-    { fn: () => { state.mode = "event";          addLog("コンテナを発見した！"); }},
-    { fn: () => { state.mode = "event_vein";     addLog("鉱脈だ！だけど地盤が脆そうだ…"); }},
-    { fn: () => { state.mode = "event_mushroom"; addLog("謎のキノコだ！"); }},
+    { w: 20, fn: () => { state.mode = "event";          addLog("コンテナを発見した！"); }},
+    { w: 40, fn: () => { state.mode = "event_vein";     addLog("鉱脈だ！だけど地盤が脆そうだ…"); }},
+    { w: 40, fn: () => { state.mode = "event_mushroom"; addLog("謎のキノコだ！"); }},
   ];
 
   if(Math.random() < 0.70){
@@ -583,8 +583,11 @@ function next(){
     checkDeath();
     render();
   } else {
-    // 重イベント：均等抽選
-    let ev = HEAVY_EVENTS[Math.floor(Math.random() * HEAVY_EVENTS.length)];
+    // 重イベント：重み付き抽選
+    let totalHW = HEAVY_EVENTS.reduce((s, e) => s + e.w, 0);
+    let pickH = Math.random() * totalHW;
+    let ev = HEAVY_EVENTS[HEAVY_EVENTS.length - 1];
+    for(let e of HEAVY_EVENTS){ pickH -= e.w; if(pickH <= 0){ ev = e; break; } }
     ev.fn();
     if(state.mode !== "explore"){ render(); return; }
     checkDeath();
@@ -595,14 +598,19 @@ function next(){
 // --- コンテナ ---
 function openChest(){
   let r = Math.random();
-  if(r < 0.6){
-    let g = Math.floor(Math.random()*5) + 2;
+  if(r < 0.70){
+    // 成功：calcScrap() × 3
+    let g = calcScrap() * 3;
     state.scrap += g;
     addLog(`資源を発見！ スクラップ +${g}`, "sub");
+  } else if(r < 0.85){
+    // 空っぽ 15%
+    addLog("空っぽだった…", "sub");
   } else {
-    let d = Math.floor(Math.random()*5) + 2;
+    // 罠 15%：最大HPの20%（切り上げ）
+    let d = Math.ceil(state.maxHp * 0.2);
     damage(d);
-    addLog(`トラップ作動！ ${d} ダメージ`, "sub");
+    addLog(`罠だった！ ${d} ダメージ`, "sub");
   }
   checkDeath();
   if(state.mode !== "dead") state.mode = "explore";
