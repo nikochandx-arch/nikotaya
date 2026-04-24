@@ -324,29 +324,50 @@ function colorizeLog(text, type){
   return text;
 }
 
+// --- 絵文字取得 ---
+function getEmoji(text, type){
+  if(type==="divider")     return "🚪";
+  if(type==="damage")      return text.includes("毒") ? "🩸" : "💥";
+  if(type==="scrap")       return "⛏️";
+  if(type==="heal")        return "💤";
+  if(type==="loss")        return "🕳️";
+  if(type==="sub")         return "";
+  if(text.includes("採掘開始"))     return "⛏️";
+  if(text.includes("コンテナ"))     return "📦";
+  if(text.includes("鉱脈"))         return "💎";
+  if(text.includes("キノコ"))       return "🍄";
+  if(text.includes("帰還"))         return "🏠";
+  if(text.includes("HPが0"))        return "💀";
+  if(text.includes("一休み"))       return "💤";
+  if(text.includes("亀裂"))         return "🕳️";
+  if(text.includes("コウモリ"))     return "🦇";
+  if(text.includes("女神"))         return "🗿";
+  return "📋";
+}
+
 // --- ログ ---
+// state.log = [ { floor, lines: [{text, type, emoji}] }, ... ]
+// subはその階の最新エントリのlinesに追加、それ以外は新エントリ
+
 function addLog(text, type="normal"){
-  let emoji = "";
-  if(type==="divider")     emoji = "🚪 ";
-  else if(type==="damage") emoji = "💥 ";
-  else if(type==="scrap")  emoji = "⛏️ ";
-  else if(type==="sub")    emoji = "";
-  else {
-    // normalのときはテキストで判断
-    if(text.includes("採掘開始"))       emoji = "⛏️ ";
-    else if(text.includes("コンテナ"))  emoji = "📦 ";
-    else if(text.includes("鉱脈"))      emoji = "💎 ";
-    else if(text.includes("キノコ"))    emoji = "🍄 ";
-    else if(text.includes("帰還"))      emoji = "🏠 ";
-    else if(text.includes("HPが0"))     emoji = "💀 ";
-    else if(text.includes("一休み"))    emoji = "💤 ";
-    else if(text.includes("亀裂"))       emoji = "🕳️ ";
-    else if(text.includes("コウモリ"))   emoji = "🦇 ";
-    else                                emoji = "📋 ";
+  let emoji = getEmoji(text, type);
+
+  if(type === "sub"){
+    // 最新エントリのlinesに追加
+    if(state.log.length > 0){
+      state.log[0].lines.push({text, type, emoji});
+    }
+    return;
   }
-  let prefix = (type==="divider" || type==="sub") ? "" : `【${state.floor}階】`;
-  state.log.unshift({text: prefix + emoji + text, type});
-  state.log = state.log.slice(0, 12);
+
+  // 新しい階層エントリを先頭に追加
+  let entry = {
+    floor: state.floor,
+    type,           // エントリ全体の代表タイプ（アイコン・色に使う）
+    lines: [{text, type, emoji}]
+  };
+  state.log.unshift(entry);
+  state.log = state.log.slice(0, 10); // 10階層分保持
 }
 
 // --- 描画 ---
@@ -410,47 +431,59 @@ function render(){
     return;
   }
 
-  // 最新ログ→current-event枠
+  // --- current-event：最新エントリの全ラインを表示 ---
   if(state.log.length > 0){
-    let latest = state.log[0];
-    let icon = "";
-    if(latest.type==="damage")       icon = "💥";
-    else if(latest.type==="scrap")   icon = "⛏️";
-    else if(latest.type==="heal")    icon = "💤";
-    else if(latest.type==="loss")    icon = "🕳️";
-    else if(latest.type==="sub")     icon = "→";
-    else if(latest.type==="divider") icon = state.mode==="event_goddess" ? "🗿" : "🚪";
-    else                             icon = "📋";
-    let color = "";
-    if(latest.type==="damage")       color = "color:#f55;";
-    else if(latest.type==="scrap")   color = "color:#ffcc66;";
-    else if(latest.type==="heal")    color = "color:#aaff66;";
-    else if(latest.type==="loss")    color = "color:#f55;";
-    else if(latest.type==="divider") color = "color:#fff;";
-    else if(latest.type==="sub")     color = "color:#aaa;";
-    document.getElementById("current-event-icon").innerText = icon;
-    let colorizedLatest = colorizeLog(latest.text, latest.type);
-    let displayText = latest.type === "divider"
-      ? colorizedLatest.replace(/\n/, "</span><br><span style='font-size:22px;color:#aaa;'>") + "</span>"
-      : colorizedLatest;
-    document.getElementById("current-event-text").innerHTML =
-      `<span style="${color}font-size:30px;">${displayText}</span>`;
+    let entry = state.log[0];
+    let firstLine = entry.lines[0];
+    // アイコンは先頭ラインの絵文字
+    document.getElementById("current-event-icon").innerText = firstLine.emoji || "📋";
+
+    let eventHTML = "";
+    entry.lines.forEach((line, i) => {
+      let color = "";
+      if(line.type==="damage")      color = "color:#f55;";
+      else if(line.type==="scrap")  color = "color:#ffcc66;";
+      else if(line.type==="heal")   color = "color:#aaff66;";
+      else if(line.type==="loss")   color = "color:#f55;";
+      else if(line.type==="divider")color = "color:#fff;";
+      else if(line.type==="sub")    color = "color:#aaa;";
+
+      let colored = colorizeLog(line.text, line.type);
+
+      if(line.type === "divider"){
+        // dividerは改行で説明文を小さく
+        colored = colored.replace('\n', `</span><br><span style='font-size:22px;color:#aaa;'>`);
+        eventHTML += `<div style="${color}font-size:30px;">${colored}</span></div>`;
+      } else if(line.type === "sub"){
+        eventHTML += `<div style="color:#aaa;font-size:26px;padding-left:1em;">→ ${colored}</div>`;
+      } else {
+        let fs = i === 0 ? "30px" : "26px";
+        eventHTML += `<div style="${color}font-size:${fs};">${colored}</div>`;
+      }
+    });
+    document.getElementById("current-event-text").innerHTML = eventHTML;
   }
 
-  // 履歴ログ（最新除く）
+  // --- 履歴ログ：最新エントリ以外を階層単位で表示 ---
   let logHTML = "";
-  state.log.slice(1).forEach((e) => {
-    let cls = "";
-    if(e.type==="divider") cls += "log-divider ";
-    if(e.type==="loss")    cls += "log-loss ";
-    let colored = colorizeLog(e.text, e.type);
-    if(e.type==="sub"){
-      logHTML += `<div class="${cls}" style="padding-left:2em;color:#aaa;">→ ${colored}</div>`;
-    } else if(e.type==="divider"){
-      logHTML += `<div class="${cls}">${colored.replace(/\n/g, "<br><span style='font-size:22px;color:#aaa;'>")}</span></div>`;
-    } else {
-      logHTML += `<div class="${cls}">${colored}</div>`;
-    }
+  state.log.slice(1).forEach((entry) => {
+    entry.lines.forEach((line, i) => {
+      let cls = "";
+      if(line.type==="divider") cls = "log-divider";
+      if(line.type==="loss")    cls = "log-loss";
+      let colored = colorizeLog(line.text, line.type);
+
+      if(line.type === "sub"){
+        logHTML += `<div style="padding-left:2em;color:#aaa;font-size:22px;">→ ${colored}</div>`;
+      } else if(line.type === "divider"){
+        colored = colored.split('\n').join(`<br><span style='font-size:20px;color:#aaa;'>`);
+        logHTML += `<div class="${cls}">${colored}</span></div>`;
+      } else {
+        // 先頭ラインには【X階】プレフィックス
+        let prefix = i === 0 ? `<span style="color:#888;">【${entry.floor}階】</span>` : "";
+        logHTML += `<div class="${cls}">${prefix}${line.emoji ? line.emoji+" " : ""}${colored}</div>`;
+      }
+    });
   });
   document.getElementById("log").innerHTML = logHTML;
 
