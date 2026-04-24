@@ -572,6 +572,8 @@ function closeItemMenu(){
 
 function renderItemMenu(){
   let a = document.getElementById("actions");
+  let isHome = prevMode === "home";
+
   if(state.items.length === 0){
     let d = document.createElement("div");
     d.innerText = "アイテムがない";
@@ -580,9 +582,9 @@ function renderItemMenu(){
     a.appendChild(d);
     return;
   }
+
   state.items.forEach((item, i) => {
     let def = ITEM_DEF[item.effect];
-    // アイテム行：名前＋説明＋使用ボタン
     let wrap = document.createElement("div");
     wrap.style.cssText = "display:flex;align-items:center;gap:8px;width:100%;margin:4px 0;";
 
@@ -594,19 +596,24 @@ function renderItemMenu(){
     desc.style.cssText = "flex:2;font-size:20px;color:#888;text-align:center;";
     desc.innerText = def ? def.desc : "";
 
-    let usable = !def.usableModes || def.usableModes.includes(prevMode);
-    let useBtn = document.createElement("button");
-    let usableStyle = usable
-      ? "border-color:#0ff;color:#0ff;background:rgba(0,255,255,0.1);box-shadow:0 0 10px rgba(0,255,255,0.4);"
-      : "opacity:0.4;";
-    useBtn.style.cssText = `min-width:100px;max-width:120px;font-size:22px;padding:10px 0;${usableStyle}`;
-    useBtn.innerText = "使う";
-    useBtn.disabled = !usable;
-    if(usable) useBtn.onclick = () => useItem(i);
+    let actionBtn = document.createElement("button");
+    actionBtn.style.cssText = "min-width:100px;max-width:120px;font-size:22px;padding:10px 0;";
+
+    if(isHome){
+      actionBtn.innerText = "捨てる";
+      actionBtn.style.cssText += "border-color:#f55;color:#f55;background:rgba(245,85,85,0.1);";
+      actionBtn.onclick = () => discardItem(i);
+    } else {
+      let usable = !def.usableModes || def.usableModes.includes(prevMode);
+      actionBtn.innerText = "使う";
+      actionBtn.style.cssText += `border-color:#0ff;color:#0ff;background:rgba(0,255,255,0.1);${usable ? "" : "opacity:0.4;"}`;
+      actionBtn.disabled = !usable;
+      if(usable) actionBtn.onclick = () => useItem(i);
+    }
 
     wrap.appendChild(info);
     wrap.appendChild(desc);
-    wrap.appendChild(useBtn);
+    wrap.appendChild(actionBtn);
     a.appendChild(wrap);
   });
 }
