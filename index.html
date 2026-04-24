@@ -559,7 +559,7 @@ function btn(t, f, color="#0f0", bg="rgba(0,255,0,0.1)"){
 let prevMode = "explore";
 
 function openItemMenu(){
-  if(state.mode === "home" || state.mode === "result") return;
+  if(state.mode === "result") return;
   prevMode = state.mode;
   state.mode = "item";
   render();
@@ -627,6 +627,15 @@ function useItem(index){
   saveAll();
   state.mode = prevMode;
   render();
+}
+
+function discardItem(index){
+  let item = state.items[index];
+  if(confirm(`「${item.name}」を本当に捨てますか？`)){
+    state.items.splice(index, 1);
+    saveAll();
+    render();
+  }
 }
 
 // --- 名前変更 ---
