@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Nikotaya Mining Roguelike</title>
+<style>
+body {
+  background-color: #111;
+  color: #0f0;
+  font-family: monospace;
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-size: 32px;
+}
+
+h2 { font-size: 40px; }
+#status { margin-bottom: 12px; font-size: 34px; }
+#log { margin-bottom: 16px; font-size: 28px; }
+
+#storage {
+margin-top: 16px;
+padding-top: 10px;
+border-top: 2px solid #0f0;
+color: #ffcc66;
+font-size: 28px;
+}
+
+#shop {
+margin-top: 16px;
+padding-top: 10px;
+border-top: 2px solid #0f0;
+color: #ff99ff;
+font-size: 28px;
+}
+
+#shop button {
+width: 100%;
+margin-top: 8px;
+}
+
+button {
+min-width: 180px;
+max-width: 260px;
+flex: 1;
+margin: 8px;
+padding: 20px 0;
+background: #222;
+color: #0f0;
+border: 2px solid #0f0;
+font-size: 26px;
+font-family: monospace;
+border-radius: 12px;
+transition: all 0.1s;
+box-shadow: 0 0 10px rgba(0, 255, 0, 0.4);
+outline: none;
+-webkit-tap-highlight-color: transparent;
+}
+
+#log div { margin-bottom: 6px; color: #fff; }
+
+#buff-container {
+display: flex;
+flex-wrap: wrap;
+gap: 8px;
+margin-bottom: 8px;
+min-height: 32px;
+}
+
+.buff-badge {
+padding: 4px 10px;
+border-radius: 6px;
+font-size: 22px;
+display: flex;
+align-items: center;
+gap: 4px;
+}
+
+.buff-good {
+color: #0ff;
+border: 1px solid #0ff;
+background: rgba(0, 255, 255, 0.1);
+}
+
+.buff-bad {
+color: #f55;
+border: 1px solid #f55;
+background: rgba(255, 85, 85, 0.1);
+}
+.log-damage { color: #f55; }
+.log-scrap { color: #ffcc66; }
+.log-divider { color: #fff; text-align: center; }
+.log-loss { color: #f55; }
+
+#top {
+display: flex;
+flex-direction: column;
+height: 700px;
+}
+
+#header {
+padding: 12px 16px 0;
+flex-shrink: 0;
+}
+
+#current-event {
+flex-shrink: 0;
+min-height: 120px;
+margin: 10px 16px;
+padding: 16px;
+border: 2px solid #0f0;
+background: #1a1a1a;
+font-size: 30px;
+color: #fff;
+display: flex;
+align-items: center;
+gap: 16px;
+border-radius: 12px;
+}
+
+#current-event-icon {
+font-size: 48px;
+width: 64px;
+text-align: center;
+flex-shrink: 0;
+}
+
+#current-event-text {
+flex: 1;
+}
+
+#log {
+flex: 1;
+overflow-y: auto;
+padding: 0 16px 12px;
+font-size: 24px;
+}
+
+#actions {
+display: flex;
+flex-wrap: wrap;
+justify-content: center;
+gap: 12px;
+border-top: 2px solid #0f0;
+border-bottom: 2px solid #0f0;
+padding: 12px;
+}
+
+#bottom {
+flex: 1;
+padding: 16px;
+background: #111;
+}
+
+#statusRow {
+display: flex;
+gap: 12px;
+margin-top: 16px;
+padding-top: 10px;
+border-top: 2px solid #0f0;
+}
+
+#playerStatus {
+flex: 1;
+color: #0ff;
+font-size: 24px;
+}
+
+#itemBox {
+flex: 1;
+color: #aaffaa;
+font-size: 24px;
+border-left: 2px solid #0f0;
+padding-left: 12px;
+}
+</style>
+
+</head>
+
+<body>
+
+<div id="top">
+  <div id="header">
+    <h2 style="margin:0 0 6px;">Nikotaya Mining Roguelike</h2>
+    <div id="status"></div>
+    <div id="buff-container"></div>
+  </div>
+  <div id="current-event">
+    <div id="current-event-icon"></div>
+    <div id="current-event-text">採掘を開始しよう！</div>
+  </div>
+  <div id="log"></div>
+</div>
+
+<div id="actions"></div>
+
+<div id="bottom">
+  <div id="storage"></div>
+  <div id="statusRow">
+    <div id="playerStatus"></div>
+    <div id="itemBox"></div>
+  </div>
+  <div id="shop"></div>
+</div>
+
+<script>
+// --- 永続データ読み込み ---
+let savedUpgrades  = JSON.parse(localStorage.getItem("upgrades") || '{"hp":0,"power":0}');
+let savedScrap     = parseInt(localStorage.getItem("totalScrap")) || 0;
+let savedName      = localStorage.getItem("playerName") || "プレイヤー";
+let savedBestFloor = parseInt(localStorage.getItem("bestFloor")) || 1;
+let savedItems     = JSON.parse(localStorage.getItem("items") || "[]");
+
+let state = {
+  name:       savedName,
+  hp:         10 + savedUpgrades.hp,
+  maxHp:      10 + savedUpgrades.hp,
+  mp:         0,
+  maxMp:      0,
+  power:      1  + savedUpgrades.power,
+  skills:     [],
+  items:      savedItems,   // 消耗品アイテム（最大5個）
+  scrap:      0,
+  totalScrap: savedScrap,
+  floor:      1,
+  bestFloor:  savedBestFloor,
+  log:        [],
+  mode:       "home",
+  upgrades:   savedUpgrades,
+  lastResult: null,
+  buffs: []  // { id, name, turns, isBad, onTurn: fn }
+};
+
+// --- バフ管理 ---
+function applyBuff(buff){
+  // 同じidがあれば上書き、なければ追加
+  let idx = state.buffs.findIndex(b => b.id === buff.id);
+  if(idx >= 0) state.buffs[idx] = buff;
+  else state.buffs.push(buff);
+}
+
+function tickBuffs(){
+  // 階層が上がった瞬間に発動・ターン消費
+  state.buffs.forEach(b => {
+    if(b.onTurn) b.onTurn();
+    b.turns--;
+  });
+  // 0以下になったバフを削除
+  state.buffs = state.buffs.filter(b => b.turns > 0);
+}
+
+function clearBuffs(){
+  state.buffs = [];
+}
+
+// --- 毒を付与する関数 ---
+function applyPoison(turns){
+  applyBuff({
+    id: "poison",
+    name: "🩸 毒",
+    turns: turns,
+    isBad: true,
+    onTurn: () => {
+      let d = Math.max(1, Math.floor(state.maxHp * 0.1));
+      // 毒で死なない：HP1を必ず残す
+      d = Math.min(d, state.hp - 1);
+      if(d > 0){
+        damage(d);
+        addLog(`🩸 毒ダメージ ${d}`, "damage");
+      }
+    }
+  });
+}
+
+// --- アイテム定義マスタ ---
+const ITEM_DEF = {
+  hp3: {
+    name: "ポーション",
+    desc: "HP を 3 回復する",
+    // 使用可能モード（null=常時）
+    usableModes: null
+  }
+};
+
+// --- 保存ヘルパー ---
+function saveAll() {
+  localStorage.setItem("totalScrap", state.totalScrap);
+  localStorage.setItem("upgrades",   JSON.stringify(state.upgrades));
+  localStorage.setItem("bestFloor",  state.bestFloor);
+  localStorage.setItem("items",      JSON.stringify(state.items));
+}
+
+// --- コスト ---
+function getHpCost()    { return 30  + state.upgrades.hp    * 20; }
+function getPowerCost() { return 100 + state.upgrades.power * 50; }
+
+// --- HP処理 ---
+function damage(d){ state.hp = Math.max(0, state.hp - d); }
+function heal(v)  { state.hp = Math.min(state.maxHp, state.hp + v); }
+
+// --- ログテキスト色付け ---
+function colorizeLog(text, type){
+  // ダメージ数値を赤に（「X ダメージ」）
+  text = text.replace(/(\d+)( ダメージ)/g,
+    '<span style="color:#f55;font-weight:bold;">$1</span>$2');
+  // スクラップ数値をオレンジに（「+X」）
+  text = text.replace(/(\+\d+)/g,
+    '<span style="color:#ffcc66;font-weight:bold;">$1</span>');
+  // HP回復を黄緑に（全タイプ共通）
+  text = text.replace(/(HP\+\d+|HP \+\d+)/g,
+    '<span style="color:#aaff66;font-weight:bold;">$1</span>');
+  // subのダメージ・回復も色付け
+  if(type === "sub"){
+    text = text.replace(/(\d+)( ダメージ)/g,
+      '<span style="color:#f55;font-weight:bold;">$1</span>$2');
+    text = text.replace(/(HP \+\d+)/g,
+      '<span style="color:#aaff66;font-weight:bold;">$1</span>');
+    // スクラップ捨てはオレンジ
+    text = text.replace(/スクラップ (\d+)/g,
+      'スクラップ <span style="color:#ffcc66;font-weight:bold;">$1</span>');
+  }
+  return text;
+}
+
+// --- 絵文字取得 ---
+function getEmoji(text, type){
+  if(type==="divider")     return "🚪";
+  if(type==="damage")      return text.includes("毒") ? "🩸" : "💥";
+  if(type==="scrap")       return "⛏️";
+  if(type==="heal")        return "💤";
+  if(type==="loss")        return "🕳️";
+  if(type==="sub")         return "";
+  if(text.includes("採掘開始"))     return "⛏️";
+  if(text.includes("コンテナ"))     return "📦";
+  if(text.includes("鉱脈"))         return "💎";
+  if(text.includes("キノコ"))       return "🍄";
+  if(text.includes("帰還"))         return "🏠";
+  if(text.includes("HPが0"))        return "💀";
+  if(text.includes("一休み"))       return "💤";
+  if(text.includes("亀裂"))         return "🕳️";
+  if(text.includes("コウモリ"))     return "🦇";
+  if(text.includes("女神"))         return "🗿";
+  return "📋";
+}
+
+// --- ログ ---
+// state.log = [ { floor, lines: [{text, type, emoji}] }, ... ]
+// subはその階の最新エントリのlinesに追加、それ以外は新エントリ
+
+function addLog(text, type="normal"){
+  let emoji = getEmoji(text, type);
+
+  if(type === "sub"){
+    // 最新エントリのlinesに追加
+    if(state.log.length > 0){
+      state.log[0].lines.push({text, type, emoji});
+    }
+    return;
+  }
+
+  // 新しい階層エントリを先頭に追加
+  let entry = {
+    floor: state.floor,
+    type,           // エントリ全体の代表タイプ（アイコン・色に使う）
+    lines: [{text, type, emoji}]
+  };
+  state.log.unshift(entry);
+  state.log = state.log.slice(0, 10); // 10階層分保持
+}
+
+// --- 描画 ---
+function render(){
+  // HP色：満タン=緑、50%以下=黄、25%以下=赤
+  let hpRatio = state.maxHp > 0 ? state.hp / state.maxHp : 1;
+  let hpColor = hpRatio > 0.5 ? "#0f0" : hpRatio > 0.25 ? "#ff0" : "#f55";
+  document.getElementById("status").innerHTML =
+    `<span style="color:${hpColor}">HP:${state.hp}/${state.maxHp}</span> | MP:${state.mp}/${state.maxMp} | スクラップ:<span style="color:#ffcc66;">${state.scrap}</span> | 現在地:${state.floor}階`;
+
+  // バフ・デバフ表示
+  let buffHTML = "";
+  if(state.buffs.length > 0){
+    state.buffs.forEach(b => {
+      let cls = b.isBad ? "buff-bad" : "buff-good";
+      buffHTML += `<div class="buff-badge ${cls}">${b.name} : ${b.turns}T</div>`;
+    });
+  }
+  document.getElementById("buff-container").innerHTML = buffHTML;
+
+  document.getElementById("storage").innerText =
+    `倉庫：スクラップ ${state.totalScrap}`;
+
+  document.getElementById("playerStatus").innerHTML =
+`<span onclick="changeName()" style="cursor:pointer;">名前：${state.name} ✏️</span>
+最大HP：${state.maxHp}
+最大MP：${state.maxMp}
+採掘力：${state.power}
+スキル：${state.skills.length ? state.skills.join(",") : "なし"}
+最高到達階：${state.bestFloor}階`.split("\n").map(l => `<div>${l}</div>`).join("");
+
+  // アイテム欄
+  let itemHTML = `<div onclick="openItemMenu()" style="cursor:pointer;text-decoration:underline;">▼アイテム 👆</div>`;
+  for(let i = 0; i < 5; i++){
+    let item = state.items[i];
+    if(item){
+      itemHTML += `<div>${i+1}. ${item.name}</div>`;
+    } else {
+      itemHTML += `<div style="color:#444;">${i+1}. ────</div>`;
+    }
+  }
+  document.getElementById("itemBox").innerHTML = itemHTML;
+
+  // リザルト画面（完全独立描画）
+  if(state.mode === "result" && state.lastResult){
+    let r = state.lastResult;
+    let survived = r.survived ? "帰還成功 🎉" : "力尽きた… 💀";
+    document.getElementById("current-event-icon").innerText = r.survived ? "🎉" : "💀";
+    let carryNote = r.goddess ? "（女神の加護・全額）" : "（半分）";
+    document.getElementById("current-event-text").innerHTML = `
+<div style="color:#ff0;font-size:28px;margin-bottom:6px;">── リザルト ──</div>
+<div>${survived}</div>
+<div>到達階層：${r.floor} 階</div>
+<div style="color:#ffcc66;">持ち帰ったスクラップ：${r.carry} ${carryNote}</div>
+<div style="color:#aaa;">最高到達階：${state.bestFloor} 階</div>
+`;
+    document.getElementById("log").innerHTML = "";
+    document.getElementById("actions").innerHTML = "";
+    btn("ホームへ戻る", goHome);
+    document.getElementById("shop").innerHTML = "";
+    return;
+  }
+
+  // --- current-event：最新エントリの全ラインを表示 ---
+  if(state.log.length > 0){
+    let entry = state.log[0];
+    let firstLine = entry.lines[0];
+    // アイコンは先頭ラインの絵文字
+    document.getElementById("current-event-icon").innerText = firstLine.emoji || "📋";
+
+    let eventHTML = "";
+    entry.lines.forEach((line, i) => {
+      let color = "";
+      if(line.type==="damage")      color = "color:#f55;";
+      else if(line.type==="scrap")  color = "color:#ffcc66;";
+      else if(line.type==="heal")   color = "color:#aaff66;";
+      else if(line.type==="loss")   color = "color:#f55;";
+      else if(line.type==="divider")color = "color:#fff;";
+      else if(line.type==="sub")    color = "color:#aaa;";
+
+      let colored = colorizeLog(line.text, line.type);
+
+      if(line.type === "divider"){
+        // dividerは改行で説明文を小さく
+        colored = colored.replace(/
+/, `</span><br><span style='font-size:22px;color:#aaa;'>`);
+        eventHTML += `<div style="${color}font-size:30px;">${colored}</span></div>`;
+      } else if(line.type === "sub"){
+        eventHTML += `<div style="color:#aaa;font-size:26px;padding-left:1em;">→ ${colored}</div>`;
+      } else {
+        let fs = i === 0 ? "30px" : "26px";
+        eventHTML += `<div style="${color}font-size:${fs};">${colored}</div>`;
+      }
+    });
+    document.getElementById("current-event-text").innerHTML = eventHTML;
+  }
+
+  // --- 履歴ログ：最新エントリ以外を階層単位で表示 ---
+  let logHTML = "";
+  state.log.slice(1).forEach((entry) => {
+    entry.lines.forEach((line, i) => {
+      let cls = "";
+      if(line.type==="divider") cls = "log-divider";
+      if(line.type==="loss")    cls = "log-loss";
+      let colored = colorizeLog(line.text, line.type);
+
+      if(line.type === "sub"){
+        logHTML += `<div style="padding-left:2em;color:#aaa;font-size:22px;">→ ${colored}</div>`;
+      } else if(line.type === "divider"){
+        colored = colored.replace(/
+/g, `<br><span style='font-size:20px;color:#aaa;'>`);
+        logHTML += `<div class="${cls}">${colored}</span></div>`;
+      } else {
+        // 先頭ラインには【X階】プレフィックス
+        let prefix = i === 0 ? `<span style="color:#888;">【${entry.floor}階】</span>` : "";
+        logHTML += `<div class="${cls}">${prefix}${line.emoji ? line.emoji+" " : ""}${colored}</div>`;
+      }
+    });
+  });
+  document.getElementById("log").innerHTML = logHTML;
+
+  let a = document.getElementById("actions");
+  a.innerHTML = "";
+
+  switch(state.mode){
+    case "home":
+      btn("採掘開始", startRun);
+      break;
+    case "explore":
+      btn("採掘する", next);
+      break;
+    case "event":
+      btn("開ける",   openChest);
+      btn("無視する", ignoreChest);
+      break;
+    case "event_vein":
+      btn("掘る",       digVein);
+      btn("無視して進む", ignoreEvent);
+      break;
+    case "event_mushroom":
+      btn("食べる",     eatMushroom);
+      btn("無視して進む", ignoreEvent);
+      break;
+    case "event_bat":
+      renderBatEvent();
+      break;
+    case "event_goddess":
+      btn("スクラップが欲しい", goddessScrap);
+      btn("ホームに帰りたい",   goddessReturn);
+      break;
+    case "return":
+      btn("続行する", continueRun);
+      btn("帰還する", confirmReturn);
+      break;
+    case "dead":
+      btn("帰還する", forceReturn);
+      break;
+    case "item":
+      renderItemMenu();
+      btn("戻る", closeItemMenu);
+      break;
+  }
+
+  let shopHTML = "";
+  if(state.mode === "home"){
+    let itemFull = state.items.length >= 5;
+    shopHTML = `
+<div>▼ショップ</div>
+<div style="color:#888;margin:6px 0;">－－－消耗品－－－</div>
+<button onclick="buyPotion()" ${itemFull ? 'disabled style="opacity:0.4;"' : ''}>ポーション　HP+3<br>（スクラップ 10）${itemFull ? "<br>※持ち物がいっぱい" : ""}</button>
+<div style="color:#888;margin:6px 0;">－－－永続－－－</div>
+<button onclick="buyHp()">最大HP +1<br>（スクラップ ${getHpCost()}）</button>
+<button onclick="buyPower()">採掘力 +1<br>（スクラップ ${getPowerCost()}）</button>
+`;
+  }
+  document.getElementById("shop").innerHTML = shopHTML;
+}
+
+function btn(t, f){
+  let b = document.createElement("button");
+  b.innerText = t;
+  b.onclick   = f;
+  document.getElementById("actions").appendChild(b);
+}
+
+// --- アイテムメニュー ---
+let prevMode = "explore";
+
+function openItemMenu(){
+  if(state.mode === "home" || state.mode === "result") return;
+  prevMode = state.mode;
+  state.mode = "item";
+  render();
+}
+
+function closeItemMenu(){
+  state.mode = prevMode;
+  render();
+}
+
+function renderItemMenu(){
+  let a = document.getElementById("actions");
+  if(state.items.length === 0){
+    let d = document.createElement("div");
+    d.innerText = "アイテムがない";
+    d.style.color = "#888";
+    d.style.margin = "8px";
+    a.appendChild(d);
+    return;
+  }
+  state.items.forEach((item, i) => {
+    let def = ITEM_DEF[item.effect];
+    // アイテム行：名前＋説明＋使用ボタン
+    let wrap = document.createElement("div");
+    wrap.style.cssText = "display:flex;align-items:center;gap:8px;width:100%;margin:4px 0;";
+
+    let info = document.createElement("div");
+    info.style.cssText = "flex:1;font-size:24px;color:#aaffaa;";
+    info.innerHTML = `<b>${i+1}. ${item.name}</b>`;
+
+    let desc = document.createElement("div");
+    desc.style.cssText = "flex:2;font-size:20px;color:#888;text-align:center;";
+    desc.innerText = def ? def.desc : "";
+
+    let usable = !def.usableModes || def.usableModes.includes(prevMode);
+    let useBtn = document.createElement("button");
+    useBtn.style.cssText = `min-width:100px;max-width:120px;font-size:22px;padding:10px 0;${usable ? "" : "opacity:0.4;"}`;
+    useBtn.innerText = "使う";
+    useBtn.disabled = !usable;
+    if(usable) useBtn.onclick = () => useItem(i);
+
+    wrap.appendChild(info);
+    wrap.appendChild(desc);
+    wrap.appendChild(useBtn);
+    a.appendChild(wrap);
+  });
+}
+
+function useItem(index){
+  let item = state.items[index];
+  let def  = ITEM_DEF[item.effect];
+  if(!def){ return; }
+
+  // 効果発動
+  if(item.effect === "hp3"){
+    heal(3);
+    addLog(`ポーションを使った！ HP +3`, "scrap");
+  }
+
+  // 消費して上詰め
+  state.items.splice(index, 1);
+  saveAll();
+  state.mode = prevMode;
+  render();
+}
+
+// --- 名前変更 ---
+function changeName(){
+  let n = prompt("名前入力");
+  if(n){
+    state.name = n;
+    localStorage.setItem("playerName", n);
+  }
+  render();
+}
+
+// --- 採掘開始 ---
+function startRun(){
+  state.hp    = state.maxHp;
+  state.scrap = 0;
+  state.floor = 1;
+  state.log   = [];
+  clearBuffs();
+  state.mode  = "explore";
+  addLog("採掘開始！");
+  render();
+}
+
+// --- 採掘量計算 ---
+function calcScrap(){
+  let bonus    = Math.floor((state.floor-1)/10) + 1;
+  let base     = state.power * bonus;
+  let variance = Math.floor(base * (Math.random() - 0.5));
+  return Math.max(1, base + variance);
+}
+
+// --- 探索 ---
+function next(){
+  state.floor++;
+
+  // バフ・デバフのターン処理（階層上昇時）
+  tickBuffs();
+  if(state.hp <= 0){ checkDeath(); render(); return; }
+
+  if(state.floor % 30 === 0){
+    addLog(`－－－ ${state.floor}階層 －－－\n女神像がある…`, "divider");
+    state.mode = "event_goddess";
+    render();
+    return;
+  }
+
+  if(state.floor % 10 === 0){
+    addLog(`－－－ ${state.floor}階層 －－－\nスクラップを半分支払えば帰還できそうだ`, "divider");
+    state.mode = "return";
+    render();
+    return;
+  }
+
+  // --- 軽(70%) / 重(30%) の2段階抽選 ---
+  const LIGHT_EVENTS = [
+    // 採掘 60%
+    { w: 60, fn: () => {
+      let g = calcScrap();
+      state.scrap += g;
+      addLog(`採掘した スクラップ +${g}`, "scrap");
+    }},
+    // 落石 20%
+    { w: 20, fn: () => {
+      let d = Math.floor(Math.random()*3) + 1;
+      damage(d);
+      addLog(`落石！ ${d} ダメージ`, "damage");
+    }},
+    // 一休み 10%
+    { w: 10, fn: () => {
+      let h = Math.floor(Math.random()*2) + 1;
+      heal(h);
+      addLog(`一休みした HP+${h}`, "heal");
+    }},
+    // 亀裂 10%
+    { w: 10, fn: () => {
+      let lost = Math.min(calcScrap(), state.scrap);
+      state.scrap = Math.max(0, state.scrap - lost);
+      addLog(`亀裂の隙間にスクラップを落としてしまった スクラップ -${lost}`, "loss");
+    }},
+  ];
+
+  const HEAVY_EVENTS = [
+    { w: 20, fn: () => { state.mode = "event";          addLog("コンテナを発見した！"); }},
+    { w: 40, fn: () => { state.mode = "event_vein";     addLog("鉱脈だ！だけど地盤が脆そうだ…"); }},
+    { w: 40, fn: () => { state.mode = "event_mushroom"; addLog("謎のキノコだ！"); }},
+    { w: 30, fn: () => { state.mode = "event_bat";      addLog("コウモリの群れだ！"); }},
+  ];
+
+  if(Math.random() < 0.70){
+    // 軽イベント：重み付き抽選
+    let totalW = LIGHT_EVENTS.reduce((s, e) => s + e.w, 0);
+    let pick = Math.random() * totalW;
+    let ev = LIGHT_EVENTS[LIGHT_EVENTS.length - 1];
+    for(let e of LIGHT_EVENTS){ pick -= e.w; if(pick <= 0){ ev = e; break; } }
+    ev.fn();
+    checkDeath();
+    render();
+  } else {
+    // 重イベント：重み付き抽選
+    let totalHW = HEAVY_EVENTS.reduce((s, e) => s + e.w, 0);
+    let pickH = Math.random() * totalHW;
+    let ev = HEAVY_EVENTS[HEAVY_EVENTS.length - 1];
+    for(let e of HEAVY_EVENTS){ pickH -= e.w; if(pickH <= 0){ ev = e; break; } }
+    ev.fn();
+    if(state.mode !== "explore"){ render(); return; }
+    checkDeath();
+    render();
+  }
+}
+
+// --- コンテナ ---
+function openChest(){
+  let r = Math.random();
+  if(r < 0.70){
+    // 成功：calcScrap() × 3
+    let g = calcScrap() * 3;
+    state.scrap += g;
+    addLog(`資源を発見！ スクラップ +${g}`, "sub");
+  } else if(r < 0.85){
+    // 空っぽ 15%
+    addLog("空っぽだった…", "sub");
+  } else {
+    // 罠 15%：最大HPの20%（切り上げ）
+    let d = Math.ceil(state.maxHp * 0.2);
+    damage(d);
+    addLog(`罠だった！ ${d} ダメージ`, "sub");
+  }
+  checkDeath();
+  if(state.mode !== "dead") state.mode = "explore";
+  render();
+}
+
+function ignoreChest(){
+  addLog("無視した", "sub");
+  state.mode = "explore";
+  render();
+}
+
+// --- コウモリイベント ---
+function renderBatEvent(){
+  let a = document.getElementById("actions");
+
+  // 「音を立てて気をそらす」ボタン
+  let lost = Math.floor(state.scrap * 0.1);
+  let distractBtn = document.createElement("button");
+  distractBtn.innerHTML = `音を立てて気をそらす<br><span style="font-size:22px;color:#ffcc66;">スクラップ -${lost}</span>`;
+  if(state.scrap <= 0){
+    distractBtn.disabled = true;
+    distractBtn.style.opacity = "0.4";
+  } else {
+    distractBtn.onclick = batDistract;
+  }
+  a.appendChild(distractBtn);
+
+  // 「無理やり通る」ボタン
+  let forceBtn = document.createElement("button");
+  forceBtn.innerText = "無理やり通る";
+  forceBtn.onclick = batForce;
+  a.appendChild(forceBtn);
+}
+
+function batDistract(){
+  let lost = Math.floor(state.scrap * 0.1);
+  state.scrap = Math.max(0, state.scrap - lost);
+  addLog(`スクラップ ${lost} を投げて気をそらした`, "sub");
+  state.mode = "explore";
+  render();
+}
+
+function batForce(){
+  if(Math.random() < 0.40){
+    addLog("うまく切り抜けられた！", "sub");
+  } else {
+    let d = Math.ceil(state.maxHp * 0.1);
+    damage(d);
+    applyPoison(3);
+    addLog(`コウモリに襲われた！ ${d} ダメージ＋毒3ターン`, "sub");
+  }
+  checkDeath();
+  if(state.mode !== "dead") state.mode = "explore";
+  render();
+}
+
+// --- 共通：無視して進む ---
+function ignoreEvent(){
+  addLog("無視した", "sub");
+  state.mode = "explore";
+  render();
+}
+
+// --- 鉱脈イベント ---
+function digVein(){
+  if(Math.random() < 0.5){
+    let g = calcScrap() * 2;
+    state.scrap += g;
+    addLog(`鉱脈を掘り当てた！ スクラップ +${g}`, "sub");
+  } else {
+    let d = 3 + Math.floor(state.floor / 10);
+    damage(d);
+    addLog(`地盤が崩れた！ ${d} ダメージ`, "sub");
+  }
+  checkDeath();
+  if(state.mode !== "dead") state.mode = "explore";
+  render();
+}
+
+// --- キノコイベント ---
+function eatMushroom(){
+  let r = Math.random();
+  if(r < 0.40){
+    applyPoison(2);
+    addLog("苦い！ 毒を受けた（2ターン）", "sub");
+  } else if(r < 0.80){
+    heal(3);
+    addLog("甘い香り… HP +3 回復した", "sub");
+  } else if(r < 0.90){
+    let back = Math.min(2, state.floor - 1);
+    state.floor -= back;
+    addLog(`錯乱した！ ${back}階層戻された`, "sub");
+  } else {
+    let lost = Math.floor(state.scrap * 0.1);
+    state.scrap = Math.max(0, state.scrap - lost);
+    addLog(`錯乱した！ スクラップ ${lost} をばらまいた`, "sub");
+  }
+  checkDeath();
+  if(state.mode !== "dead") state.mode = "explore";
+  render();
+}
+
+// --- 死亡 ---
+function checkDeath(){
+  if(state.hp <= 0){
+    addLog("HPが0になった…");
+    state.mode = "dead";
+  }
+}
+
+// --- 帰還 ---
+function confirmReturn(){
+  if(confirm("本当に帰還しますか？（スクラップの半分を持ち帰ります）")){
+    state.mode = "result";  // returnモードを先に抜ける
+    doReturn();
+  }
+}
+
+function doReturn(){
+  let carry = Math.floor(state.scrap / 2);
+  state.totalScrap += carry;
+
+  // 最高到達階を更新
+  if(state.floor > state.bestFloor) state.bestFloor = state.floor;
+  saveAll();
+
+  state.lastResult = { survived: true, floor: state.floor, carry };
+  state.mode = "result";
+  render();
+}
+
+function forceReturn(){
+  // 最高到達階を更新
+  if(state.floor > state.bestFloor) state.bestFloor = state.floor;
+  saveAll();
+
+  state.lastResult = { survived: false, floor: state.floor, carry: 0 };
+  state.mode = "result";
+  render();
+}
+
+function goHome(){
+  state.hp    = state.maxHp;
+  state.scrap = 0;
+  state.floor = 1;
+  state.log   = [];
+  state.lastResult = null;
+  clearBuffs();
+  state.mode  = "home";
+  render();
+}
+
+// --- 女神像イベント ---
+function goddessScrap(){
+  let gain = state.floor;
+  state.scrap += gain;
+  addLog(`女神の恵み！ スクラップ +${gain}`, "scrap");
+  state.mode = "explore";
+  render();
+}
+
+function goddessReturn(){
+  let carry = state.scrap;
+  state.totalScrap += carry;
+  if(state.floor > state.bestFloor) state.bestFloor = state.floor;
+  saveAll();
+  state.lastResult = { survived: true, floor: state.floor, carry, goddess: true };
+  state.mode = "result";
+  render();
+}
+
+function continueRun(){
+  addLog("さらに深く潜る…");
+  state.mode = "explore";
+  render();
+}
+
+// --- ショップ購入 ---
+function buyPotion(){
+  const cost = 10;
+  if(state.totalScrap < cost){ alert("スクラップが足りない"); return; }
+  if(state.items.length >= 5){ alert("持ち物がいっぱい"); return; }
+  if(confirm(`スクラップ ${cost} でポーションを購入しますか？`)){
+    state.totalScrap -= cost;
+    state.items.push({ name: "ポーション", effect: "hp3" });
+    saveAll();
+    render();
+  }
+}
+
+function buyHp(){
+  let cost = getHpCost();
+  if(state.totalScrap < cost){ alert("スクラップが足りない"); return; }
+  if(confirm(`スクラップ ${cost} で購入しますか？`)){
+    state.totalScrap  -= cost;
+    state.maxHp++;
+    state.hp++;          // 現在HPも+1（即時反映）
+    state.upgrades.hp++;
+    saveAll();
+    render();
+  }
+}
+
+function buyPower(){
+  let cost = getPowerCost();
+  if(state.totalScrap < cost){ alert("スクラップが足りない"); return; }
+  if(confirm(`スクラップ ${cost} で購入しますか？`)){
+    state.totalScrap   -= cost;
+    state.power++;
+    state.upgrades.power++;
+    saveAll();
+    render();
+  }
+}
+
+render();
+</script>
+
+</body>
+</html>
