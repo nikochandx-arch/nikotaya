@@ -230,7 +230,8 @@ let state = {
   mode:       "home",
   upgrades:   savedUpgrades,
   lastResult: null,
-  buffs: []  // { id, name, turns, isBad, onTurn: fn }
+  buffs: [],  // { id, name, turns, isBad, onTurn: fn }
+  moleBlock: -1  // モグラが発生した30階ブロック番号
 };
 
 // --- バフ管理 ---
@@ -253,6 +254,7 @@ function tickBuffs(){
 
 function clearBuffs(){
   state.buffs = [];
+  state.moleBlock = -1;
 }
 
 // --- 毒を付与する関数 ---
@@ -723,6 +725,28 @@ function next(){
       state.scrap = Math.max(0, state.scrap - lost);
       addLog(`亀裂の隙間にスクラップを落としてしまった スクラップ -${lost}`, "loss");
     }},
+    // モグラ 1%（30階ブロック内で1回まで）
+    { w: 1,
+      condition: () => {
+        let block = Math.floor((state.floor - 1) / 30);
+        return state.moleBlock !== block;
+      },
+      fn: () => {
+        let block = Math.floor((state.floor - 1) / 30);
+        state.moleBlock = block;
+        if(Math.random() < 0.5){
+          // 金モグラ
+          let gain = Math.floor(state.scrap / 2);
+          state.scrap += gain;
+          addLog(`金モグラだ！ スクラップ +${gain}`, "scrap");
+        } else {
+          // 泥棒モグラ
+          let lost = Math.floor(state.scrap / 2);
+          state.scrap = Math.max(0, state.scrap - lost);
+          addLog(`泥棒モグラだ！ スクラップ -${lost}`, "loss");
+        }
+      }
+    },
   ];
 
   const HEAVY_EVENTS = [
@@ -733,20 +757,24 @@ function next(){
   ];
 
   if(Math.random() < 0.70){
-    // 軽イベント：重み付き抽選
-    let totalW = LIGHT_EVENTS.reduce((s, e) => s + e.w, 0);
+    // 軽イベント：condition対応重み付き抽選
+    let avail = LIGHT_EVENTS.filter(e => !e.condition || e.condition());
+    if(avail.length === 0) avail = LIGHT_EVENTS.filter(e => !e.condition);
+    let totalW = avail.reduce((s, e) => s + e.w, 0);
     let pick = Math.random() * totalW;
-    let ev = LIGHT_EVENTS[LIGHT_EVENTS.length - 1];
-    for(let e of LIGHT_EVENTS){ pick -= e.w; if(pick <= 0){ ev = e; break; } }
+    let ev = avail[avail.length - 1];
+    for(let e of avail){ pick -= e.w; if(pick <= 0){ ev = e; break; } }
     ev.fn();
     checkDeath();
     render();
   } else {
-    // 重イベント：重み付き抽選
-    let totalHW = HEAVY_EVENTS.reduce((s, e) => s + e.w, 0);
+    // 重イベント：condition対応重み付き抽選
+    let availH = HEAVY_EVENTS.filter(e => !e.condition || e.condition());
+    if(availH.length === 0) availH = HEAVY_EVENTS.filter(e => !e.condition);
+    let totalHW = availH.reduce((s, e) => s + e.w, 0);
     let pickH = Math.random() * totalHW;
-    let ev = HEAVY_EVENTS[HEAVY_EVENTS.length - 1];
-    for(let e of HEAVY_EVENTS){ pickH -= e.w; if(pickH <= 0){ ev = e; break; } }
+    let ev = availH[availH.length - 1];
+    for(let e of availH){ pickH -= e.w; if(pickH <= 0){ ev = e; break; } }
     ev.fn();
     if(state.mode !== "explore"){ render(); return; }
     checkDeath();
