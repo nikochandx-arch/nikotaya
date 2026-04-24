@@ -341,6 +341,7 @@ function addLog(text, type="normal"){
     else if(text.includes("HPが0"))     emoji = "💀 ";
     else if(text.includes("一休み"))    emoji = "💤 ";
     else if(text.includes("亀裂"))       emoji = "🕳️ ";
+    else if(text.includes("コウモリ"))   emoji = "🦇 ";
     else                                emoji = "📋 ";
   }
   let prefix = (type==="divider" || type==="sub") ? "" : `【${state.floor}階】`;
@@ -474,6 +475,9 @@ function render(){
     case "event_mushroom":
       btn("食べる",     eatMushroom);
       btn("無視して進む", ignoreEvent);
+      break;
+    case "event_bat":
+      renderBatEvent();
       break;
     case "event_goddess":
       btn("スクラップが欲しい", goddessScrap);
@@ -669,6 +673,7 @@ function next(){
     { w: 20, fn: () => { state.mode = "event";          addLog("コンテナを発見した！"); }},
     { w: 40, fn: () => { state.mode = "event_vein";     addLog("鉱脈だ！だけど地盤が脆そうだ…"); }},
     { w: 40, fn: () => { state.mode = "event_mushroom"; addLog("謎のキノコだ！"); }},
+    { w: 30, fn: () => { state.mode = "event_bat";      addLog("コウモリの群れだ！"); }},
   ];
 
   if(Math.random() < 0.70){
@@ -718,6 +723,51 @@ function openChest(){
 function ignoreChest(){
   addLog("無視した", "sub");
   state.mode = "explore";
+  render();
+}
+
+// --- コウモリイベント ---
+function renderBatEvent(){
+  let a = document.getElementById("actions");
+
+  // 「音を立てて気をそらす」ボタン
+  let lost = Math.floor(state.scrap * 0.1);
+  let distractBtn = document.createElement("button");
+  distractBtn.innerHTML = `音を立てて気をそらす<br><span style="font-size:22px;color:#ffcc66;">スクラップ -${lost}</span>`;
+  if(state.scrap <= 0){
+    distractBtn.disabled = true;
+    distractBtn.style.opacity = "0.4";
+  } else {
+    distractBtn.onclick = batDistract;
+  }
+  a.appendChild(distractBtn);
+
+  // 「無理やり通る」ボタン
+  let forceBtn = document.createElement("button");
+  forceBtn.innerText = "無理やり通る";
+  forceBtn.onclick = batForce;
+  a.appendChild(forceBtn);
+}
+
+function batDistract(){
+  let lost = Math.floor(state.scrap * 0.1);
+  state.scrap = Math.max(0, state.scrap - lost);
+  addLog(`スクラップ ${lost} を投げて気をそらした`, "sub");
+  state.mode = "explore";
+  render();
+}
+
+function batForce(){
+  if(Math.random() < 0.40){
+    addLog("うまく切り抜けられた！", "sub");
+  } else {
+    let d = Math.ceil(state.maxHp * 0.1);
+    damage(d);
+    applyPoison(3);
+    addLog(`コウモリに襲われた！ ${d} ダメージ＋毒3ターン`, "sub");
+  }
+  checkDeath();
+  if(state.mode !== "dead") state.mode = "explore";
   render();
 }
 
