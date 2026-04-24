@@ -426,7 +426,7 @@ function render(){
 `;
     document.getElementById("log").innerHTML = "";
     document.getElementById("actions").innerHTML = "";
-    btn("ホームへ戻る", goHome);
+    btn("ホームへ戻る", goHome, "main");
     document.getElementById("shop").innerHTML = "";
     return;
   }
@@ -492,40 +492,40 @@ function render(){
 
   switch(state.mode){
     case "home":
-      btn("採掘開始", startRun);
+      btn("採掘開始", startRun, "main");
       break;
     case "explore":
-      btn("採掘する", next);
+      btn("採掘する", next, "main");
       break;
     case "event":
-      btn("開ける",   openChest);
-      btn("無視する", ignoreChest);
+      btn("開ける", openChest, "#ffcc66", "rgba(255,204,102,0.1)");
+      btn("無視する", ignoreChest, "#666",    "transparent");
       break;
     case "event_vein":
-      btn("掘る",       digVein);
-      btn("無視して進む", ignoreEvent);
+      btn("掘る", digVein, "#ffcc66", "rgba(255,204,102,0.1)");
+      btn("無視して進む", ignoreEvent, "#666",    "transparent");
       break;
     case "event_mushroom":
-      btn("食べる",     eatMushroom);
-      btn("無視して進む", ignoreEvent);
+      btn("食べる", eatMushroom, "#ffcc66", "rgba(255,204,102,0.1)");
+      btn("無視して進む", ignoreEvent, "skip");
       break;
     case "event_bat":
       renderBatEvent();
       break;
     case "event_goddess":
-      btn("スクラップが欲しい", goddessScrap);
-      btn("ホームに帰りたい",   goddessReturn);
+      btn("スクラップが欲しい", goddessScrap, "#0ff",    "rgba(0,255,255,0.1)");
+      btn("ホームに帰りたい", goddessReturn, "#f55",    "rgba(245,85,85,0.1)");
       break;
     case "return":
-      btn("続行する", continueRun);
-      btn("帰還する", confirmReturn);
+      btn("続行する", continueRun, "main");
+      btn("帰還する", confirmReturn, "#f55",    "rgba(245,85,85,0.1)");
       break;
     case "dead":
-      btn("帰還する", forceReturn);
+      btn("帰還する", forceReturn, "#f55",    "rgba(245,85,85,0.1)");
       break;
     case "item":
       renderItemMenu();
-      btn("戻る", closeItemMenu);
+      btn("戻る", closeItemMenu, "#666",    "transparent");
       break;
   }
 
@@ -535,19 +535,23 @@ function render(){
     shopHTML = `
 <div>▼ショップ</div>
 <div style="color:#888;margin:6px 0;">－－－消耗品－－－</div>
-<button onclick="buyPotion()" ${itemFull ? 'disabled style="opacity:0.4;"' : ''}>ポーション　HP+3<br>（スクラップ 10）${itemFull ? "<br>※持ち物がいっぱい" : ""}</button>
+<button onclick="buyPotion()" style="border-color:#ff99ff;color:#ff99ff;background:rgba(255,153,255,0.1);box-shadow:0 0 10px rgba(255,153,255,0.4);width:100%;${itemFull ? 'opacity:0.4;' : ''}">ポーション　HP+3<br>（スクラップ 10）${itemFull ? "<br>※持ち物がいっぱい" : ""}</button>
 <div style="color:#888;margin:6px 0;">－－－永続－－－</div>
-<button onclick="buyHp()">最大HP +1<br>（スクラップ ${getHpCost()}）</button>
-<button onclick="buyPower()">採掘力 +1<br>（スクラップ ${getPowerCost()}）</button>
+<button onclick="buyHp()" style="border-color:#ff99ff;color:#ff99ff;background:rgba(255,153,255,0.1);box-shadow:0 0 10px rgba(255,153,255,0.4);width:100%;">最大HP +1<br>（スクラップ ${getHpCost()}）</button>
+<button onclick="buyPower()" style="border-color:#ff99ff;color:#ff99ff;background:rgba(255,153,255,0.1);box-shadow:0 0 10px rgba(255,153,255,0.4);width:100%;">採掘力 +1<br>（スクラップ ${getPowerCost()}）</button>
 `;
   }
   document.getElementById("shop").innerHTML = shopHTML;
 }
 
-function btn(t, f){
+function btn(t, f, color="#0f0", bg="rgba(0,255,0,0.1)"){
   let b = document.createElement("button");
   b.innerText = t;
   b.onclick   = f;
+  b.style.borderColor = color;
+  b.style.color       = color;
+  b.style.background  = bg;
+  b.style.boxShadow   = `0 0 10px ${color}66`;
   document.getElementById("actions").appendChild(b);
 }
 
@@ -592,7 +596,10 @@ function renderItemMenu(){
 
     let usable = !def.usableModes || def.usableModes.includes(prevMode);
     let useBtn = document.createElement("button");
-    useBtn.style.cssText = `min-width:100px;max-width:120px;font-size:22px;padding:10px 0;${usable ? "" : "opacity:0.4;"}`;
+    let usableStyle = usable
+      ? "border-color:#0ff;color:#0ff;background:rgba(0,255,255,0.1);box-shadow:0 0 10px rgba(0,255,255,0.4);"
+      : "opacity:0.4;";
+    useBtn.style.cssText = `min-width:100px;max-width:120px;font-size:22px;padding:10px 0;${usableStyle}`;
     useBtn.innerText = "使う";
     useBtn.disabled = !usable;
     if(usable) useBtn.onclick = () => useItem(i);
@@ -767,17 +774,20 @@ function renderBatEvent(){
   let lost = Math.floor(state.scrap * 0.1);
   let distractBtn = document.createElement("button");
   distractBtn.innerHTML = `音を立てて気をそらす<br><span style="font-size:22px;color:#ffcc66;">スクラップ -${lost}</span>`;
+  distractBtn.style.cssText += ";border-color:#666;color:#666;background:transparent;box-shadow:0 0 10px #66666666;";
   if(state.scrap <= 0){
     distractBtn.disabled = true;
     distractBtn.style.opacity = "0.4";
   } else {
     distractBtn.onclick = batDistract;
+    distractBtn.style.cssText += ";border-color:#ffcc66;color:#ffcc66;background:rgba(255,204,102,0.1);box-shadow:0 0 10px rgba(255,204,102,0.4);";
   }
   a.appendChild(distractBtn);
 
-  // 「無理やり通る」ボタン
+  // 「無理やり通る」ボタン（オレンジ）
   let forceBtn = document.createElement("button");
   forceBtn.innerText = "無理やり通る";
+  forceBtn.style.cssText += ";border-color:#ffcc66;color:#ffcc66;background:rgba(255,204,102,0.1);box-shadow:0 0 10px rgba(255,204,102,0.4);";
   forceBtn.onclick = batForce;
   a.appendChild(forceBtn);
 }
