@@ -235,12 +235,15 @@ function colorizeLog(text, type){
   // スクラップ数値をオレンジに（「+X」）
   text = text.replace(/(\+\d+)/g,
     '<span style="color:#ffcc66;font-weight:bold;">$1</span>');
+  // HP回復を黄緑に（全タイプ共通）
+  text = text.replace(/(HP\+\d+|HP \+\d+)/g,
+    '<span style="color:#aaff66;font-weight:bold;">$1</span>');
   // subのダメージ・回復も色付け
   if(type === "sub"){
     text = text.replace(/(\d+)( ダメージ)/g,
       '<span style="color:#f55;font-weight:bold;">$1</span>$2');
     text = text.replace(/(HP \+\d+)/g,
-      '<span style="color:#6f6;font-weight:bold;">$1</span>');
+      '<span style="color:#aaff66;font-weight:bold;">$1</span>');
     // スクラップ捨てはオレンジ
     text = text.replace(/スクラップ (\d+)/g,
       'スクラップ <span style="color:#ffcc66;font-weight:bold;">$1</span>');
@@ -263,6 +266,7 @@ function addLog(text, type="normal"){
     else if(text.includes("キノコ"))    emoji = "🍄 ";
     else if(text.includes("帰還"))      emoji = "🏠 ";
     else if(text.includes("HPが0"))     emoji = "💀 ";
+    else if(text.includes("一休み"))    emoji = "💤 ";
     else                                emoji = "📋 ";
   }
   let prefix = (type==="divider" || type==="sub") ? "" : `【${state.floor}階】`;
@@ -327,12 +331,14 @@ function render(){
     let icon = "";
     if(latest.type==="damage")       icon = "💥";
     else if(latest.type==="scrap")   icon = "⛏️";
+    else if(latest.type==="heal")    icon = "💤";
     else if(latest.type==="sub")     icon = "→";
     else if(latest.type==="divider") icon = state.mode==="event_goddess" ? "🗿" : "🚪";
     else                             icon = "📋";
     let color = "";
     if(latest.type==="damage")       color = "color:#f55;";
     else if(latest.type==="scrap")   color = "color:#ffcc66;";
+    else if(latest.type==="heal")    color = "color:#aaff66;";
     else if(latest.type==="divider") color = "color:#fff;";
     else if(latest.type==="sub")     color = "color:#aaa;";
     document.getElementById("current-event-icon").innerText = icon;
@@ -541,34 +547,45 @@ function next(){
 
   // --- 軽(70%) / 重(30%) の2段階抽選 ---
   const LIGHT_EVENTS = [
-    () => {
+    // 採掘 60%
+    { w: 60, fn: () => {
       let g = calcScrap();
       state.scrap += g;
       addLog(`採掘した スクラップ +${g}`, "scrap");
-    },
-    () => {
+    }},
+    // 落石 25%
+    { w: 25, fn: () => {
       let d = Math.floor(Math.random()*3) + 1;
       damage(d);
       addLog(`落石！ ${d} ダメージ`, "damage");
-    },
+    }},
+    // 一休み 15%
+    { w: 15, fn: () => {
+      let h = Math.floor(Math.random()*2) + 1;
+      heal(h);
+      addLog(`一休みした HP+${h}`, "heal");
+    }},
   ];
 
   const HEAVY_EVENTS = [
-    () => { state.mode = "event";          addLog("コンテナを発見した！"); },
-    () => { state.mode = "event_vein";     addLog("鉱脈だ！だけど地盤が脆そうだ…"); },
-    () => { state.mode = "event_mushroom"; addLog("謎のキノコだ！"); },
+    { fn: () => { state.mode = "event";          addLog("コンテナを発見した！"); }},
+    { fn: () => { state.mode = "event_vein";     addLog("鉱脈だ！だけど地盤が脆そうだ…"); }},
+    { fn: () => { state.mode = "event_mushroom"; addLog("謎のキノコだ！"); }},
   ];
 
   if(Math.random() < 0.70){
-    // 軽イベント：均等抽選
-    let ev = LIGHT_EVENTS[Math.floor(Math.random() * LIGHT_EVENTS.length)];
-    ev();
+    // 軽イベント：重み付き抽選
+    let totalW = LIGHT_EVENTS.reduce((s, e) => s + e.w, 0);
+    let pick = Math.random() * totalW;
+    let ev = LIGHT_EVENTS[LIGHT_EVENTS.length - 1];
+    for(let e of LIGHT_EVENTS){ pick -= e.w; if(pick <= 0){ ev = e; break; } }
+    ev.fn();
     checkDeath();
     render();
   } else {
     // 重イベント：均等抽選
     let ev = HEAVY_EVENTS[Math.floor(Math.random() * HEAVY_EVENTS.length)];
-    ev();
+    ev.fn();
     if(state.mode !== "explore"){ render(); return; }
     checkDeath();
     render();
