@@ -60,9 +60,39 @@ outline: none;
 }
 
 #log div { margin-bottom: 6px; color: #fff; }
+
+#buff-container {
+display: flex;
+flex-wrap: wrap;
+gap: 8px;
+margin-bottom: 8px;
+min-height: 32px;
+}
+
+.buff-badge {
+padding: 4px 10px;
+border-radius: 6px;
+font-size: 22px;
+display: flex;
+align-items: center;
+gap: 4px;
+}
+
+.buff-good {
+color: #0ff;
+border: 1px solid #0ff;
+background: rgba(0, 255, 255, 0.1);
+}
+
+.buff-bad {
+color: #f55;
+border: 1px solid #f55;
+background: rgba(255, 85, 85, 0.1);
+}
 .log-damage { color: #f55; }
 .log-scrap { color: #ffcc66; }
 .log-divider { color: #fff; text-align: center; }
+.log-loss { color: #f55; }
 
 #top {
 display: flex;
@@ -155,6 +185,7 @@ padding-left: 12px;
   <div id="header">
     <h2 style="margin:0 0 6px;">Nikotaya Mining Roguelike</h2>
     <div id="status"></div>
+    <div id="buff-container"></div>
   </div>
   <div id="current-event">
     <div id="current-event-icon"></div>
@@ -198,8 +229,31 @@ let state = {
   log:        [],
   mode:       "home",
   upgrades:   savedUpgrades,
-  lastResult: null
+  lastResult: null,
+  buffs: []  // { id, name, turns, isBad, onTurn: fn }
 };
+
+// --- バフ管理 ---
+function applyBuff(buff){
+  // 同じidがあれば上書き、なければ追加
+  let idx = state.buffs.findIndex(b => b.id === buff.id);
+  if(idx >= 0) state.buffs[idx] = buff;
+  else state.buffs.push(buff);
+}
+
+function tickBuffs(){
+  // 階層が上がった瞬間に発動・ターン消費
+  state.buffs.forEach(b => {
+    if(b.onTurn) b.onTurn();
+    b.turns--;
+  });
+  // 0以下になったバフを削除
+  state.buffs = state.buffs.filter(b => b.turns > 0);
+}
+
+function clearBuffs(){
+  state.buffs = [];
+}
 
 // --- アイテム定義マスタ ---
 const ITEM_DEF = {
@@ -267,6 +321,7 @@ function addLog(text, type="normal"){
     else if(text.includes("帰還"))      emoji = "🏠 ";
     else if(text.includes("HPが0"))     emoji = "💀 ";
     else if(text.includes("一休み"))    emoji = "💤 ";
+    else if(text.includes("亀裂"))       emoji = "🕳️ ";
     else                                emoji = "📋 ";
   }
   let prefix = (type==="divider" || type==="sub") ? "" : `【${state.floor}階】`;
@@ -281,6 +336,16 @@ function render(){
   let hpColor = hpRatio > 0.5 ? "#0f0" : hpRatio > 0.25 ? "#ff0" : "#f55";
   document.getElementById("status").innerHTML =
     `<span style="color:${hpColor}">HP:${state.hp}/${state.maxHp}</span> | MP:${state.mp}/${state.maxMp} | スクラップ:<span style="color:#ffcc66;">${state.scrap}</span> | 現在地:${state.floor}階`;
+
+  // バフ・デバフ表示
+  let buffHTML = "";
+  if(state.buffs.length > 0){
+    state.buffs.forEach(b => {
+      let cls = b.isBad ? "buff-bad" : "buff-good";
+      buffHTML += `<div class="buff-badge ${cls}">${b.name} : ${b.turns}T</div>`;
+    });
+  }
+  document.getElementById("buff-container").innerHTML = buffHTML;
 
   document.getElementById("storage").innerText =
     `倉庫：スクラップ ${state.totalScrap}`;
@@ -332,6 +397,7 @@ function render(){
     if(latest.type==="damage")       icon = "💥";
     else if(latest.type==="scrap")   icon = "⛏️";
     else if(latest.type==="heal")    icon = "💤";
+    else if(latest.type==="loss")    icon = "🕳️";
     else if(latest.type==="sub")     icon = "→";
     else if(latest.type==="divider") icon = state.mode==="event_goddess" ? "🗿" : "🚪";
     else                             icon = "📋";
@@ -339,6 +405,7 @@ function render(){
     if(latest.type==="damage")       color = "color:#f55;";
     else if(latest.type==="scrap")   color = "color:#ffcc66;";
     else if(latest.type==="heal")    color = "color:#aaff66;";
+    else if(latest.type==="loss")    color = "color:#f55;";
     else if(latest.type==="divider") color = "color:#fff;";
     else if(latest.type==="sub")     color = "color:#aaa;";
     document.getElementById("current-event-icon").innerText = icon;
@@ -355,6 +422,7 @@ function render(){
   state.log.slice(1).forEach((e) => {
     let cls = "";
     if(e.type==="divider") cls += "log-divider ";
+    if(e.type==="loss")    cls += "log-loss ";
     let colored = colorizeLog(e.text, e.type);
     if(e.type==="sub"){
       logHTML += `<div class="${cls}" style="padding-left:2em;color:#aaa;">→ ${colored}</div>`;
@@ -514,6 +582,7 @@ function startRun(){
   state.scrap = 0;
   state.floor = 1;
   state.log   = [];
+  clearBuffs();
   state.mode  = "explore";
   addLog("採掘開始！");
   render();
@@ -530,6 +599,10 @@ function calcScrap(){
 // --- 探索 ---
 function next(){
   state.floor++;
+
+  // バフ・デバフのターン処理（階層上昇時）
+  tickBuffs();
+  if(state.hp <= 0){ checkDeath(); render(); return; }
 
   if(state.floor % 30 === 0){
     addLog(`－－－ ${state.floor}階層 －－－\n女神像がある…`, "divider");
@@ -553,17 +626,23 @@ function next(){
       state.scrap += g;
       addLog(`採掘した スクラップ +${g}`, "scrap");
     }},
-    // 落石 25%
-    { w: 25, fn: () => {
+    // 落石 20%
+    { w: 20, fn: () => {
       let d = Math.floor(Math.random()*3) + 1;
       damage(d);
       addLog(`落石！ ${d} ダメージ`, "damage");
     }},
-    // 一休み 15%
-    { w: 15, fn: () => {
+    // 一休み 10%
+    { w: 10, fn: () => {
       let h = Math.floor(Math.random()*2) + 1;
       heal(h);
       addLog(`一休みした HP+${h}`, "heal");
+    }},
+    // 亀裂 10%
+    { w: 10, fn: () => {
+      let lost = Math.min(calcScrap(), state.scrap);
+      state.scrap = Math.max(0, state.scrap - lost);
+      addLog(`亀裂の隙間にスクラップを落としてしまった スクラップ -${lost}`, "loss");
     }},
   ];
 
@@ -714,6 +793,7 @@ function goHome(){
   state.floor = 1;
   state.log   = [];
   state.lastResult = null;
+  clearBuffs();
   state.mode  = "home";
   render();
 }
