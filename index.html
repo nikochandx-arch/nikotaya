@@ -540,13 +540,22 @@ function render(){
   let shopHTML = "";
   if(state.mode === "home"){
     let itemFull = state.items.length >= 5;
+    let shopStyle = "border-color:#f9f;color:#f9f;background:rgba(255,153,255,0.1);width:100%;";
+    let maxStyle   = "border-color:#666;color:#666;background:transparent;opacity:0.5;width:100%;";
+    let disabledStyle = itemFull ? "opacity:0.4;" : "";
+    let potionMax  = state.upgrades.potionHeal >= 7;
     shopHTML = `
 <div>▼ショップ</div>
 <div style="color:#888;margin:6px 0;">－－－消耗品－－－</div>
-<button onclick="buyPotion()" style="border-color:#ff99ff;color:#ff99ff;background:rgba(255,153,255,0.1);box-shadow:0 0 10px rgba(255,153,255,0.4);width:100%;${itemFull ? 'opacity:0.4;' : ''}">ポーション　HP+3<br>（スクラップ 10）${itemFull ? "<br>※持ち物がいっぱい" : ""}</button>
+<button onclick="buyPotion()" style="${shopStyle}${disabledStyle}">ポーション　HP+${getPotionHealValue()}<br>（スクラップ 10）${itemFull ? "<br>※持ち物がいっぱい" : ""}</button>
+<button onclick="buyAntidote()" style="${shopStyle}${disabledStyle}">毒消し草　毒を治す<br>（スクラップ 10）${itemFull ? "<br>※持ち物がいっぱい" : ""}</button>
 <div style="color:#888;margin:6px 0;">－－－永続－－－</div>
-<button onclick="buyHp()" style="border-color:#ff99ff;color:#ff99ff;background:rgba(255,153,255,0.1);box-shadow:0 0 10px rgba(255,153,255,0.4);width:100%;">最大HP +1<br>（スクラップ ${getHpCost()}）</button>
-<button onclick="buyPower()" style="border-color:#ff99ff;color:#ff99ff;background:rgba(255,153,255,0.1);box-shadow:0 0 10px rgba(255,153,255,0.4);width:100%;">採掘力 +1<br>（スクラップ ${getPowerCost()}）</button>
+${potionMax
+  ? `<button disabled style="${maxStyle}">ポーション強化　MAX<br>（回復量 +${getPotionHealValue()} で上限）</button>`
+  : `<button onclick="buyPotionHeal()" style="${shopStyle}">ポーション強化　回復量+1<br>（スクラップ ${getPotionHealCost().toLocaleString()}）</button>`
+}
+<button onclick="buyHp()" style="${shopStyle}">最大HP +1<br>（スクラップ ${getHpCost()}）</button>
+<button onclick="buyPower()" style="${shopStyle}">採掘力 +1<br>（スクラップ ${getPowerCost()}）</button>
 `;
   }
   document.getElementById("shop").innerHTML = shopHTML;
@@ -1023,7 +1032,7 @@ function buyPotionHeal(){
   if(state.upgrades.potionHeal >= 7){ alert("これ以上強化できない"); return; }
   let cost = getPotionHealCost();
   if(state.totalScrap < cost){ alert("スクラップが足りない"); return; }
-  if(confirm(`スクラップ ${cost.toLocaleString()} でポーションを強化しますか？（回復量 +${getPotionHealValue()+1} に）`)){
+  if(confirm(`スクラップ ${cost.toLocaleString()} でポーション回復量を +1 強化しますか？（${getPotionHealValue()} → ${getPotionHealValue()+1}）`)){
     state.totalScrap -= cost;
     state.upgrades.potionHeal++;
     saveAll();
