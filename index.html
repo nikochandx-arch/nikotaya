@@ -207,7 +207,7 @@ padding-left: 12px;
 
 <script>
 // --- 永続データ読み込み ---
-let savedUpgrades  = JSON.parse(localStorage.getItem("upgrades") || '{"hp":0,"power":0}');
+let savedUpgrades  = JSON.parse(localStorage.getItem("upgrades") || '{"hp":0,"power":0,"potionHeal":0}');
 let savedScrap     = parseInt(localStorage.getItem("totalScrap")) || 0;
 let savedName      = localStorage.getItem("playerName") || "プレイヤー";
 let savedBestFloor = parseInt(localStorage.getItem("bestFloor")) || 1;
@@ -280,8 +280,12 @@ function applyPoison(turns){
 const ITEM_DEF = {
   hp3: {
     name: "ポーション",
-    desc: "HP を 3 回復する",
-    // 使用可能モード（null=常時）
+    get desc(){ return `HP を ${getPotionHealValue()} 回復する`; },
+    usableModes: null
+  },
+  antidote: {
+    name: "毒消し草",
+    desc: "毒状態を治す",
     usableModes: null
   }
 };
@@ -295,8 +299,10 @@ function saveAll() {
 }
 
 // --- コスト ---
-function getHpCost()    { return 30  + state.upgrades.hp    * 20; }
-function getPowerCost() { return 100 + state.upgrades.power * 50; }
+function getHpCost()      { return 30  + state.upgrades.hp    * 20; }
+function getPowerCost()   { return 100 + state.upgrades.power * 50; }
+function getPotionHealCost() { return Math.floor(2000 * Math.pow(4, state.upgrades.potionHeal)); }
+function getPotionHealValue(){ return 3 + state.upgrades.potionHeal; }
 
 // --- HP処理 ---
 function damage(d){ state.hp = Math.max(0, state.hp - d); }
@@ -627,8 +633,17 @@ function useItem(index){
 
   // 効果発動
   if(item.effect === "hp3"){
-    heal(3);
-    addLog(`ポーションを使った！ HP +3`, "scrap");
+    let v = getPotionHealValue();
+    heal(v);
+    addLog(`ポーションを使った！ HP +${v}`, "scrap");
+  } else if(item.effect === "antidote"){
+    let idx = state.buffs.findIndex(b => b.id === "poison");
+    if(idx >= 0){
+      state.buffs.splice(idx, 1);
+      addLog("毒消し草を使った！ 毒が治った", "heal");
+    } else {
+      addLog("毒消し草を使った（毒状態ではなかった）", "normal");
+    }
   }
 
   // 消費して上詰め
@@ -987,6 +1002,30 @@ function buyPotion(){
   if(confirm(`スクラップ ${cost} でポーションを購入しますか？`)){
     state.totalScrap -= cost;
     state.items.push({ name: "ポーション", effect: "hp3" });
+    saveAll();
+    render();
+  }
+}
+
+function buyAntidote(){
+  const cost = 10;
+  if(state.totalScrap < cost){ alert("スクラップが足りない"); return; }
+  if(state.items.length >= 5){ alert("持ち物がいっぱい"); return; }
+  if(confirm(`スクラップ ${cost} で毒消し草を購入しますか？`)){
+    state.totalScrap -= cost;
+    state.items.push({ name: "毒消し草", effect: "antidote" });
+    saveAll();
+    render();
+  }
+}
+
+function buyPotionHeal(){
+  if(state.upgrades.potionHeal >= 7){ alert("これ以上強化できない"); return; }
+  let cost = getPotionHealCost();
+  if(state.totalScrap < cost){ alert("スクラップが足りない"); return; }
+  if(confirm(`スクラップ ${cost.toLocaleString()} でポーションを強化しますか？（回復量 +${getPotionHealValue()+1} に）`)){
+    state.totalScrap -= cost;
+    state.upgrades.potionHeal++;
     saveAll();
     render();
   }
