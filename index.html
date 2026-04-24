@@ -255,6 +255,25 @@ function clearBuffs(){
   state.buffs = [];
 }
 
+// --- 毒を付与する関数 ---
+function applyPoison(turns){
+  applyBuff({
+    id: "poison",
+    name: "🩸 毒",
+    turns: turns,
+    isBad: true,
+    onTurn: () => {
+      let d = Math.max(1, Math.floor(state.maxHp * 0.1));
+      // 毒で死なない：HP1を必ず残す
+      d = Math.min(d, state.hp - 1);
+      if(d > 0){
+        damage(d);
+        addLog(`🩸 毒ダメージ ${d}`, "damage");
+      }
+    }
+  });
+}
+
 // --- アイテム定義マスタ ---
 const ITEM_DEF = {
   hp3: {
@@ -729,8 +748,8 @@ function digVein(){
 function eatMushroom(){
   let r = Math.random();
   if(r < 0.40){
-    damage(3);
-    addLog("苦い！ 3 ダメージを受けた", "sub");
+    applyPoison(2);
+    addLog("苦い！ 毒を受けた（2ターン）", "sub");
   } else if(r < 0.80){
     heal(3);
     addLog("甘い香り… HP +3 回復した", "sub");
