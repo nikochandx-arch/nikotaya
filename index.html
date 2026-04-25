@@ -623,7 +623,7 @@ function render(){
     let disabledStyle = itemFull ? "opacity:0.4;" : "";
     let potionMax  = state.upgrades.potionHeal >= 7;
     let itemFullMsg = itemFull ? '<span style="color:#f55;font-size:20px;margin-left:8px;">※持ち物がいっぱい</span>' : "";
-    let btnStyle = shopStyle + "height:110px;box-sizing:border-box;";
+    let btnStyle = shopStyle + "height:auto;padding:12px 8px;";
     let btnStyleDisabled = btnStyle + disabledStyle;
     let priceSpan = (val) => `スクラップ <span style="color:#ffcc66;font-size:26px;">${val}</span>`;
     let descStyle = 'style="font-size:18px;"';
