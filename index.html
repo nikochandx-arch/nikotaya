@@ -181,7 +181,7 @@ padding-left: 12px;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;">Nikotaya Mining Roguelike</h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:32px;"></span></h2>
     <div id="status"></div>
     <div id="buff-container"></div>
   </div>
@@ -211,6 +211,7 @@ let savedScrap     = parseInt(localStorage.getItem("totalScrap")) || 0;
 let savedName      = localStorage.getItem("playerName") || "プレイヤー";
 let savedBestFloor = parseInt(localStorage.getItem("bestFloor")) || 1;
 let savedItems     = JSON.parse(localStorage.getItem("items") || "[]");
+let savedSeOn      = localStorage.getItem("seOn") !== "false"; // デフォルトON
 
 let state = {
   name:       savedName,
@@ -230,7 +231,8 @@ let state = {
   upgrades:   savedUpgrades,
   lastResult: null,
   buffs: [],  // { id, name, turns, isBad, onTurn: fn }
-  moleBlock: -1  // モグラが発生した30階ブロック番号
+  moleBlock: -1,  // モグラが発生した30階ブロック番号
+  seOn: savedSeOn
 };
 
 // --- バフ管理 ---
@@ -349,12 +351,20 @@ const SE = {
 };
 
 function playSE(name){
+  if(!state.seOn) return;
   try {
     if(SE[name]) SE[name]();
   } catch(e) {
-    // 音が鳴らなくてもゲームは続行
     console.warn("SE error:", e);
   }
+}
+
+// --- SEトグル ---
+function toggleSE(){
+  state.seOn = !state.seOn;
+  localStorage.setItem("seOn", state.seOn);
+  if(state.seOn) playSE("dig"); // ONに戻した時にプレビュー音
+  render();
 }
 
 // --- 保存ヘルパー ---
@@ -450,6 +460,7 @@ function render(){
   // HP色：満タン=緑、50%以下=黄、25%以下=赤
   let hpRatio = state.maxHp > 0 ? state.hp / state.maxHp : 1;
   let hpColor = hpRatio > 0.5 ? "#0f0" : hpRatio > 0.25 ? "#ff0" : "#f55";
+  document.getElementById("se-toggle").innerText = state.seOn ? "🔔" : "🔕";
   document.getElementById("status").innerHTML =
     `<span style="color:${hpColor}">HP:${state.hp}/${state.maxHp}</span> | MP:${state.mp}/${state.maxMp} | スクラップ:<span style="color:#ffcc66;">${state.scrap}</span> | 現在地:${state.floor}階`;
 
