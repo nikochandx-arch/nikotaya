@@ -450,6 +450,147 @@ function deleteAllData(){
   }
 }
 
+// --- 紋マスタデータ ---
+const CREST_MASTER = [
+  // ① 採取系（赤）
+  { id:"mining",   name:"採掘の紋",  category:"採取系", color:"#f55", rgb:"255,85,85",
+    desc:"採掘イベントのスクラップ獲得量に固定値を加算する",
+    unlockCond:"未実装",
+    svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
+      <path d="M -15 -15 Q 0 -28 15 -15 L 12 -12 Q 0 -22 -12 -12 Z" fill="currentColor"/>
+      <line x1="0" y1="-15" x2="-20" y2="25" stroke-width="4"/>
+      <path d="M 5 10 L 20 20 M 15 5 L 25 10" stroke-width="2" opacity="0.6"/>
+    </g>` },
+  { id:"deep",     name:"深掘の紋",  category:"採取系", color:"#f55", rgb:"255,85,85",
+    desc:"tierボーナスを1段階余分に加算する",
+    unlockCond:"未実装",
+    svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
+      <line x1="-20" y1="-20" x2="20" y2="-20" stroke-width="4"/>
+      <polygon points="-15,-15 15,-15 0,25"/>
+      <line x1="-10" y1="-5" x2="10" y2="5"/>
+      <line x1="-5" y1="5" x2="5" y2="15"/>
+    </g>` },
+  { id:"bounty",   name:"豊穣の紋",  category:"採取系", color:"#f55", rgb:"255,85,85",
+    desc:"コンテナ成功時のスクラップ倍率をアップする",
+    unlockCond:"未実装",
+    svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
+      <rect x="-20" y="-5" width="40" height="25"/>
+      <path d="M -20 -5 Q 0 -20 20 -5"/>
+      <circle cx="0" cy="5" r="3" fill="currentColor"/>
+      <polygon points="-10,-15 0,-25 10,-15 0,-5" fill="currentColor" stroke="none"/>
+      <circle cx="-15" cy="-20" r="2" fill="currentColor" stroke="none"/>
+      <circle cx="15" cy="-20" r="2" fill="currentColor" stroke="none"/>
+    </g>` },
+  // ② 防御系（青）
+  { id:"steel",    name:"鋼皮の紋",  category:"防御系", color:"#0ff", rgb:"0,255,255",
+    desc:"全ダメージを固定値軽減する",
+    unlockCond:"未実装",
+    svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
+      <polygon points="0,-25 20,-10 20,15 0,30 -20,15 -20,-10" stroke-width="4"/>
+      <polygon points="0,-12 10,-4 10,7 0,15 -10,7 -10,-4" stroke-width="2"/>
+      <circle cx="0" cy="1" r="3" fill="currentColor" stroke="none"/>
+    </g>` },
+  { id:"heal",     name:"回復の紋",  category:"防御系", color:"#0ff", rgb:"0,255,255",
+    desc:"回復系イベントの回復量に加算する",
+    unlockCond:"未実装",
+    svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
+      <path d="M -12 -15 L 12 -15 M 0 -27 L 0 -3" stroke-width="5"/>
+      <path d="M 0 5 Q 15 20 0 35 Q -15 20 0 5" fill="currentColor" stroke="none"/>
+    </g>` },
+  { id:"antitox",  name:"耐毒の紋",  category:"防御系", color:"#0ff", rgb:"0,255,255",
+    desc:"毒を受けた時のターン数を半減する",
+    unlockCond:"未実装",
+    svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
+      <path d="M -25 -20 A 30 30 0 0 1 25 -20" stroke-width="4" opacity="0.5"/>
+      <g transform="translate(0,5)">
+        <circle cx="0" cy="0" r="10"/>
+        <rect x="-5" y="5" width="10" height="8"/>
+        <circle cx="-4" cy="-2" r="2" fill="currentColor" stroke="none"/>
+        <circle cx="4" cy="-2" r="2" fill="currentColor" stroke="none"/>
+      </g>
+      <path d="M 0 -20 L -5 -30 M 10 -15 L 20 -25" stroke-width="2"/>
+    </g>` },
+  // ③ リスク系（黄）
+  { id:"blooddig", name:"血掘の紋",  category:"リスク系", color:"#ffcc66", rgb:"255,204,102",
+    desc:"毎階HPを失うが採掘量が大幅アップする",
+    unlockCond:"未実装",
+    svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
+      <polygon points="-12,-25 8,-25 -2,-5"/>
+      <path d="M -2 0 Q 3 10 -2 15 Q -7 10 -2 0" fill="currentColor" stroke="none"/>
+      <polygon points="-15,15 0,30 15,15 0,0" stroke-width="2"/>
+    </g>` },
+  { id:"gamble",   name:"賭博の紋",  category:"リスク系", color:"#ffcc66", rgb:"255,204,102",
+    desc:"全イベントの結果を大成功か大失敗の二択にする",
+    unlockCond:"未実装",
+    svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
+      <rect x="-15" y="-15" width="30" height="30" rx="4" stroke-width="4"/>
+      <circle cx="-6" cy="-6" r="3" fill="currentColor" stroke="none"/>
+      <circle cx="6" cy="6" r="3" fill="currentColor" stroke="none"/>
+    </g>` },
+  { id:"selfharm", name:"自傷の紋",  category:"リスク系", color:"#ffcc66", rgb:"255,204,102",
+    desc:"HP10%を消費してスクラップを大量獲得する",
+    unlockCond:"未実装",
+    svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
+      <path d="M 0 15 A 15 15 0 0 1 -20 -5 A 15 15 0 0 1 0 -15 A 15 15 0 0 1 20 -5 A 15 15 0 0 1 0 15 Z"/>
+      <line x1="20" y1="-25" x2="-20" y2="25" stroke-width="5"/>
+    </g>` },
+  // ④ コンボ系（紫）
+  { id:"toxeat",   name:"毒喰の紋",  category:"コンボ系", color:"#f9f", rgb:"255,153,255",
+    desc:"毒状態中は採掘量が2倍になる",
+    unlockCond:"未実装",
+    svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
+      <path d="M 15 -15 A 22 22 0 1 0 15 15 L -5 0 Z" stroke-width="4"/>
+      <circle cx="15" cy="0" r="5" fill="currentColor" stroke="none"/>
+    </g>` },
+  { id:"hungry",   name:"空腹の紋",  category:"コンボ系", color:"#f9f", rgb:"255,153,255",
+    desc:"アイテムを持っていない時に採掘量がアップする",
+    unlockCond:"未実装",
+    svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
+      <path d="M -20 -15 Q 0 20 20 -15" stroke-width="4"/>
+      <line x1="-20" y1="-15" x2="20" y2="-15"/>
+      <path d="M -15 20 Q -5 10 0 20 T 15 20" stroke-width="2"/>
+    </g>` },
+  { id:"wounded",  name:"満創の紋",  category:"コンボ系", color:"#f9f", rgb:"255,153,255",
+    desc:"HPが低いほど採掘量がアップする",
+    unlockCond:"未実装",
+    svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
+      <path d="M 0 20 A 20 20 0 0 1 -25 -5 A 15 15 0 0 1 0 -15 A 15 15 0 0 1 25 -5 A 20 20 0 0 1 0 20 Z"/>
+      <polyline points="5,-15 -5,-5 10,5 -5,15" stroke-width="2.5"/>
+    </g>` },
+  // ⑤ ユーティリティ系（緑）
+  { id:"detect",   name:"探知の紋",  category:"ユーティリティ系", color:"#0f0", rgb:"0,255,0",
+    desc:"重イベントの出現率をアップする",
+    unlockCond:"未実装",
+    svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
+      <circle cx="0" cy="0" r="20" stroke-dasharray="4 4" stroke-width="2"/>
+      <line x1="0" y1="0" x2="14" y2="-14" stroke-width="3"/>
+      <circle cx="0" cy="0" r="3" fill="currentColor" stroke="none"/>
+      <circle cx="10" cy="10" r="5" fill="currentColor" stroke="none"/>
+    </g>` },
+  { id:"choice",   name:"選択の紋",  category:"ユーティリティ系", color:"#0f0", rgb:"0,255,0",
+    desc:"紋の選択時に提示される候補を4つにする",
+    unlockCond:"未実装",
+    svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
+      <line x1="0" y1="20" x2="0" y2="5" stroke-width="4"/>
+      <path d="M 0 5 Q -10 -5 -20 -15"/>
+      <path d="M 0 5 Q 10 -5 20 -15"/>
+      <path d="M 0 5 L -5 -20"/>
+      <path d="M 0 5 L 5 -20"/>
+    </g>` },
+  { id:"friend",   name:"友誼の紋",  category:"ユーティリティ系", color:"#0f0", rgb:"0,255,0",
+    desc:"DAIGOのTIPSを見た時にHPを回復する",
+    unlockCond:"未実装",
+    svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
+      <circle cx="0" cy="0" r="22" stroke-width="3"/>
+      <circle cx="-8" cy="-5" r="3" fill="currentColor" stroke="none"/>
+      <circle cx="8" cy="-5" r="3" fill="currentColor" stroke="none"/>
+      <path d="M -12 8 Q 0 18 12 8" stroke-width="4"/>
+    </g>` },
+];
+
+// 解放済み紋IDセット（現在は全て未解放）
+const UNLOCKED_CRESTS = new Set([]);
+
 // --- 保存ヘルパー ---
 function saveAll() {
   localStorage.setItem("totalScrap",  state.totalScrap);
@@ -610,15 +751,11 @@ function render(){
 
   // 紋一覧表示（ホームのみ）
   if(state.mode === "home" && state.relicViewOpen){
-    document.getElementById("current-event-icon").innerText = "📜";
-    document.getElementById("current-event-text").innerHTML = `
-<div style="font-size:26px;color:#0ff;margin-bottom:8px;">紋コレクション</div>
-<div style="font-size:20px;color:#888;">（実装予定）</div>
-`;
-    document.getElementById("log").innerHTML = "";
-    // 以降のログ描画をスキップするためreturnはしない（ボタン等は描画する）
+    document.getElementById("current-event").style.display = "none";
+    renderRelicCollection();
+    // ボタン描画は続行
   } else if(state.mode === "home"){
-    // ホームで紋一覧が閉じている時はcurrent-eventをリセット
+    document.getElementById("current-event").style.display = "";
     document.getElementById("current-event-icon").innerText = "";
     document.getElementById("current-event-text").innerText = "採掘を開始しよう！";
     document.getElementById("log").innerHTML = "";
@@ -858,7 +995,39 @@ function btn(t, f, style="main"){
 // --- 紋一覧トグル ---
 function toggleRelicView(){
   state.relicViewOpen = !state.relicViewOpen;
+  let el = document.getElementById("current-event");
+  if(el) el.style.display = state.relicViewOpen ? "none" : "";
   render();
+}
+
+function renderRelicCollection(){
+  const categories = ["採取系","防御系","リスク系","コンボ系","ユーティリティ系"];
+  const catColors = {"採取系":"#f55","防御系":"#0ff","リスク系":"#ffcc66","コンボ系":"#f9f","ユーティリティ系":"#0f0"};
+
+  let html = `<div style="padding:8px 16px;">`;
+  categories.forEach(cat => {
+    let crests = CREST_MASTER.filter(c => c.category === cat);
+    html += `<div style="color:${catColors[cat]};font-size:22px;margin:12px 0 6px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:4px;">[ ${cat} ]</div>`;
+    crests.forEach(c => {
+      let unlocked = UNLOCKED_CRESTS.has(c.id);
+      let cardSvg = `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" style="width:60px;height:84px;flex-shrink:0;filter:drop-shadow(0 0 4px rgba(${c.rgb},0.4));">
+        <rect x="2" y="2" width="96" height="136" rx="6" fill="#222" stroke="${c.color}" stroke-width="2"/>
+        <g style="color:${c.color};">${c.svg}</g>
+        ${!unlocked ? `<rect x="2" y="2" width="96" height="136" rx="6" fill="rgba(0,0,0,0.7)"/>
+        <text x="50" y="76" text-anchor="middle" font-size="40" fill="#888">🔒</text>` : ""}
+      </svg>`;
+      let infoColor = unlocked ? "#fff" : "#666";
+      html += `<div style="display:flex;align-items:center;gap:12px;margin:8px 0;padding:8px;border:1px solid rgba(255,255,255,0.1);border-radius:6px;">
+        ${cardSvg}
+        <div style="flex:1;">
+          <div style="color:${unlocked ? c.color : "#666"};font-size:22px;font-weight:bold;">${c.name}</div>
+          <div style="color:${infoColor};font-size:18px;margin-top:4px;">${unlocked ? c.desc : "???　解放条件：" + c.unlockCond}</div>
+        </div>
+      </div>`;
+    });
+  });
+  html += `</div>`;
+  document.getElementById("log").innerHTML = html;
 }
 
 // --- アイテムメニュー ---
