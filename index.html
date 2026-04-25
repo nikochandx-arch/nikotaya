@@ -163,13 +163,13 @@ border-top: 1px solid rgba(0,255,0,0.3);
 #playerStatus {
 flex: 1;
 color: #0ff;
-font-size: 24px;
+font-size: 28px;
 }
 
 #itemBox {
 flex: 1;
 color: #aaffaa;
-font-size: 24px;
+font-size: 28px;
 border-left: 1px solid rgba(0,255,0,0.3);
 padding-left: 12px;
 }
@@ -731,14 +731,14 @@ function render(){
 `<span onclick="changeName()" style="cursor:pointer;">名前：${state.name} ✏️</span>
 最大HP：${state.maxHp}
 採掘力：${state.power}`.split("\n").map(l => `<div>${l}</div>`).join("")
-+ `<div style="margin-top:12px;">
-  <button onclick="toggleRelicView()" style="font-size:20px;padding:8px 16px;min-width:unset;max-width:unset;width:100%;border-color:#0ff;color:#0ff;background:rgba(0,255,255,0.1);">
++ `<div style="margin-top:14px;">
+  <button onclick="toggleRelicView()" style="font-size:28px;padding:16px 0;min-width:unset;max-width:unset;width:100%;border-color:#0ff;color:#0ff;background:rgba(0,255,255,0.1);box-shadow:0 0 10px rgba(0,255,255,0.3);">
     ${state.relicViewOpen ? "▲ 閉じる" : "▼ 紋一覧"}
   </button>
 </div>`;
 
   // アイテム欄
-  let itemHTML = `<div onclick="openItemMenu()" style="cursor:pointer;text-decoration:underline;">▼アイテム 👆</div>`;
+  let itemHTML = `<div onclick="openItemMenu()" style="cursor:pointer;text-decoration:underline;font-size:28px;">▼アイテム 👆</div>`;
   for(let i = 0; i < 5; i++){
     let item = state.items[i];
     if(item){
@@ -753,11 +753,32 @@ function render(){
   if(state.mode === "home" && state.relicViewOpen){
     document.getElementById("current-event").style.display = "none";
     renderRelicCollection();
-    // アクションボタンだけ描画してreturn
+    // アクションボタンを描画
     let a = document.getElementById("actions");
     a.innerHTML = "";
     btn("採掘開始", startRun, "main");
-    document.getElementById("shop").innerHTML = "";
+    // ショップも描画
+    let itemFull = state.items.length >= 5;
+    let shopStyle = "border-color:#f9f;color:#f9f;background:rgba(255,153,255,0.1);width:100%;";
+    let maxStyle  = "border-color:#666;color:#666;background:transparent;opacity:0.5;width:100%;";
+    let disabledStyle = itemFull ? "opacity:0.4;" : "";
+    let potionMax = state.upgrades.potionHeal >= 7;
+    let priceSpan = (val) => `スクラップ <span style="color:#ffcc66;font-size:26px;">${val}</span>`;
+    let descStyle = 'style="font-size:18px;"';
+    let itemFullMsg = itemFull ? '<span style="color:#f55;font-size:20px;margin-left:8px;">※持ち物がいっぱい</span>' : "";
+    document.getElementById("shop").innerHTML = `
+<div>▼ショップ</div>
+<div style="color:#888;margin:6px 0;">[ 消耗品 ] ${itemFullMsg}</div>
+<button onclick="buyPotion()" style="${shopStyle}${disabledStyle}">ポーション<br>HP+${getPotionHealValue()}<br><span ${descStyle}>（スクラップ 10）</span></button>
+<button onclick="buyAntidote()" style="${shopStyle}${disabledStyle}">毒消し草<br>毒を治す<br><span ${descStyle}>（スクラップ 10）</span></button>
+<div style="color:#888;margin:6px 0;">[ 永続強化 ]</div>
+${potionMax
+  ? `<button disabled style="${maxStyle}height:auto;padding:12px 8px;">ポーション強化<br><span ${descStyle}>MAX（上限+${getPotionHealValue()}）</span></button>`
+  : `<button onclick="buyPotionHeal()" style="${shopStyle}height:auto;padding:12px 8px;">ポーション強化<br><span ${descStyle}>回復量+1</span><br>${priceSpan(getPotionHealCost().toLocaleString())}</button>`
+}
+<button onclick="buyHp()" style="${shopStyle}height:auto;padding:12px 8px;">最大HP +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getHpCost().toLocaleString())}</button>
+<button onclick="buyPower()" style="${shopStyle}height:auto;padding:12px 8px;">採掘力 +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getPowerCost().toLocaleString())}</button>
+`;
     return;
   } else if(state.mode === "home"){
     document.getElementById("current-event").style.display = "";
