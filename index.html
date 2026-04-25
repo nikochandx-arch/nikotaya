@@ -1012,21 +1012,21 @@ function renderRelicCollection(){
   let html = `<div style="padding:8px 16px;">`;
   categories.forEach(cat => {
     let crests = CREST_MASTER.filter(c => c.category === cat);
-    html += `<div style="color:${catColors[cat]};font-size:22px;margin:12px 0 6px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:4px;">[ ${cat} ]</div>`;
+    html += `<div style="color:${catColors[cat]};font-size:28px;margin:16px 0 8px;border-bottom:1px solid rgba(255,255,255,0.15);padding-bottom:6px;font-weight:bold;">[ ${cat} ]</div>`;
     crests.forEach(c => {
       let unlocked = UNLOCKED_CRESTS.has(c.id);
-      let cardSvg = `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" style="width:60px;height:84px;flex-shrink:0;filter:drop-shadow(0 0 4px rgba(${c.rgb},0.4));">
+      let cardSvg = `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" style="width:80px;height:112px;flex-shrink:0;filter:drop-shadow(0 0 6px rgba(${c.rgb},0.5));">
         <rect x="2" y="2" width="96" height="136" rx="6" fill="#222" stroke="${c.color}" stroke-width="2"/>
         <g style="color:${c.color};">${c.svg}</g>
-        ${!unlocked ? `<rect x="2" y="2" width="96" height="136" rx="6" fill="rgba(0,0,0,0.7)"/>
-        <text x="50" y="76" text-anchor="middle" font-size="40" fill="#888">🔒</text>` : ""}
+        ${!unlocked ? `<rect x="2" y="2" width="96" height="136" rx="6" fill="rgba(0,0,0,0.75)"/>
+        <text x="50" y="80" text-anchor="middle" font-size="44" fill="#666">🔒</text>` : ""}
       </svg>`;
       let infoColor = unlocked ? "#fff" : "#666";
-      html += `<div style="display:flex;align-items:center;gap:12px;margin:8px 0;padding:8px;border:1px solid rgba(255,255,255,0.1);border-radius:6px;">
+      html += `<div style="display:flex;align-items:center;gap:16px;margin:10px 0;padding:12px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;">
         ${cardSvg}
         <div style="flex:1;">
-          <div style="color:${unlocked ? c.color : "#666"};font-size:22px;font-weight:bold;">${c.name}</div>
-          <div style="color:${infoColor};font-size:18px;margin-top:4px;">${unlocked ? c.desc : "???　解放条件：" + c.unlockCond}</div>
+          <div style="color:${unlocked ? c.color : "#666"};font-size:28px;font-weight:bold;">${c.name}</div>
+          <div style="color:${infoColor};font-size:22px;margin-top:6px;line-height:1.4;">${unlocked ? c.desc : "???　解放条件：" + c.unlockCond}</div>
         </div>
       </div>`;
     });
