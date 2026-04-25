@@ -381,6 +381,14 @@ function toggleSE(){
   render();
 }
 
+// --- データ全削除 ---
+function deleteAllData(){
+  if(confirm("全てのプレイデータを削除しますが本当によろしいですか？")){
+    localStorage.clear();
+    location.reload();
+  }
+}
+
 // --- 保存ヘルパー ---
 function saveAll() {
   localStorage.setItem("totalScrap", state.totalScrap);
@@ -695,6 +703,10 @@ ${potionMax
   <div>女神像に会った回数：<span style="color:#fff;">${s.goddess.toLocaleString()} 回</span></div>
   <div>金モグラに会った回数：<span style="color:#fff;">${s.goldenMole.toLocaleString()} 回</span></div>
   <div>泥棒モグラに会った回数：<span style="color:#fff;">${s.thiefMole.toLocaleString()} 回</span></div>
+  <div style="height:120px;"></div>
+  <div style="display:flex;justify-content:flex-end;">
+    <button onclick="deleteAllData()" style="border-color:#f55;color:#f55;background:rgba(245,85,85,0.1);min-width:120px;max-width:160px;font-size:22px;padding:12px 0;">データ削除</button>
+  </div>
 </div>`;
     } else {
       statsEl.innerHTML = "";
