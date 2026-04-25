@@ -623,18 +623,22 @@ function render(){
     let disabledStyle = itemFull ? "opacity:0.4;" : "";
     let potionMax  = state.upgrades.potionHeal >= 7;
     let itemFullMsg = itemFull ? '<span style="color:#f55;font-size:20px;margin-left:8px;">※持ち物がいっぱい</span>' : "";
+    let btnStyle = shopStyle + "height:110px;box-sizing:border-box;";
+    let btnStyleDisabled = btnStyle + disabledStyle;
+    let priceSpan = (val) => `スクラップ <span style="color:#ffcc66;font-size:26px;">${val}</span>`;
+    let descStyle = 'style="font-size:18px;"';
     shopHTML = `
 <div>▼ショップ</div>
 <div style="color:#888;margin:6px 0;">[ 消耗品 ] ${itemFullMsg}</div>
-<button onclick="buyPotion()" style="${shopStyle}${disabledStyle}">ポーション<br>HP+${getPotionHealValue()}<br><span style="font-size:18px;">（スクラップ 10）</span></button>
-<button onclick="buyAntidote()" style="${shopStyle}${disabledStyle}">毒消し草<br>毒を治す<br><span style="font-size:18px;">（スクラップ 10）</span></button>
+<button onclick="buyPotion()" style="${btnStyleDisabled}">ポーション<br><span ${descStyle}>HP+${getPotionHealValue()}</span><br>${priceSpan(10)}</button>
+<button onclick="buyAntidote()" style="${btnStyleDisabled}">毒消し草<br><span ${descStyle}>毒を治す</span><br>${priceSpan(10)}</button>
 <div style="color:#888;margin:6px 0;">[ 永続強化 ]</div>
 ${potionMax
-  ? `<button disabled style="${maxStyle}">ポーション強化　MAX<br><span style="font-size:18px;">（回復量 +${getPotionHealValue()} で上限）</span></button>`
-  : `<button onclick="buyPotionHeal()" style="${shopStyle}">ポーション強化<br>回復量+1<br><span style="font-size:18px;">（スクラップ ${getPotionHealCost().toLocaleString()}）</span></button>`
+  ? `<button disabled style="${maxStyle}height:110px;box-sizing:border-box;">ポーション強化<br><span ${descStyle}>MAX（上限+${getPotionHealValue()}）</span></button>`
+  : `<button onclick="buyPotionHeal()" style="${btnStyle}">ポーション強化<br><span ${descStyle}>回復量+1</span><br>${priceSpan(getPotionHealCost().toLocaleString())}</button>`
 }
-<button onclick="buyHp()" style="${shopStyle}">最大HP +1<br><span style="font-size:18px;">（スクラップ ${getHpCost()}）</span></button>
-<button onclick="buyPower()" style="${shopStyle}">採掘力 +1<br><span style="font-size:18px;">（スクラップ ${getPowerCost()}）</span></button>
+<button onclick="buyHp()" style="${btnStyle}">最大HP +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getHpCost())}</button>
+<button onclick="buyPower()" style="${btnStyle}">採掘力 +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getPowerCost())}</button>
 `;
   }
   document.getElementById("shop").innerHTML = shopHTML;
