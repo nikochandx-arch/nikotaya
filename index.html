@@ -753,7 +753,12 @@ function render(){
   if(state.mode === "home" && state.relicViewOpen){
     document.getElementById("current-event").style.display = "none";
     renderRelicCollection();
-    // ボタン描画は続行
+    // アクションボタンだけ描画してreturn
+    let a = document.getElementById("actions");
+    a.innerHTML = "";
+    btn("採掘開始", startRun, "main");
+    document.getElementById("shop").innerHTML = "";
+    return;
   } else if(state.mode === "home"){
     document.getElementById("current-event").style.display = "";
     document.getElementById("current-event-icon").innerText = "";
