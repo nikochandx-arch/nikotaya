@@ -406,11 +406,11 @@ function saveAll() {
 }
 
 // ランの統計を永続に加算してリセット
-function commitStats(died){
+function commitStats(died, carry=0){
   state.stats.runs++;
   if(died) state.stats.deaths++;
   state.stats.floors     += state.runStats.floors;
-  state.stats.scrap      += state.runStats.scrap;
+  state.stats.scrap      += carry;  // 実際に持ち帰った分のみ
   state.stats.damage     += state.runStats.damage;
   state.stats.potions    += state.runStats.potions;
   state.stats.goddess    += state.runStats.goddess;
@@ -899,7 +899,6 @@ function next(){
     { w: 60, fn: () => {
       let g = calcScrap();
       state.scrap += g;
-      state.runStats.scrap += g;
       addLog(`採掘した スクラップ +${g.toLocaleString()}`, "scrap");
     }},
     // 落石 20%
@@ -934,7 +933,6 @@ function next(){
           // 金モグラ
           let gain = Math.floor(state.scrap / 2);
           state.scrap += gain;
-          state.runStats.scrap += gain;
           state.runStats.goldenMole++;
           addLog(`金モグラだ！ スクラップ +${gain.toLocaleString()}`, "scrap");
         } else {
@@ -988,7 +986,6 @@ function openChest(){
     // 成功：calcScrap() × 3
     let g = calcScrap() * 3;
     state.scrap += g;
-    state.runStats.scrap += g;
     addLog(`資源を発見！ スクラップ +${g.toLocaleString()}`, "sub");
   } else if(r < 0.85){
     // 空っぽ 15%
@@ -1070,7 +1067,6 @@ function digVein(){
   if(Math.random() < 0.5){
     let g = calcScrap() * 2;
     state.scrap += g;
-    state.runStats.scrap += g;
     addLog(`鉱脈を掘り当てた！ スクラップ +${g.toLocaleString()}`, "sub");
   } else {
     let d = 3 + Math.floor(state.floor / 10);
@@ -1127,7 +1123,7 @@ function doReturn(){
   let carry = Math.floor(state.scrap / 2);
   state.totalScrap += carry;
   if(state.floor > state.bestFloor) state.bestFloor = state.floor;
-  commitStats(false);
+  commitStats(false, carry);
   saveAll();
   state.lastResult = { survived: true, floor: state.floor, carry };
   state.mode = "result";
@@ -1159,7 +1155,6 @@ function goddessScrap(){
   state.runStats.goddess++;
   let gain = state.floor;
   state.scrap += gain;
-  state.runStats.scrap += gain;
   addLog(`女神の恵み！ スクラップ +${gain.toLocaleString()}`, "scrap");
   state.mode = "explore";
   render();
@@ -1170,7 +1165,7 @@ function goddessReturn(){
   let carry = state.scrap;
   state.totalScrap += carry;
   if(state.floor > state.bestFloor) state.bestFloor = state.floor;
-  commitStats(false);
+  commitStats(false, carry);
   saveAll();
   state.lastResult = { survived: true, floor: state.floor, carry, goddess: true };
   state.mode = "result";
