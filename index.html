@@ -358,6 +358,13 @@ async function playHealSound(){
   osc.stop(audioCtx.currentTime + duration);
 }
 
+// フォアグラウンド復帰時にAudioContextを自動resume
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState === "visible" && audioCtx) {
+    audioCtx.resume();
+  }
+});
+
 // SE管理マスタ（将来ここに追加していく）
 const SE = {
   dig:  playDigSound,
