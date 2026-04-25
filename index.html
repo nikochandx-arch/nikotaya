@@ -1030,7 +1030,7 @@ function renderBatEvent(){
 }
 
 function batDistract(){
-  let lost = Math.floor(state.scrap * 0.1);
+  let lost = Math.max(1, Math.floor(state.scrap * 0.1));
   state.scrap = Math.max(0, state.scrap - lost);
   addLog(`スクラップ ${lost.toLocaleString()} を投げて気をそらした`, "sub");
   state.mode = "explore";
@@ -1103,7 +1103,7 @@ function eatMushroom(){
 // --- 死亡 ---
 function checkDeath(){
   if(state.hp <= 0){
-    addLog("HPが0になった…");
+    addLog("HPが0になった…", "sub");
     state.mode = "dead";
   }
 }
