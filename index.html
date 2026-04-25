@@ -313,6 +313,18 @@ function clearBuffs(){
   state.moleBlock = -1;
 }
 
+// --- 採掘力UPバフを付与する関数 ---
+function applyMiningUp(turns){
+  applyBuff({
+    id: "miningUp",
+    name: "⛏️ 採掘力UP",
+    turns: turns,
+    isBad: false,
+    miningBonus: 1,  // +1倍（採掘量2倍）
+    onTurn: null
+  });
+}
+
 // --- 毒を付与する関数 ---
 function applyPoison(turns){
   applyBuff({
@@ -979,6 +991,15 @@ function calcScrap(){
   return Math.max(1, base + variance);
 }
 
+// --- 採掘倍率計算 ---
+function getMiningMultiplier(){
+  // バフの miningBonus を合計して (1 + 合計) を返す
+  let bonus = state.buffs
+    .filter(b => b.miningBonus)
+    .reduce((sum, b) => sum + b.miningBonus, 0);
+  return 1 + bonus;
+}
+
 // --- 階層補正ヘルパー ---
 function floorDmgBonus()  { return Math.floor(state.floor / 10); }
 function floorHealBonus() { return Math.floor(state.floor / 20); }
@@ -1011,7 +1032,7 @@ function next(){
   const LIGHT_EVENTS = [
     // 採掘 60%
     { w: 60, fn: () => {
-      let g = calcScrap();
+      let g = Math.floor(calcScrap() * getMiningMultiplier());
       state.scrap += g;
       addLog(`採掘した スクラップ +${g.toLocaleString()}`, "scrap");
     }},
@@ -1241,14 +1262,17 @@ function eatMushroom(){
     heal(h);
     playSE("heal");
     addLog(`甘い香り… HP +${h} 回復した`, "sub");
-  } else if(r < 0.90){
+  } else if(r < 0.88){
     let back = Math.min(2, state.floor - 1);
     state.floor -= back;
     addLog(`錯乱した！ ${back}階層戻された`, "sub");
-  } else {
+  } else if(r < 0.96){
     let lost = Math.floor(state.scrap * 0.1);
     state.scrap = Math.max(0, state.scrap - lost);
     addLog(`錯乱した！ スクラップ ${lost.toLocaleString()} をばらまいた`, "sub");
+  } else {
+    applyMiningUp(5);
+    addLog("不思議な胞子を吸い込んだ… 採掘力UP！（5ターン）", "sub");
   }
   checkDeath();
   if(state.mode !== "dead") state.mode = "explore";
