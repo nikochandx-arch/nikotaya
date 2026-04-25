@@ -782,6 +782,10 @@ function calcScrap(){
   return Math.max(1, base + variance);
 }
 
+// --- 階層補正ヘルパー ---
+function floorDmgBonus()  { return Math.floor(state.floor / 10); }
+function floorHealBonus() { return Math.floor(state.floor / 20); }
+
 // --- 探索 ---
 function next(){
   playSE("dig");
@@ -815,13 +819,13 @@ function next(){
     }},
     // 落石 20%
     { w: 20, fn: () => {
-      let d = Math.floor(Math.random()*3) + 1;
+      let d = Math.floor(Math.random()*3) + 1 + floorDmgBonus();
       damage(d);
       addLog(`落石！ ${d} ダメージ`, "damage");
     }},
     // 一休み 10%
     { w: 10, fn: () => {
-      let h = Math.floor(Math.random()*2) + 1;
+      let h = Math.floor(Math.random()*2) + 1 + floorHealBonus();
       heal(h);
       playSE("heal");
       addLog(`一休みした HP+${h}`, "heal");
@@ -995,9 +999,10 @@ function eatMushroom(){
     applyPoison(2);
     addLog("苦い！ 毒を受けた（2ターン）", "sub");
   } else if(r < 0.80){
-    heal(3);
+    let h = 3 + floorHealBonus();
+    heal(h);
     playSE("heal");
-    addLog("甘い香り… HP +3 回復した", "sub");
+    addLog(`甘い香り… HP +${h} 回復した`, "sub");
   } else if(r < 0.90){
     let back = Math.min(2, state.floor - 1);
     state.floor -= back;
