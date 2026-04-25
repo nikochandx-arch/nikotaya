@@ -282,6 +282,7 @@ let state = {
   relicViewOpen: false,
   daigoLastFloor: -999,  // DAIGOの最終遭遇階
   relics: [],  // 装備中の紋（最大5つ、ラン中のみ有効）
+  pendingItem: null,  // 手持ちいっぱい時の入手待ちアイテム
   seOn: savedSeOn,
   stats: savedStats,  // 永続累計統計
   runStats: {         // ラン中の一時記録
@@ -729,6 +730,9 @@ function render(){
     case "event_bat":
       renderBatEvent();
       break;
+    case "event_item_full":
+      renderItemFullEvent();
+      break;
     case "event_daigo":
       renderDaigoEvent();
       break;
@@ -1135,22 +1139,86 @@ function next(){
 // --- コンテナ ---
 function openChest(){
   let r = Math.random();
-  if(r < 0.70){
-    // 成功：calcScrap() × 3
+  if(r < 0.60){
+    // スクラップ 60%
     let g = calcScrap() * 3;
     state.scrap += g;
     addLog(`資源を発見！ スクラップ +${g.toLocaleString()}`, "sub");
+    checkDeath();
+    if(state.mode !== "dead") state.mode = "explore";
+  } else if(r < 0.70){
+    // ポーション 10%
+    let newItem = { name: "ポーション", effect: "hp3" };
+    if(state.items.length < 5){
+      state.items.push(newItem);
+      saveAll();
+      addLog("ポーションを発見！", "sub");
+      state.mode = "explore";
+    } else {
+      state.pendingItem = newItem;
+      addLog("ポーションを発見！ でも手持ちがいっぱいだ…", "sub");
+      state.mode = "event_item_full";
+    }
   } else if(r < 0.85){
     // 空っぽ 15%
     addLog("空っぽだった…", "sub");
+    state.mode = "explore";
   } else {
-    // 罠 15%：最大HPの20%（切り上げ）
+    // 罠 15%
     let d = Math.ceil(state.maxHp * 0.2);
     damage(d);
     addLog(`罠だった！ ${d} ダメージ`, "sub");
+    checkDeath();
+    if(state.mode !== "dead") state.mode = "explore";
   }
-  checkDeath();
-  if(state.mode !== "dead") state.mode = "explore";
+  render();
+}
+
+// --- 手持ちいっぱい：アイテム選択破棄 ---
+function renderItemFullEvent(){
+  let a = document.getElementById("actions");
+  let allItems = [...state.items, state.pendingItem]; // 手持ち5個＋新規1個
+
+  let label = document.createElement("div");
+  label.style.cssText = "color:#aaa;font-size:22px;margin:4px 8px;width:100%;text-align:center;";
+  label.innerText = "捨てるアイテムを選んでください";
+  a.appendChild(label);
+
+  allItems.forEach((item, i) => {
+    let def = ITEM_DEF[item.effect];
+    let wrap = document.createElement("div");
+    wrap.style.cssText = "display:flex;align-items:center;gap:8px;width:100%;margin:4px 0;";
+
+    let info = document.createElement("div");
+    info.style.cssText = "flex:1;font-size:24px;color:#aaffaa;";
+    let isNew = (i === allItems.length - 1);
+    info.innerHTML = `<b>${item.name}</b>${isNew ? ' <span style="color:#0ff;font-size:18px;">NEW</span>' : ""}`;
+
+    let desc = document.createElement("div");
+    desc.style.cssText = "flex:2;font-size:20px;color:#888;text-align:center;";
+    desc.innerText = def ? def.desc : "";
+
+    let dropBtn = document.createElement("button");
+    dropBtn.style.cssText = "min-width:100px;max-width:120px;font-size:22px;padding:10px 0;border-color:#f55;color:#f55;background:rgba(245,85,85,0.1);";
+    dropBtn.innerText = "捨てる";
+    dropBtn.onclick = () => dropAndKeep(i, allItems);
+
+    wrap.appendChild(info);
+    wrap.appendChild(desc);
+    wrap.appendChild(dropBtn);
+    a.appendChild(wrap);
+  });
+}
+
+function dropAndKeep(dropIndex, allItems){
+  // 捨てたアイテムを除いた5個を装備
+  let kept = allItems.filter((_, i) => i !== dropIndex);
+  state.items = kept;
+  state.pendingItem = null;
+  saveAll();
+  let dropped = allItems[dropIndex];
+  addLog(`${dropped.name} を捨てた`, "sub");
+  state.mode = "explore";
   render();
 }
 
