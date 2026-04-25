@@ -242,6 +242,7 @@ let state = {
   buffs: [],  // { id, name, turns, isBad, onTurn: fn }
   moleBlock: -1,  // モグラが発生した30階ブロック番号
   relicViewOpen: false,
+  daigoLastFloor: -999,  // DAIGOの最終遭遇階
   seOn: savedSeOn,
   stats: savedStats,  // 永続累計統計
   runStats: {         // ラン中の一時記録
@@ -477,6 +478,7 @@ function getEmoji(text, type){
   if(text.includes("亀裂"))         return "🕳️";
   if(text.includes("コウモリ"))     return "🦇";
   if(text.includes("女神"))         return "🗿";
+  if(text.includes("DAIGO"))         return "👤";
   return "📋";
 }
 
@@ -589,8 +591,17 @@ function render(){
   if(state.log.length > 0){
     let entry = state.log[0];
     let firstLine = entry.lines[0];
-    // アイコンは先頭ラインの絵文字
     document.getElementById("current-event-icon").innerText = firstLine.emoji || "📋";
+
+    // DAIGOイベントは専用表示
+    if(state.mode === "event_daigo" && entry.tip){
+      document.getElementById("current-event-icon").innerText = "👤";
+      document.getElementById("current-event-text").innerHTML = `
+<div style="font-size:26px;color:#0ff;">採掘者DAIGO</div>
+<div style="font-size:22px;color:#fff;margin-top:6px;">『${entry.tip}』</div>
+`;
+      // ボタンは下のswitchで描画するのでここではスキップ
+    } else {
 
     let eventHTML = "";
     entry.lines.forEach((line, i) => {
@@ -616,6 +627,7 @@ function render(){
       }
     });
     document.getElementById("current-event-text").innerHTML = eventHTML;
+    } // end DAIGOチェック
   }
 
   // --- 履歴ログ：最新エントリ以外を階層単位で表示 ---
@@ -665,6 +677,9 @@ function render(){
       break;
     case "event_bat":
       renderBatEvent();
+      break;
+    case "event_daigo":
+      renderDaigoEvent();
       break;
     case "event_goddess":
       btn("スクラップが欲しい", goddessScrap, "special");
@@ -891,6 +906,7 @@ function startRun(){
   state.log   = [];
   clearBuffs();
   resetRunStats();
+  state.daigoLastFloor = -999;
   state.mode  = "explore";
   addLog("採掘開始！");
   render();
@@ -959,6 +975,23 @@ function next(){
       state.scrap = Math.max(0, state.scrap - lost);
       addLog(`亀裂の隙間にスクラップを落としてしまった スクラップ -${lost.toLocaleString()}`, "loss");
     }},
+    // DAIGO 3%（遭遇から+30階は再遭遇しない）
+    { w: 3,
+      condition: () => state.floor - state.daigoLastFloor >= 30,
+      fn: () => {
+        const DAIGO_TIPS = [
+          "キノコは食べると毒になることがあるから気をつけて",
+          "コンテナみつけるとつい開けちゃうよねぇ",
+          "毒って苦しいけど毒ダメージで死ぬことはないらしいよ",
+          "女神像に祈れば無事に帰れるみたいだよ",
+        ];
+        let tip = DAIGO_TIPS[Math.floor(Math.random() * DAIGO_TIPS.length)];
+        state.daigoLastFloor = state.floor;
+        state.mode = "event_daigo";
+        addLog(`採掘者DAIGOに出会った！`);
+        state.log[0].tip = tip; // ログエントリにtipを付加
+      }
+    },
     // モグラ 1%（30階ブロック内で1回まで）
     { w: 1,
       condition: () => {
@@ -1100,6 +1133,17 @@ function batForce(){
   }
   checkDeath();
   if(state.mode !== "dead") state.mode = "explore";
+  render();
+}
+
+// --- DAIGOイベント ---
+function renderDaigoEvent(){
+  btn("了解！", ignoreDaigo, "main");
+}
+
+function ignoreDaigo(){
+  addLog("DAIGOと別れた", "sub");
+  state.mode = "explore";
   render();
 }
 
