@@ -322,9 +322,30 @@ function playDigSound(){
   src.start();
 }
 
+// 回復音：ポチョン（清涼感・神秘感）
+function playHealSound(){
+  initAudio();
+  const duration = 0.2;
+  const osc  = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.05);
+
+  gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start(audioCtx.currentTime);
+  osc.stop(audioCtx.currentTime + duration);
+}
+
 // SE管理マスタ（将来ここに追加していく）
 const SE = {
-  dig: playDigSound,
+  dig:  playDigSound,
+  heal: playHealSound,
 };
 
 function playSE(name){
@@ -690,11 +711,13 @@ function useItem(index){
   if(item.effect === "hp3"){
     let v = getPotionHealValue();
     heal(v);
+    playSE("heal");
     addLog(`ポーションを使った！ HP +${v}`, "scrap");
   } else if(item.effect === "antidote"){
     let idx = state.buffs.findIndex(b => b.id === "poison");
     if(idx >= 0){
       state.buffs.splice(idx, 1);
+      playSE("heal");
       addLog("毒消し草を使った！ 毒が治った", "heal");
     } else {
       addLog("毒消し草を使った（毒状態ではなかった）", "normal");
@@ -788,6 +811,7 @@ function next(){
     { w: 10, fn: () => {
       let h = Math.floor(Math.random()*2) + 1;
       heal(h);
+      playSE("heal");
       addLog(`一休みした HP+${h}`, "heal");
     }},
     // 亀裂 10%
@@ -960,6 +984,7 @@ function eatMushroom(){
     addLog("苦い！ 毒を受けた（2ターン）", "sub");
   } else if(r < 0.80){
     heal(3);
+    playSE("heal");
     addLog("甘い香り… HP +3 回復した", "sub");
   } else if(r < 0.90){
     let back = Math.min(2, state.floor - 1);
