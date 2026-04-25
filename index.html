@@ -546,12 +546,12 @@ function render(){
     shopHTML = `
 <div>▼ショップ</div>
 <div style="color:#888;margin:6px 0;">[ 消耗品 ]</div>
-<button onclick="buyPotion()" style="${shopStyle}${disabledStyle}">ポーション　HP+${getPotionHealValue()}<br><span style="font-size:18px;">（スクラップ 10）${itemFull ? " ※持ち物がいっぱい" : ""}</span></button>
-<button onclick="buyAntidote()" style="${shopStyle}${disabledStyle}">毒消し草　毒を治す<br><span style="font-size:18px;">（スクラップ 10）${itemFull ? " ※持ち物がいっぱい" : ""}</span></button>
+<button onclick="buyPotion()" style="${shopStyle}${disabledStyle}">ポーション<br>HP+${getPotionHealValue()}<br><span style="font-size:18px;">（スクラップ 10）${itemFull ? " ※持ち物がいっぱい" : ""}</span></button>
+<button onclick="buyAntidote()" style="${shopStyle}${disabledStyle}">毒消し草<br>毒を治す<br><span style="font-size:18px;">（スクラップ 10）${itemFull ? " ※持ち物がいっぱい" : ""}</span></button>
 <div style="color:#888;margin:6px 0;">[ 永続強化 ]</div>
 ${potionMax
   ? `<button disabled style="${maxStyle}">ポーション強化　MAX<br><span style="font-size:18px;">（回復量 +${getPotionHealValue()} で上限）</span></button>`
-  : `<button onclick="buyPotionHeal()" style="${shopStyle}">ポーション強化　回復量+1<br><span style="font-size:18px;">（スクラップ ${getPotionHealCost().toLocaleString()}）</span></button>`
+  : `<button onclick="buyPotionHeal()" style="${shopStyle}">ポーション強化<br>回復量+1<br><span style="font-size:18px;">（スクラップ ${getPotionHealCost().toLocaleString()}）</span></button>`
 }
 <button onclick="buyHp()" style="${shopStyle}">最大HP +1<br><span style="font-size:18px;">（スクラップ ${getHpCost()}）</span></button>
 <button onclick="buyPower()" style="${shopStyle}">採掘力 +1<br><span style="font-size:18px;">（スクラップ ${getPowerCost()}）</span></button>
