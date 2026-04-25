@@ -295,14 +295,14 @@ const ITEM_DEF = {
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
 let audioCtx = null;
 
-function initAudio(){
+async function initAudio(){
   if(!audioCtx) audioCtx = new AudioCtx();
-  if(audioCtx.state === "suspended") audioCtx.resume();
+  if(audioCtx.state === "suspended") await audioCtx.resume();
 }
 
 // 採掘音：ザクッ（こもった土の音）
-function playDigSound(){
-  initAudio();
+async function playDigSound(){
+  await initAudio();
   const duration = 0.08;
   const bufferSize = audioCtx.sampleRate * duration;
   const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
@@ -325,8 +325,8 @@ function playDigSound(){
 }
 
 // 回復音：ポチョン（清涼感・神秘感）
-function playHealSound(){
-  initAudio();
+async function playHealSound(){
+  await initAudio();
   const duration = 0.2;
   const osc  = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
@@ -350,10 +350,10 @@ const SE = {
   heal: playHealSound,
 };
 
-function playSE(name){
+async function playSE(name){
   if(!state.seOn) return;
   try {
-    if(SE[name]) SE[name]();
+    if(SE[name]) await SE[name]();
   } catch(e) {
     console.warn("SE error:", e);
   }
