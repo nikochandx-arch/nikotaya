@@ -143,8 +143,6 @@ display: flex;
 flex-wrap: wrap;
 justify-content: center;
 gap: 12px;
-border-top: 2px solid #0f0;
-border-bottom: 2px solid #0f0;
 padding: 12px;
 }
 
@@ -159,7 +157,7 @@ display: flex;
 gap: 12px;
 margin-top: 16px;
 padding-top: 10px;
-border-top: 2px solid #0f0;
+border-top: 1px solid rgba(0,255,0,0.3);
 }
 
 #playerStatus {
@@ -172,7 +170,7 @@ font-size: 24px;
 flex: 1;
 color: #aaffaa;
 font-size: 24px;
-border-left: 2px solid #0f0;
+border-left: 1px solid rgba(0,255,0,0.3);
 padding-left: 12px;
 }
 </style>
@@ -208,6 +206,7 @@ padding-left: 12px;
 <script>
 // --- 永続データ読み込み ---
 let savedUpgrades  = JSON.parse(localStorage.getItem("upgrades") || '{"hp":0,"power":0,"potionHeal":0}');
+if(savedUpgrades.potionHeal === undefined) savedUpgrades.potionHeal = 0;
 let savedScrap     = parseInt(localStorage.getItem("totalScrap")) || 0;
 let savedName      = localStorage.getItem("playerName") || "プレイヤー";
 let savedBestFloor = parseInt(localStorage.getItem("bestFloor")) || 1;
@@ -546,16 +545,16 @@ function render(){
     let potionMax  = state.upgrades.potionHeal >= 7;
     shopHTML = `
 <div>▼ショップ</div>
-<div style="color:#888;margin:6px 0;">－－－消耗品－－－</div>
-<button onclick="buyPotion()" style="${shopStyle}${disabledStyle}">ポーション　HP+${getPotionHealValue()}<br>（スクラップ 10）${itemFull ? "<br>※持ち物がいっぱい" : ""}</button>
-<button onclick="buyAntidote()" style="${shopStyle}${disabledStyle}">毒消し草　毒を治す<br>（スクラップ 10）${itemFull ? "<br>※持ち物がいっぱい" : ""}</button>
-<div style="color:#888;margin:6px 0;">－－－永続－－－</div>
+<div style="color:#888;margin:6px 0;">[ 消耗品 ]</div>
+<button onclick="buyPotion()" style="${shopStyle}${disabledStyle}">ポーション　HP+${getPotionHealValue()}<br><span style="font-size:18px;">（スクラップ 10）${itemFull ? " ※持ち物がいっぱい" : ""}</span></button>
+<button onclick="buyAntidote()" style="${shopStyle}${disabledStyle}">毒消し草　毒を治す<br><span style="font-size:18px;">（スクラップ 10）${itemFull ? " ※持ち物がいっぱい" : ""}</span></button>
+<div style="color:#888;margin:6px 0;">[ 永続強化 ]</div>
 ${potionMax
-  ? `<button disabled style="${maxStyle}">ポーション強化　MAX<br>（回復量 +${getPotionHealValue()} で上限）</button>`
-  : `<button onclick="buyPotionHeal()" style="${shopStyle}">ポーション強化　回復量+1<br>（スクラップ ${getPotionHealCost().toLocaleString()}）</button>`
+  ? `<button disabled style="${maxStyle}">ポーション強化　MAX<br><span style="font-size:18px;">（回復量 +${getPotionHealValue()} で上限）</span></button>`
+  : `<button onclick="buyPotionHeal()" style="${shopStyle}">ポーション強化　回復量+1<br><span style="font-size:18px;">（スクラップ ${getPotionHealCost().toLocaleString()}）</span></button>`
 }
-<button onclick="buyHp()" style="${shopStyle}">最大HP +1<br>（スクラップ ${getHpCost()}）</button>
-<button onclick="buyPower()" style="${shopStyle}">採掘力 +1<br>（スクラップ ${getPowerCost()}）</button>
+<button onclick="buyHp()" style="${shopStyle}">最大HP +1<br><span style="font-size:18px;">（スクラップ ${getHpCost()}）</span></button>
+<button onclick="buyPower()" style="${shopStyle}">採掘力 +1<br><span style="font-size:18px;">（スクラップ ${getPowerCost()}）</span></button>
 `;
   }
   document.getElementById("shop").innerHTML = shopHTML;
