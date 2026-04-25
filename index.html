@@ -462,7 +462,7 @@ function render(){
   let hpColor = hpRatio > 0.5 ? "#0f0" : hpRatio > 0.25 ? "#ff0" : "#f55";
   document.getElementById("se-toggle").innerText = state.seOn ? "🔔" : "🔕";
   document.getElementById("status").innerHTML =
-    `<span style="color:${hpColor}">HP:${state.hp}/${state.maxHp}</span> | MP:${state.mp}/${state.maxMp} | スクラップ:<span style="color:#ffcc66;">${state.scrap}</span> | 現在地:${state.floor}階`;
+    `<span style="color:${hpColor}">HP:${state.hp}/${state.maxHp}</span> | MP:${state.mp}/${state.maxMp} | スクラップ:<span style="color:#ffcc66;">${state.scrap.toLocaleString()}</span> | 現在地:${state.floor}階`;
 
   // バフ・デバフ表示
   let buffHTML = "";
@@ -475,7 +475,7 @@ function render(){
   document.getElementById("buff-container").innerHTML = buffHTML;
 
   document.getElementById("storage").innerText =
-    `倉庫：スクラップ ${state.totalScrap}`;
+    `倉庫：スクラップ ${state.totalScrap.toLocaleString()}`;
 
   document.getElementById("playerStatus").innerHTML =
 `<span onclick="changeName()" style="cursor:pointer;">名前：${state.name} ✏️</span>
@@ -507,7 +507,7 @@ function render(){
 <div style="color:#ff0;font-size:28px;margin-bottom:6px;">── リザルト ──</div>
 <div>${survived}</div>
 <div>到達階層：${r.floor} 階</div>
-<div style="color:#ffcc66;">持ち帰ったスクラップ：${r.carry} ${carryNote}</div>
+<div style="color:#ffcc66;">持ち帰ったスクラップ：${r.carry.toLocaleString()} ${carryNote}</div>
 <div style="color:#aaa;">最高到達階：${state.bestFloor} 階</div>
 `;
     document.getElementById("log").innerHTML = "";
@@ -637,8 +637,8 @@ ${potionMax
   ? `<button disabled style="${maxStyle}height:110px;box-sizing:border-box;">ポーション強化<br><span ${descStyle}>MAX（上限+${getPotionHealValue()}）</span></button>`
   : `<button onclick="buyPotionHeal()" style="${btnStyle}">ポーション強化<br><span ${descStyle}>回復量+1</span><br>${priceSpan(getPotionHealCost().toLocaleString())}</button>`
 }
-<button onclick="buyHp()" style="${btnStyle}">最大HP +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getHpCost())}</button>
-<button onclick="buyPower()" style="${btnStyle}">採掘力 +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getPowerCost())}</button>
+<button onclick="buyHp()" style="${btnStyle}">最大HP +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getHpCost().toLocaleString())}</button>
+<button onclick="buyPower()" style="${btnStyle}">採掘力 +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getPowerCost().toLocaleString())}</button>
 `;
   }
   document.getElementById("shop").innerHTML = shopHTML;
@@ -819,7 +819,7 @@ function next(){
     { w: 60, fn: () => {
       let g = calcScrap();
       state.scrap += g;
-      addLog(`採掘した スクラップ +${g}`, "scrap");
+      addLog(`採掘した スクラップ +${g.toLocaleString()}`, "scrap");
     }},
     // 落石 20%
     { w: 20, fn: () => {
@@ -838,7 +838,7 @@ function next(){
     { w: 10, fn: () => {
       let lost = Math.min(calcScrap(), state.scrap);
       state.scrap = Math.max(0, state.scrap - lost);
-      addLog(`亀裂の隙間にスクラップを落としてしまった スクラップ -${lost}`, "loss");
+      addLog(`亀裂の隙間にスクラップを落としてしまった スクラップ -${lost.toLocaleString()}`, "loss");
     }},
     // モグラ 1%（30階ブロック内で1回まで）
     { w: 1,
@@ -853,12 +853,12 @@ function next(){
           // 金モグラ
           let gain = Math.floor(state.scrap / 2);
           state.scrap += gain;
-          addLog(`金モグラだ！ スクラップ +${gain}`, "scrap");
+          addLog(`金モグラだ！ スクラップ +${gain.toLocaleString()}`, "scrap");
         } else {
           // 泥棒モグラ
           let lost = Math.floor(state.scrap / 2);
           state.scrap = Math.max(0, state.scrap - lost);
-          addLog(`泥棒モグラだ！ スクラップ -${lost}`, "loss");
+          addLog(`泥棒モグラだ！ スクラップ -${lost.toLocaleString()}`, "loss");
         }
       }
     },
@@ -904,7 +904,7 @@ function openChest(){
     // 成功：calcScrap() × 3
     let g = calcScrap() * 3;
     state.scrap += g;
-    addLog(`資源を発見！ スクラップ +${g}`, "sub");
+    addLog(`資源を発見！ スクラップ +${g.toLocaleString()}`, "sub");
   } else if(r < 0.85){
     // 空っぽ 15%
     addLog("空っぽだった…", "sub");
@@ -954,7 +954,7 @@ function renderBatEvent(){
 function batDistract(){
   let lost = Math.floor(state.scrap * 0.1);
   state.scrap = Math.max(0, state.scrap - lost);
-  addLog(`スクラップ ${lost} を投げて気をそらした`, "sub");
+  addLog(`スクラップ ${lost.toLocaleString()} を投げて気をそらした`, "sub");
   state.mode = "explore";
   render();
 }
@@ -985,7 +985,7 @@ function digVein(){
   if(Math.random() < 0.5){
     let g = calcScrap() * 2;
     state.scrap += g;
-    addLog(`鉱脈を掘り当てた！ スクラップ +${g}`, "sub");
+    addLog(`鉱脈を掘り当てた！ スクラップ +${g.toLocaleString()}`, "sub");
   } else {
     let d = 3 + Math.floor(state.floor / 10);
     damage(d);
@@ -1014,7 +1014,7 @@ function eatMushroom(){
   } else {
     let lost = Math.floor(state.scrap * 0.1);
     state.scrap = Math.max(0, state.scrap - lost);
-    addLog(`錯乱した！ スクラップ ${lost} をばらまいた`, "sub");
+    addLog(`錯乱した！ スクラップ ${lost.toLocaleString()} をばらまいた`, "sub");
   }
   checkDeath();
   if(state.mode !== "dead") state.mode = "explore";
@@ -1075,7 +1075,7 @@ function goHome(){
 function goddessScrap(){
   let gain = state.floor;
   state.scrap += gain;
-  addLog(`女神の恵み！ スクラップ +${gain}`, "scrap");
+  addLog(`女神の恵み！ スクラップ +${gain.toLocaleString()}`, "scrap");
   state.mode = "explore";
   render();
 }
