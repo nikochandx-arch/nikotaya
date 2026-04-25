@@ -241,6 +241,7 @@ let state = {
   lastResult: null,
   buffs: [],  // { id, name, turns, isBad, onTurn: fn }
   moleBlock: -1,  // モグラが発生した30階ブロック番号
+  relicViewOpen: false,
   seOn: savedSeOn,
   stats: savedStats,  // 永続累計統計
   runStats: {         // ラン中の一時記録
@@ -529,10 +530,12 @@ function render(){
   document.getElementById("playerStatus").innerHTML =
 `<span onclick="changeName()" style="cursor:pointer;">名前：${state.name} ✏️</span>
 最大HP：${state.maxHp}
-最大MP：${state.maxMp}
-採掘力：${state.power}
-スキル：${state.skills.length ? state.skills.join(",") : "なし"}
-最高到達階：${state.bestFloor}階`.split("\n").map(l => `<div>${l}</div>`).join("");
+採掘力：${state.power}`.split("\n").map(l => `<div>${l}</div>`).join("")
++ `<div style="margin-top:12px;">
+  <button onclick="toggleRelicView()" style="font-size:20px;padding:8px 16px;min-width:unset;max-width:unset;width:100%;border-color:#0ff;color:#0ff;background:rgba(0,255,255,0.1);">
+    ${state.relicViewOpen ? "▲ 閉じる" : "▼ 紋一覧"}
+  </button>
+</div>`;
 
   // アイテム欄
   let itemHTML = `<div onclick="openItemMenu()" style="cursor:pointer;text-decoration:underline;">▼アイテム 👆</div>`;
@@ -545,6 +548,22 @@ function render(){
     }
   }
   document.getElementById("itemBox").innerHTML = itemHTML;
+
+  // 紋一覧表示（ホームのみ）
+  if(state.mode === "home" && state.relicViewOpen){
+    document.getElementById("current-event-icon").innerText = "📜";
+    document.getElementById("current-event-text").innerHTML = `
+<div style="font-size:26px;color:#0ff;margin-bottom:8px;">紋コレクション</div>
+<div style="font-size:20px;color:#888;">（実装予定）</div>
+`;
+    document.getElementById("log").innerHTML = "";
+    // 以降のログ描画をスキップするためreturnはしない（ボタン等は描画する）
+  } else if(state.mode === "home"){
+    // ホームで紋一覧が閉じている時はcurrent-eventをリセット
+    document.getElementById("current-event-icon").innerText = "";
+    document.getElementById("current-event-text").innerText = "採掘を開始しよう！";
+    document.getElementById("log").innerHTML = "";
+  }
 
   // リザルト画面（完全独立描画）
   if(state.mode === "result" && state.lastResult){
@@ -730,6 +749,12 @@ function btn(t, f, color="#0f0", bg="rgba(0,255,0,0.1)"){
   b.style.background  = bg;
   b.style.boxShadow   = `0 0 10px ${color}66`;
   document.getElementById("actions").appendChild(b);
+}
+
+// --- 紋一覧トグル ---
+function toggleRelicView(){
+  state.relicViewOpen = !state.relicViewOpen;
+  render();
 }
 
 // --- アイテムメニュー ---
