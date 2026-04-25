@@ -173,6 +173,43 @@ font-size: 24px;
 border-left: 1px solid rgba(0,255,0,0.3);
 padding-left: 12px;
 }
+
+/* — 紋（装備品）枠のスタイル — */
+#crest-container {
+display: flex;
+justify-content: center;
+gap: 8px;
+margin-top: 16px;
+padding-top: 16px;
+border-top: 1px dashed rgba(0, 255, 0, 0.3);
+width: 100%;
+box-sizing: border-box;
+}
+
+.crest-card {
+flex: 1;
+min-width: 0;
+aspect-ratio: 100 / 140;
+cursor: pointer;
+transition: transform 0.2s, filter 0.2s;
+}
+
+.crest-card:active, .crest-card:hover {
+transform: translateY(-8px);
+filter: drop-shadow(0 0 8px rgba(0, 255, 0, 0.6));
+}
+
+.crest-empty {
+flex: 1;
+aspect-ratio: 100 / 140;
+border: 1px dashed rgba(0, 255, 0, 0.3);
+border-radius: 6px;
+display: flex;
+align-items: center;
+justify-content: center;
+color: rgba(0, 255, 0, 0.3);
+font-size: 14px;
+}
 </style>
 
 </head>
@@ -200,6 +237,7 @@ padding-left: 12px;
     <div id="playerStatus"></div>
     <div id="itemBox"></div>
   </div>
+  <div id="crest-container" style="display:none;"></div>
   <div id="shop"></div>
   <div id="stats"></div>
 </div>
@@ -243,6 +281,7 @@ let state = {
   moleBlock: -1,  // モグラが発生した30階ブロック番号
   relicViewOpen: false,
   daigoLastFloor: -999,  // DAIGOの最終遭遇階
+  relics: [],  // 装備中の紋（最大5つ、ラン中のみ有効）
   seOn: savedSeOn,
   stats: savedStats,  // 永続累計統計
   runStats: {         // ラン中の一時記録
@@ -698,6 +737,25 @@ function render(){
       break;
   }
 
+  // 紋枠（採掘中のみ表示）
+  let crestEl = document.getElementById("crest-container");
+  if(crestEl){
+    const inRun = state.mode !== "home" && state.mode !== "result";
+    crestEl.style.display = inRun ? "flex" : "none";
+    if(inRun){
+      let crestHTML = "";
+      for(let i = 0; i < 5; i++){
+        let relic = state.relics[i];
+        if(relic){
+          crestHTML += `<div class="crest-card" title="${relic.name}"><!-- 紋カード: ${relic.name} --></div>`;
+        } else {
+          crestHTML += `<div class="crest-empty">EMPTY</div>`;
+        }
+      }
+      crestEl.innerHTML = crestHTML;
+    }
+  }
+
   let shopHTML = "";
   if(state.mode === "home"){
     let itemFull = state.items.length >= 5;
@@ -907,6 +965,7 @@ function startRun(){
   clearBuffs();
   resetRunStats();
   state.daigoLastFloor = -999;
+  state.relics = [];
   state.mode  = "explore";
   addLog("採掘開始！");
   render();
