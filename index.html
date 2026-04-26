@@ -1394,7 +1394,8 @@ function next(){
       state.scrap = Math.max(0, state.scrap - lost);
       let d = Math.max(1, Math.ceil(state.maxHp * 0.05));
       damage(d);
-      addLog(`足を滑らせた！ スクラップ -${lost.toLocaleString()} / ${d} ダメージ`, "damage");
+      addLog(`足を滑らせた！`, "damage");
+      addLog(`スクラップを ${lost.toLocaleString()} 落とした / ${d} ダメージを受けた`, "sub");
     }},
     // 手首を痛めた 5%（採掘量低下デバフ3T）
     { w: 5, fn: () => {
