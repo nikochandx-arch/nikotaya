@@ -878,7 +878,7 @@ ${unlockHTML}
         </div>`).join("");
       document.getElementById("current-event-text").innerHTML = `
         <div style="font-size:24px;color:#0ff;margin-bottom:8px;">紋を選べ！</div>
-        <div style="display:flex;gap:8px;justify-content:center;">${cardsHTML}</div>
+        <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;">${cardsHTML}</div>
       `;
     } else
     // 紋入れ替え選択
@@ -1013,7 +1013,17 @@ ${unlockHTML}
       for(let i = 0; i < 5; i++){
         let relic = state.relics[i];
         if(relic){
-          crestHTML += `<div class="crest-card" title="${relic.name}"><!-- 紋カード: ${relic.name} --></div>`;
+          let c = CREST_MASTER.find(m => m.id === relic.id);
+          if(c){
+            crestHTML += `<div class="crest-card" title="${c.name}" style="filter:drop-shadow(0 0 5px rgba(${c.rgb},0.5));">
+              <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+                <rect x="2" y="2" width="96" height="136" rx="6" fill="#222" stroke="${c.color}" stroke-width="2"/>
+                <g style="color:${c.color};">${c.svg}</g>
+              </svg>
+            </div>`;
+          } else {
+            crestHTML += `<div class="crest-empty">?</div>`;
+          }
         } else {
           crestHTML += `<div class="crest-empty">EMPTY</div>`;
         }
