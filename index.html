@@ -1018,10 +1018,11 @@ ${unlockHTML}
           if(c){
             let isActive = state.activeCrestId === c.id;
             let tooltip = isActive
-              ? `<div style="position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
-                  background:#1a1a1a;border:1px solid ${c.color};border-radius:6px;
-                  padding:6px 10px;font-size:18px;color:${c.color};white-space:nowrap;
-                  box-shadow:0 0 8px rgba(${c.rgb},0.4);z-index:10;pointer-events:none;">
+              ? `<div style="position:fixed;bottom:180px;left:50%;transform:translateX(-50%);
+                  background:#2d2d2d;border:2px solid ${c.color};border-radius:10px;
+                  padding:14px 20px;font-size:24px;color:${c.color};
+                  white-space:nowrap;max-width:90vw;text-align:center;
+                  box-shadow:0 0 16px rgba(${c.rgb},0.5);z-index:100;pointer-events:none;">
                   ${c.desc}
                 </div>`
               : "";
