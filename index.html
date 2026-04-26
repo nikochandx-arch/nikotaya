@@ -294,6 +294,7 @@ let state = {
   relicChoices: [],  // 選択中の紋候補
   pendingRelic: null,  // スロット満タン時の入れ替え待ち紋
   activeCrestId: null,  // フキダシ表示中の紋ID
+  veinDepth: 0,  // 鉱脈を掘った回数
   seOn: savedSeOn,
   stats: savedStats,  // 永続累計統計
   runStats: {         // ラン中の一時記録
@@ -884,6 +885,23 @@ ${unlockHTML}
     let firstLine = entry.lines[0];
     document.getElementById("current-event-icon").innerText = firstLine.emoji || "📋";
 
+    // 鉱脈イベント専用表示
+    if(state.mode === "event_vein"){
+      let depth = state.veinDepth;
+      let p = VEIN_PARAMS[Math.min(depth, 3)];
+      document.getElementById("current-event-icon").innerText = "💎";
+      if(depth === 0){
+        document.getElementById("current-event-text").innerHTML = `
+<div style="font-size:28px;">鉱脈だ！だけど地盤が脆そうだ…</div>
+<div style="color:#ffcc66;font-size:22px;margin-top:6px;">崩落確率：${p.collapse*100}%　獲得倍率：×${p.mult}</div>`;
+      } else {
+        let collapseColor = p.collapse >= 0.6 ? "#f55" : p.collapse >= 0.4 ? "#ffcc66" : "#0f0";
+        document.getElementById("current-event-text").innerHTML = `
+<div style="font-size:26px;">${depth}回掘った　やめるなら今のうち…</div>
+<div style="color:${collapseColor};font-size:24px;font-weight:bold;margin-top:6px;">次の崩落確率：${p.collapse*100}%</div>
+<div style="color:#ffcc66;font-size:22px;">成功時獲得倍率：×${p.mult}</div>`;
+      }
+    } else
     // 紋選択イベント専用表示
     if(state.mode === "event_relic_pick"){
       document.getElementById("current-event-icon").innerText = "💎";
@@ -983,8 +1001,7 @@ ${unlockHTML}
       btn("無視する", ignoreEvent, "skip");
       break;
     case "event_vein":
-      btn("掘る", digVein, "risk");
-      btn("無視する", ignoreEvent, "skip");
+      renderVeinEvent();
       break;
     case "event_mushroom":
       btn("食べる", eatMushroom, "risk");
@@ -1451,7 +1468,11 @@ function next(){
 
   const HEAVY_EVENTS = [
     { w: 20, fn: () => { state.mode = "event";          addLog("コンテナを発見した！"); }},
-    { w: 40, fn: () => { state.mode = "event_vein";     addLog("鉱脈だ！だけど地盤が脆そうだ…"); }},
+    { w: 40, fn: () => {
+      state.veinDepth = 0;
+      state.mode = "event_vein";
+      addLog("鉱脈だ！だけど地盤が脆そうだ…");
+    }},
     { w: 40, fn: () => { state.mode = "event_mushroom"; addLog("謎のキノコだ！"); }},
     { w: 30, fn: () => { state.mode = "event_bat";      addLog("コウモリの群れだ！"); }},
   ];
@@ -1740,18 +1761,54 @@ function ignoreEvent(){
 }
 
 // --- 鉱脈イベント ---
-function digVein(){
-  if(Math.random() < 0.5){
-    let g = calcScrap() * 2;
-    state.scrap += g;
-    addLog(`鉱脈を掘り当てた！ スクラップ +${g.toLocaleString()}`, "sub");
+const VEIN_PARAMS = [
+  { collapse:0.20, mult:1.0, dmgRate:0.15 },
+  { collapse:0.40, mult:1.5, dmgRate:0.25 },
+  { collapse:0.60, mult:2.5, dmgRate:0.40 },
+  { collapse:0.80, mult:4.0, dmgRate:0.60 },
+];
+
+function renderVeinEvent(){
+  let depth = state.veinDepth;
+  if(depth === 0){
+    btn("掘る", digVein, "risk");
   } else {
-    let d = 3 + Math.floor(state.floor / 10);
+    let label = depth < 4 ? "もう1回掘る" : null;
+    if(label) btn(label, digVein, "risk");
+    btn("やめる", leaveVein, "skip");
+  }
+}
+
+function digVein(){
+  let depth = state.veinDepth;
+  let p = VEIN_PARAMS[Math.min(depth, 3)];
+
+  if(Math.random() < p.collapse){
+    // 崩落
+    let d = Math.ceil(state.maxHp * p.dmgRate) + floorDmgBonus();
     damage(d);
     addLog(`地盤が崩れた！ ${d} ダメージ`, "sub");
+    checkDeath();
+    if(state.mode !== "dead") state.mode = "explore";
+  } else {
+    // 成功
+    let g = Math.floor(calcScrap() * p.mult);
+    state.scrap += g;
+    addLog(`鉱脈を掘り当てた！ スクラップ +${g.toLocaleString()}`, "sub");
+    state.veinDepth++;
+    // 4回目終了 or 続行
+    if(state.veinDepth >= 4){
+      addLog("これ以上は無理だ…", "sub");
+      state.mode = "explore";
+    }
+    // 4回未満なら event_vein のまま→renderVeinEventがボタンを描画
   }
-  checkDeath();
-  if(state.mode !== "dead") state.mode = "explore";
+  render();
+}
+
+function leaveVein(){
+  addLog("鉱脈から引き上げた", "sub");
+  state.mode = "explore";
   render();
 }
 
