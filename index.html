@@ -295,6 +295,7 @@ let state = {
   pendingRelic: null,  // スロット満タン時の入れ替え待ち紋
   activeCrestId: null,  // フキダシ表示中の紋ID
   veinDepth: 0,  // 鉱脈を掘った回数
+  veinLastGain: 0,  // 鉱脈で最後に得たスクラップ数
   seOn: savedSeOn,
   stats: savedStats,  // 永続累計統計
   runStats: {         // ラン中の一時記録
@@ -897,7 +898,7 @@ ${unlockHTML}
       } else {
         let collapseColor = p.collapse >= 0.6 ? "#f55" : p.collapse >= 0.4 ? "#ffcc66" : "#0f0";
         document.getElementById("current-event-text").innerHTML = `
-<div style="font-size:26px;">${depth}回掘った　やめるなら今のうち…</div>
+<div style="font-size:26px;">${depth}回掘った <span style="color:#ffcc66;">スクラップ+${state.veinLastGain.toLocaleString()}</span>　やめるなら今のうち…</div>
 <div style="color:${collapseColor};font-size:24px;font-weight:bold;margin-top:6px;">次の崩落確率：${p.collapse*100}%</div>
 <div style="color:#ffcc66;font-size:22px;">成功時獲得倍率：×${p.mult}</div>`;
       }
@@ -1794,6 +1795,7 @@ function digVein(){
     // 成功
     let g = Math.floor(calcScrap() * p.mult);
     state.scrap += g;
+    state.veinLastGain = g;
     addLog(`鉱脈を掘り当てた！ スクラップ +${g.toLocaleString()}`, "sub");
     state.veinDepth++;
     // 4回目終了 or 続行
@@ -1808,6 +1810,7 @@ function digVein(){
 
 function leaveVein(){
   addLog("鉱脈から引き上げた", "sub");
+  state.veinLastGain = 0;
   state.mode = "explore";
   render();
 }
