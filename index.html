@@ -292,6 +292,7 @@ let state = {
   relicEventFloors: new Set(),  // この採掘中に紋イベント発生済みの階層
   relicChoices: [],  // 選択中の紋候補
   pendingRelic: null,  // スロット満タン時の入れ替え待ち紋
+  activeCrestId: null,  // フキダシ表示中の紋ID
   seOn: savedSeOn,
   stats: savedStats,  // 永続累計統計
   runStats: {         // ラン中の一時記録
@@ -1015,7 +1016,18 @@ ${unlockHTML}
         if(relic){
           let c = CREST_MASTER.find(m => m.id === relic.id);
           if(c){
-            crestHTML += `<div class="crest-card" title="${c.name}" style="filter:drop-shadow(0 0 5px rgba(${c.rgb},0.5));">
+            let isActive = state.activeCrestId === c.id;
+            let tooltip = isActive
+              ? `<div style="position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+                  background:#1a1a1a;border:1px solid ${c.color};border-radius:6px;
+                  padding:6px 10px;font-size:18px;color:${c.color};white-space:nowrap;
+                  box-shadow:0 0 8px rgba(${c.rgb},0.4);z-index:10;pointer-events:none;">
+                  ${c.desc}
+                </div>`
+              : "";
+            crestHTML += `<div class="crest-card" onclick="toggleCrestTooltip('${c.id}')"
+              style="position:relative;filter:drop-shadow(0 0 5px rgba(${c.rgb},0.5));${isActive ? "transform:translateY(-8px);" : ""}">
+              ${tooltip}
               <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
                 <rect x="2" y="2" width="96" height="136" rx="6" fill="#222" stroke="${c.color}" stroke-width="2"/>
                 <g style="color:${c.color};">${c.svg}</g>
@@ -1250,6 +1262,7 @@ function startRun(){
   state.daigoLastFloor = -999;
   state.relics = [];
   state.relicEventFloors = new Set();
+  state.activeCrestId = null;
   state.mode  = "explore";
   addLog("採掘開始！");
   render();
@@ -1578,6 +1591,12 @@ function batForce(){
   }
   checkDeath();
   if(state.mode !== "dead") state.mode = "explore";
+  render();
+}
+
+// --- 紋フキダシトグル ---
+function toggleCrestTooltip(id){
+  state.activeCrestId = state.activeCrestId === id ? null : id;
   render();
 }
 
