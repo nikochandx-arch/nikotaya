@@ -236,6 +236,7 @@ font-size: 14px;
 </div>
 
 <div id="actions"></div>
+<div id="crest-tooltip" style="display:none;position:fixed;bottom:180px;left:0;right:0;margin:0 auto;width:fit-content;max-width:90vw;z-index:100;pointer-events:none;"></div>
 
 <div id="bottom">
   <div id="storage"></div>
@@ -1017,18 +1018,8 @@ ${unlockHTML}
           let c = CREST_MASTER.find(m => m.id === relic.id);
           if(c){
             let isActive = state.activeCrestId === c.id;
-            let tooltip = isActive
-              ? `<div style="position:fixed;bottom:180px;left:50%;transform:translateX(-50%);
-                  background:#2d2d2d;border:2px solid ${c.color};border-radius:10px;
-                  padding:14px 20px;font-size:24px;color:${c.color};
-                  white-space:nowrap;max-width:90vw;text-align:center;
-                  box-shadow:0 0 16px rgba(${c.rgb},0.5);z-index:100;pointer-events:none;">
-                  ${c.desc}
-                </div>`
-              : "";
             crestHTML += `<div class="crest-card" onclick="toggleCrestTooltip('${c.id}')"
               style="position:relative;filter:drop-shadow(0 0 5px rgba(${c.rgb},0.5));${isActive ? "transform:translateY(-8px);" : ""}">
-              ${tooltip}
               <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
                 <rect x="2" y="2" width="96" height="136" rx="6" fill="#222" stroke="${c.color}" stroke-width="2"/>
                 <g style="color:${c.color};">${c.svg}</g>
@@ -1598,6 +1589,18 @@ function batForce(){
 // --- 紋フキダシトグル ---
 function toggleCrestTooltip(id){
   state.activeCrestId = state.activeCrestId === id ? null : id;
+  let tooltipEl = document.getElementById("crest-tooltip");
+  if(state.activeCrestId){
+    let c = CREST_MASTER.find(m => m.id === state.activeCrestId);
+    if(c && tooltipEl){
+      tooltipEl.style.display = "block";
+      tooltipEl.innerHTML = `<div style="background:#2d2d2d;border:2px solid ${c.color};border-radius:10px;
+        padding:14px 20px;font-size:24px;color:${c.color};text-align:center;
+        box-shadow:0 0 16px rgba(${c.rgb},0.5);">${c.desc}</div>`;
+    }
+  } else {
+    if(tooltipEl) tooltipEl.style.display = "none";
+  }
   render();
 }
 
