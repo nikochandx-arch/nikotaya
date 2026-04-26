@@ -1827,6 +1827,9 @@ function goHome(){
   state.floor = 1;
   state.log   = [];
   state.lastResult = null;
+  state.activeCrestId = null;
+  let tooltipEl = document.getElementById("crest-tooltip");
+  if(tooltipEl) tooltipEl.style.display = "none";
   clearBuffs();
   state.mode  = "home";
   render();
