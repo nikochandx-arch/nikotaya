@@ -337,6 +337,18 @@ function applyMiningUp(turns){
   });
 }
 
+// --- 採掘量低下デバフを付与する関数 ---
+function applyMiningDown(turns){
+  applyBuff({
+    id: "miningDown",
+    name: "🤕 採掘量低下",
+    turns: turns,
+    isBad: true,
+    miningPenalty: 0.5,  // ×0.5（半減）
+    onTurn: null
+  });
+}
+
 // --- 毒を付与する関数 ---
 function applyPoison(turns){
   applyBuff({
@@ -738,8 +750,13 @@ function getEmoji(text, type){
   if(text.includes("HPが0"))        return "💀";
   if(text.includes("一休み"))       return "💤";
   if(text.includes("亀裂"))         return "🕳️";
+  if(text.includes("有毒ガス"))      return "🌫️";
+  if(text.includes("暗闇で岩"))      return "🪨";
+  if(text.includes("足を滑らせ"))    return "🧊";
+  if(text.includes("手首を痛め"))    return "🤕";
   if(text.includes("コウモリ"))     return "🦇";
   if(text.includes("女神"))         return "🗿";
+  if(text.includes("加護"))          return "🗿";
   if(text.includes("DAIGO"))         return "👤";
   return "📋";
 }
@@ -989,7 +1006,7 @@ ${unlockHTML}
       renderDaigoEvent();
       break;
     case "event_goddess":
-      btn("スクラップが欲しい", goddessScrap, "special");
+      btn("回復してほしい", goddessHeal, "special");
       btn("ホームに帰りたい", goddessReturn, "danger");
       break;
     case "return":
@@ -1270,11 +1287,15 @@ function calcScrap(){
 
 // --- 採掘倍率計算 ---
 function getMiningMultiplier(){
-  // バフの miningBonus を合計して (1 + 合計) を返す
+  // バフ：(1 + miningBonus合計)
   let bonus = state.buffs
     .filter(b => b.miningBonus)
     .reduce((sum, b) => sum + b.miningBonus, 0);
-  return 1 + bonus;
+  // デバフ：miningPenalty の積算（0.5なら半減）
+  let penalty = state.buffs
+    .filter(b => b.miningPenalty)
+    .reduce((prod, b) => prod * b.miningPenalty, 1);
+  return (1 + bonus) * penalty;
 }
 
 // --- 階層補正ヘルパー ---
@@ -1354,6 +1375,31 @@ function next(){
       let lost = Math.min(calcScrap(), state.scrap);
       state.scrap = Math.max(0, state.scrap - lost);
       addLog(`亀裂の隙間にスクラップを落としてしまった スクラップ -${lost.toLocaleString()}`, "loss");
+    }},
+    // 有毒ガス 8%
+    { w: 8, fn: () => {
+      applyPoison(2);
+      addLog("有毒ガスが充満している！ 毒2ターン", "damage");
+    }},
+    // 暗闇で岩 7%
+    { w: 7, fn: () => {
+      let base = Math.floor(Math.random()*3) + 1 + floorDmgBonus();
+      let d = Math.max(1, Math.floor(base / 2));
+      damage(d);
+      addLog(`暗闇で岩にぶつかった！ ${d} ダメージ`, "damage");
+    }},
+    // 足を滑らせた 7%
+    { w: 7, fn: () => {
+      let lost = Math.max(0, Math.floor(Math.floor(calcScrap() * 0.1) / 2));
+      state.scrap = Math.max(0, state.scrap - lost);
+      let d = Math.max(1, Math.ceil(state.maxHp * 0.05));
+      damage(d);
+      addLog(`足を滑らせた！ スクラップ -${lost.toLocaleString()} / ${d} ダメージ`, "damage");
+    }},
+    // 手首を痛めた 5%（採掘量低下デバフ3T）
+    { w: 5, fn: () => {
+      applyMiningDown(3);
+      addLog("採掘中に手首を痛めた… 採掘量低下（3ターン）", "damage");
     }},
     // DAIGO 3%（遭遇から+30階は再遭遇しない）
     { w: 3,
@@ -1786,11 +1832,12 @@ function goHome(){
 }
 
 // --- 女神像イベント ---
-function goddessScrap(){
+function goddessHeal(){
   state.runStats.goddess++;
-  let gain = state.floor;
-  state.scrap += gain;
-  addLog(`女神の恵み！ スクラップ +${gain.toLocaleString()}`, "scrap");
+  let h = Math.max(5, Math.ceil(state.maxHp * 0.4));
+  heal(h);
+  playSE("heal");
+  addLog(`女神の加護！ HP +${h} 回復した`, "heal");
   state.mode = "explore";
   render();
 }
