@@ -97,7 +97,7 @@ background: rgba(255, 85, 85, 0.1);
 #top {
 display: flex;
 flex-direction: column;
-height: 700px;
+height: 900px;
 }
 
 #header {
@@ -210,6 +210,12 @@ justify-content: center;
 color: rgba(0, 255, 0, 0.3);
 font-size: 14px;
 }
+
+#log.relic-scroll { scrollbar-gutter: stable; padding-right: 12px; }
+#log.relic-scroll::-webkit-scrollbar { width: 4px; }
+#log.relic-scroll::-webkit-scrollbar-track { background: transparent; margin-right: 4px; }
+#log.relic-scroll::-webkit-scrollbar-thumb { background: rgba(170,255,100,0.35); border-radius: 3px; }
+#log.relic-scroll::-webkit-scrollbar-thumb:hover { background: rgba(170,255,100,0.65); }
 </style>
 
 </head>
@@ -781,6 +787,7 @@ function render(){
   // 紋一覧表示（ホームのみ）
   if(state.mode === "home" && state.relicViewOpen){
     document.getElementById("current-event").style.display = "none";
+    document.getElementById("log").classList.add("relic-scroll");
     renderRelicCollection();
     // アクションボタンを描画
     let a = document.getElementById("actions");
@@ -793,6 +800,7 @@ function render(){
     document.getElementById("current-event").style.display = "";
     document.getElementById("current-event-icon").innerText = "";
     document.getElementById("current-event-text").innerText = "採掘を開始しよう！";
+    document.getElementById("log").classList.remove("relic-scroll");
     document.getElementById("log").innerHTML = "";
   }
 
