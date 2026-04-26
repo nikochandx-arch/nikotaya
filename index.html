@@ -833,17 +833,20 @@ function render(){
   }
   document.getElementById("itemBox").innerHTML = itemHTML;
 
-  // 紋一覧表示（ホームのみ）
-  if(state.mode === "home" && state.relicViewOpen){
+  // 紋一覧表示
+  if(state.mode === "relic_view"){
     document.getElementById("current-event").style.display = "none";
     document.getElementById("log").classList.add("relic-scroll");
     renderRelicCollection();
-    // アクションボタンを描画
-    let a = document.getElementById("actions");
-    a.innerHTML = "";
-    btn("採掘開始", startRun, "main");
-    // ショップも描画
-    document.getElementById("shop").innerHTML = buildShopHTML();
+    // ショップはホームから開いた時のみ
+    if(relicPrevMode === "home"){
+      let a = document.getElementById("actions");
+      a.innerHTML = "";
+      btn("採掘開始", startRun, "main");
+      document.getElementById("shop").innerHTML = buildShopHTML();
+    } else {
+      document.getElementById("shop").innerHTML = "";
+    }
     return;
   } else if(state.mode === "home"){
     document.getElementById("current-event").style.display = "";
@@ -992,6 +995,9 @@ ${unlockHTML}
   a.innerHTML = "";
 
   switch(state.mode){
+    case "relic_view":
+      // ボタンなし（▲閉じるボタンはステータス欄に表示）
+      break;
     case "home":
       btn("採掘開始", startRun, "main");
       break;
@@ -1126,10 +1132,23 @@ function btn(t, f, style="main"){
 }
 
 // --- 紋一覧トグル ---
+let relicPrevMode = "home";
+
 function toggleRelicView(){
-  state.relicViewOpen = !state.relicViewOpen;
-  let el = document.getElementById("current-event");
-  if(el) el.style.display = state.relicViewOpen ? "none" : "";
+  if(state.relicViewOpen){
+    // 閉じる
+    state.relicViewOpen = false;
+    let el = document.getElementById("current-event");
+    if(el) el.style.display = "";
+    state.mode = relicPrevMode;
+  } else {
+    // 開く
+    relicPrevMode = state.mode;
+    state.relicViewOpen = true;
+    let el = document.getElementById("current-event");
+    if(el) el.style.display = "none";
+    state.mode = "relic_view";
+  }
   render();
 }
 
@@ -1889,8 +1908,13 @@ function goHome(){
   state.log   = [];
   state.lastResult = null;
   state.activeCrestId = null;
+  state.relicViewOpen = false;
+  relicPrevMode = "home";
   let tooltipEl = document.getElementById("crest-tooltip");
   if(tooltipEl) tooltipEl.style.display = "none";
+  let eventEl = document.getElementById("current-event");
+  if(eventEl) eventEl.style.display = "";
+  document.getElementById("log").classList.remove("relic-scroll");
   clearBuffs();
   state.mode  = "home";
   render();
