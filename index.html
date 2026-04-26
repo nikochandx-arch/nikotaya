@@ -289,6 +289,9 @@ let state = {
   daigoLastFloor: -999,  // DAIGOの最終遭遇階
   relics: [],  // 装備中の紋（最大5つ、ラン中のみ有効）
   pendingItem: null,  // 手持ちいっぱい時の入手待ちアイテム
+  relicEventFloors: new Set(),  // この採掘中に紋イベント発生済みの階層
+  relicChoices: [],  // 選択中の紋候補
+  pendingRelic: null,  // スロット満タン時の入れ替え待ち紋
   seOn: savedSeOn,
   stats: savedStats,  // 永続累計統計
   runStats: {         // ラン中の一時記録
@@ -862,6 +865,30 @@ ${unlockHTML}
     let firstLine = entry.lines[0];
     document.getElementById("current-event-icon").innerText = firstLine.emoji || "📋";
 
+    // 紋選択イベント専用表示
+    if(state.mode === "event_relic_pick"){
+      document.getElementById("current-event-icon").innerText = "💎";
+      let cardsHTML = state.relicChoices.map(c => `
+        <div style="text-align:center;">
+          <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" style="width:64px;height:90px;filter:drop-shadow(0 0 6px rgba(${c.rgb},0.5));">
+            <rect x="2" y="2" width="96" height="136" rx="6" fill="#222" stroke="${c.color}" stroke-width="2"/>
+            <g style="color:${c.color};">${c.svg}</g>
+          </svg>
+          <div style="color:${c.color};font-size:18px;margin-top:2px;">${c.name}</div>
+        </div>`).join("");
+      document.getElementById("current-event-text").innerHTML = `
+        <div style="font-size:24px;color:#0ff;margin-bottom:8px;">紋を選べ！</div>
+        <div style="display:flex;gap:8px;justify-content:center;">${cardsHTML}</div>
+      `;
+    } else
+    // 紋入れ替え選択
+    if(state.mode === "event_relic_swap"){
+      document.getElementById("current-event-icon").innerText = "🔄";
+      document.getElementById("current-event-text").innerHTML = `
+        <div style="font-size:22px;color:#0ff;margin-bottom:6px;">『${state.pendingRelic.name}』 を装備する</div>
+        <div style="font-size:20px;color:#fff;">どれと入れ替える？</div>
+      `;
+    } else
     // DAIGOイベントは専用表示
     if(state.mode === "event_daigo" && entry.tip){
       document.getElementById("current-event-icon").innerText = "👤";
@@ -949,6 +976,12 @@ ${unlockHTML}
       break;
     case "event_item_full":
       renderItemFullEvent();
+      break;
+    case "event_relic_pick":
+      renderRelicPickEvent();
+      break;
+    case "event_relic_swap":
+      renderRelicSwapEvent();
       break;
     case "event_daigo":
       renderDaigoEvent();
@@ -1206,6 +1239,7 @@ function startRun(){
   resetRunStats();
   state.daigoLastFloor = -999;
   state.relics = [];
+  state.relicEventFloors = new Set();
   state.mode  = "explore";
   addLog("採掘開始！");
   render();
@@ -1241,6 +1275,25 @@ function next(){
   // バフ・デバフのターン処理（階層上昇時）
   tickBuffs();
   if(state.hp <= 0){ checkDeath(); render(); return; }
+
+  // 紋獲得イベント：51階,101階,151階...
+  if(state.floor > 1 && (state.floor - 1) % 50 === 0 && !state.relicEventFloors.has(state.floor)){
+    state.relicEventFloors.add(state.floor);
+    let pool = CREST_MASTER.filter(c =>
+      UNLOCKED_CRESTS.has(c.id) &&
+      !state.relics.some(r => r.id === c.id)
+    );
+    if(pool.length > 0){
+      // ランダムに最大3つ選ぶ
+      let shuffled = [...pool].sort(() => Math.random() - 0.5);
+      state.relicChoices = shuffled.slice(0, 3);
+      state.mode = "event_relic_pick";
+      addLog("紋を発見した！");
+      render();
+      return;
+    }
+    // 候補が1つもない場合はスキップして通常進行
+  }
 
   if(state.floor % 30 === 0){
     addLog(`－－－ ${state.floor}階層 －－－\n女神像がある…`, "divider");
@@ -1515,6 +1568,76 @@ function batForce(){
   }
   checkDeath();
   if(state.mode !== "dead") state.mode = "explore";
+  render();
+}
+
+// --- 紋獲得イベント ---
+function renderRelicPickEvent(){
+  let a = document.getElementById("actions");
+  state.relicChoices.forEach(c => {
+    let b = document.createElement("button");
+    b.innerText = c.name;
+    b.style.borderColor = c.color;
+    b.style.color       = c.color;
+    b.style.background  = `rgba(${c.rgb},0.1)`;
+    b.style.boxShadow   = `0 0 10px ${c.color}66`;
+    b.onclick = () => pickRelic(c);
+    a.appendChild(b);
+  });
+  btn("どれも選ばない", skipRelic, "skip");
+}
+
+function pickRelic(crest){
+  if(state.relics.length < 5){
+    state.relics.push(crest);
+    addLog(`『${crest.name}』を装備した`, "sub");
+    state.relicChoices = [];
+    state.mode = "explore";
+    render();
+  } else {
+    // スロット満タン → 入れ替え選択モードへ
+    state.pendingRelic = crest;
+    state.relicChoices = [];
+    state.mode = "event_relic_swap";
+    render();
+  }
+}
+
+function skipRelic(){
+  addLog("紋を見送った", "sub");
+  state.relicChoices = [];
+  state.mode = "explore";
+  render();
+}
+
+function renderRelicSwapEvent(){
+  let a = document.getElementById("actions");
+  state.relics.forEach((r, i) => {
+    let b = document.createElement("button");
+    b.innerText = r.name;
+    b.style.borderColor = r.color;
+    b.style.color       = r.color;
+    b.style.background  = `rgba(${r.rgb},0.1)`;
+    b.style.boxShadow   = `0 0 10px ${r.color}66`;
+    b.onclick = () => swapRelic(i);
+    a.appendChild(b);
+  });
+  btn("やめる", cancelSwap, "skip");
+}
+
+function swapRelic(index){
+  let old = state.relics[index];
+  state.relics[index] = state.pendingRelic;
+  addLog(`『${old.name}』を外し、『${state.pendingRelic.name}』を装備した`, "sub");
+  state.pendingRelic = null;
+  state.mode = "explore";
+  render();
+}
+
+function cancelSwap(){
+  addLog(`『${state.pendingRelic.name}』を見送った`, "sub");
+  state.pendingRelic = null;
+  state.mode = "explore";
   render();
 }
 
