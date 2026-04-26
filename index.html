@@ -594,8 +594,31 @@ const CREST_MASTER = [
     </g>` },
 ];
 
-// 解放済み紋IDセット（現在は全て未解放）
-const UNLOCKED_CRESTS = new Set([]);
+// 解放済み紋IDセット（localStorageから読み込み）
+const UNLOCKED_CRESTS = new Set(JSON.parse(localStorage.getItem("unlockedCrests") || "[]"));
+
+// 解放条件判定（必要に応じて条件を追加）
+const UNLOCK_CHECKS = {
+  mining: () => state.bestFloor >= 50,
+  steel:  () => state.bestFloor >= 50,
+  detect: () => state.bestFloor >= 50,
+  // 他の紋は今後追加
+};
+
+// 解放チェック：新規解放されたIDの配列を返す
+function checkUnlocks(){
+  let newlyUnlocked = [];
+  for(let id in UNLOCK_CHECKS){
+    if(!UNLOCKED_CRESTS.has(id) && UNLOCK_CHECKS[id]()){
+      UNLOCKED_CRESTS.add(id);
+      newlyUnlocked.push(id);
+    }
+  }
+  if(newlyUnlocked.length > 0){
+    localStorage.setItem("unlockedCrests", JSON.stringify([...UNLOCKED_CRESTS]));
+  }
+  return newlyUnlocked;
+}
 
 // --- ショップHTML生成 ---
 function buildShopHTML(){
@@ -811,12 +834,20 @@ function render(){
     let survived = r.survived ? "帰還成功 🎉" : "力尽きた… 💀";
     document.getElementById("current-event-icon").innerText = r.survived ? "🎉" : "💀";
     let carryNote = r.goddess ? "（女神の加護・全額）" : "（半分）";
+    let unlockHTML = "";
+    if(r.unlocks && r.unlocks.length > 0){
+      unlockHTML = r.unlocks.map(id => {
+        let crest = CREST_MASTER.find(c => c.id === id);
+        return `<div style="color:${crest.color};font-size:30px;font-weight:bold;text-shadow:0 0 8px ${crest.color};margin:4px 0;">✨ ${crest.name} が解放されました！</div>`;
+      }).join("");
+    }
     document.getElementById("current-event-text").innerHTML = `
 <div style="color:#ff0;font-size:28px;margin-bottom:6px;">── リザルト ──</div>
 <div>${survived}</div>
 <div>到達階層：${r.floor} 階</div>
 <div style="color:#ffcc66;">持ち帰ったスクラップ：${r.carry.toLocaleString()} ${carryNote}</div>
 <div style="color:#aaa;">最高到達階：${state.bestFloor} 階</div>
+${unlockHTML}
 `;
     document.getElementById("log").innerHTML = "";
     document.getElementById("actions").innerHTML = "";
@@ -1571,7 +1602,8 @@ function doReturn(){
   if(state.floor > state.bestFloor) state.bestFloor = state.floor;
   commitStats(false, carry);
   saveAll();
-  state.lastResult = { survived: true, floor: state.floor, carry };
+  let unlocks = checkUnlocks();
+  state.lastResult = { survived: true, floor: state.floor, carry, unlocks };
   state.mode = "result";
   render();
 }
@@ -1580,7 +1612,8 @@ function forceReturn(){
   if(state.floor > state.bestFloor) state.bestFloor = state.floor;
   commitStats(true);
   saveAll();
-  state.lastResult = { survived: false, floor: state.floor, carry: 0 };
+  let unlocks = checkUnlocks();
+  state.lastResult = { survived: false, floor: state.floor, carry: 0, unlocks };
   state.mode = "result";
   render();
 }
@@ -1613,7 +1646,8 @@ function goddessReturn(){
   if(state.floor > state.bestFloor) state.bestFloor = state.floor;
   commitStats(false, carry);
   saveAll();
-  state.lastResult = { survived: true, floor: state.floor, carry, goddess: true };
+  let unlocks = checkUnlocks();
+  state.lastResult = { survived: true, floor: state.floor, carry, goddess: true, unlocks };
   state.mode = "result";
   render();
 }
