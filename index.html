@@ -262,7 +262,7 @@ let savedStats     = JSON.parse(localStorage.getItem("stats") || JSON.stringify(
   potions: 0, goddess: 0, goldenMole: 0, thiefMole: 0
 }));
 // 旧データに項目がない場合の補完
-["runs","deaths","floors","scrap","damage","potions","goddess","goldenMole","thiefMole"].forEach(k => {
+["runs","deaths","floors","scrap","damage","potions","goddess","goldenMole","thiefMole","daigo"].forEach(k => {
   if(savedStats[k] === undefined) savedStats[k] = 0;
 });
 
@@ -293,7 +293,7 @@ let state = {
   stats: savedStats,  // 永続累計統計
   runStats: {         // ラン中の一時記録
     floors: 0, scrap: 0, damage: 0,
-    potions: 0, goddess: 0, goldenMole: 0, thiefMole: 0
+    potions: 0, goddess: 0, goldenMole: 0, thiefMole: 0, daigo: 0
   }
 };
 
@@ -460,7 +460,7 @@ function deleteAllData(){
 const CREST_MASTER = [
   // ① 採取系（赤）
   { id:"mining",   name:"採掘の紋",  category:"採取系", color:"#f55", rgb:"255,85,85",
-    desc:"「採掘」で得るスクラップ増加",
+    desc:"「採掘」で得るスクラップ増加", // システム: floor(採掘力/2)+floor(階数/20)を加算
     unlockCond:"50階達成",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <path d="M -15 -15 Q 0 -28 15 -15 L 12 -12 Q 0 -22 -12 -12 Z" fill="currentColor"/>
@@ -468,7 +468,7 @@ const CREST_MASTER = [
       <path d="M 5 10 L 20 20 M 15 5 L 25 10" stroke-width="2" opacity="0.6"/>
     </g>` },
   { id:"deep",     name:"深掘の紋",  category:"採取系", color:"#f55", rgb:"255,85,85",
-    desc:"tierボーナスを1段階余分に加算する",
+    desc:"階層ボーナスを多く得る", // システム: tierボーナスを1段階余分に加算する
     unlockCond:"未実装",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <line x1="-20" y1="-20" x2="20" y2="-20" stroke-width="4"/>
@@ -477,7 +477,7 @@ const CREST_MASTER = [
       <line x1="-5" y1="5" x2="5" y2="15"/>
     </g>` },
   { id:"bounty",   name:"豊穣の紋",  category:"採取系", color:"#f55", rgb:"255,85,85",
-    desc:"コンテナ成功時のスクラップ倍率をアップする",
+    desc:"コンテナ成功時のスクラップ入手量アップ", // システム: コンテナ成功時のスクラップ倍率をアップする
     unlockCond:"未実装",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <rect x="-20" y="-5" width="40" height="25"/>
@@ -489,7 +489,7 @@ const CREST_MASTER = [
     </g>` },
   // ② 防御系（青）
   { id:"steel",    name:"鋼皮の紋",  category:"防御系", color:"#0ff", rgb:"0,255,255",
-    desc:"全ダメージを2軽減（毒は対象外）",
+    desc:"ダメージを軽減（毒は対象外）", // システム: 全ダメージを2軽減（毒は対象外）
     unlockCond:"50階達成",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <polygon points="0,-25 20,-10 20,15 0,30 -20,15 -20,-10" stroke-width="4"/>
@@ -497,14 +497,14 @@ const CREST_MASTER = [
       <circle cx="0" cy="1" r="3" fill="currentColor" stroke="none"/>
     </g>` },
   { id:"heal",     name:"回復の紋",  category:"防御系", color:"#0ff", rgb:"0,255,255",
-    desc:"回復系イベントの回復量に加算する",
+    desc:"回復系イベントの回復量アップ", // システム: 回復系イベントの回復量に加算する
     unlockCond:"未実装",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <path d="M -12 -15 L 12 -15 M 0 -27 L 0 -3" stroke-width="5"/>
       <path d="M 0 5 Q 15 20 0 35 Q -15 20 0 5" fill="currentColor" stroke="none"/>
     </g>` },
   { id:"antitox",  name:"耐毒の紋",  category:"防御系", color:"#0ff", rgb:"0,255,255",
-    desc:"毒を受けた時のターン数を半減する",
+    desc:"毒を受けた時のターン数を軽減", // システム: 毒を受けた時のターン数を半減する
     unlockCond:"未実装",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <path d="M -25 -20 A 30 30 0 0 1 25 -20" stroke-width="4" opacity="0.5"/>
@@ -518,7 +518,7 @@ const CREST_MASTER = [
     </g>` },
   // ③ リスク系（黄）
   { id:"blooddig", name:"血掘の紋",  category:"リスク系", color:"#ffcc66", rgb:"255,204,102",
-    desc:"毎階HPを失うが採掘量が大幅アップする",
+    desc:"毎階HPを失うが採掘量がアップ", // システム: 毎階HPを失うが採掘量が大幅アップする
     unlockCond:"未実装",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <polygon points="-12,-25 8,-25 -2,-5"/>
@@ -526,7 +526,7 @@ const CREST_MASTER = [
       <polygon points="-15,15 0,30 15,15 0,0" stroke-width="2"/>
     </g>` },
   { id:"gamble",   name:"賭博の紋",  category:"リスク系", color:"#ffcc66", rgb:"255,204,102",
-    desc:"全イベントの結果を大成功か大失敗の二択にする",
+    desc:"全イベントの結果が倍増する", // システム: 全イベントの結果を大成功か大失敗の二択にする
     unlockCond:"未実装",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <rect x="-15" y="-15" width="30" height="30" rx="4" stroke-width="4"/>
@@ -534,7 +534,7 @@ const CREST_MASTER = [
       <circle cx="6" cy="6" r="3" fill="currentColor" stroke="none"/>
     </g>` },
   { id:"selfharm", name:"自傷の紋",  category:"リスク系", color:"#ffcc66", rgb:"255,204,102",
-    desc:"HP10%を消費してスクラップを大量獲得する",
+    desc:"HP10%を消費してスクラップを大量獲得する", // システム: HP10%を消費してスクラップを大量獲得する
     unlockCond:"未実装",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <path d="M 0 15 A 15 15 0 0 1 -20 -5 A 15 15 0 0 1 0 -15 A 15 15 0 0 1 20 -5 A 15 15 0 0 1 0 15 Z"/>
@@ -542,14 +542,14 @@ const CREST_MASTER = [
     </g>` },
   // ④ コンボ系（紫）
   { id:"toxeat",   name:"毒喰の紋",  category:"コンボ系", color:"#f9f", rgb:"255,153,255",
-    desc:"毒状態中は採掘量が2倍になる",
+    desc:"毒状態中は採掘量が2倍になる", // システム: 毒状態中は採掘量が2倍になる
     unlockCond:"未実装",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <path d="M 15 -15 A 22 22 0 1 0 15 15 L -5 0 Z" stroke-width="4"/>
       <circle cx="15" cy="0" r="5" fill="currentColor" stroke="none"/>
     </g>` },
   { id:"hungry",   name:"空腹の紋",  category:"コンボ系", color:"#f9f", rgb:"255,153,255",
-    desc:"アイテムを持っていない時に採掘量がアップする",
+    desc:"アイテムを持っていない時に採掘量がアップ", // システム: アイテムを持っていない時に採掘量がアップする
     unlockCond:"未実装",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <path d="M -20 -15 Q 0 20 20 -15" stroke-width="4"/>
@@ -557,7 +557,7 @@ const CREST_MASTER = [
       <path d="M -15 20 Q -5 10 0 20 T 15 20" stroke-width="2"/>
     </g>` },
   { id:"wounded",  name:"満創の紋",  category:"コンボ系", color:"#f9f", rgb:"255,153,255",
-    desc:"HPが低いほど採掘量がアップする",
+    desc:"HPが低いほど採掘量がアップする", // システム: HPが低いほど採掘量がアップする
     unlockCond:"未実装",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <path d="M 0 20 A 20 20 0 0 1 -25 -5 A 15 15 0 0 1 0 -15 A 15 15 0 0 1 25 -5 A 20 20 0 0 1 0 20 Z"/>
@@ -565,7 +565,7 @@ const CREST_MASTER = [
     </g>` },
   // ⑤ ユーティリティ系（緑）
   { id:"detect",   name:"探知の紋",  category:"ユーティリティ系", color:"#0f0", rgb:"0,255,0",
-    desc:"重イベントの出現率が50%に上昇",
+    desc:"選択イベントの出現率が上昇", // システム: 重イベントの出現率が50%に上昇
     unlockCond:"50階達成",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <circle cx="0" cy="0" r="20" stroke-dasharray="4 4" stroke-width="2"/>
@@ -574,7 +574,7 @@ const CREST_MASTER = [
       <circle cx="10" cy="10" r="5" fill="currentColor" stroke="none"/>
     </g>` },
   { id:"choice",   name:"選択の紋",  category:"ユーティリティ系", color:"#0f0", rgb:"0,255,0",
-    desc:"紋の選択時に提示される候補を4つにする",
+    desc:"紋の選択時に提示される候補を増やす", // システム: 紋の選択時に提示される候補を4つにする
     unlockCond:"未実装",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <line x1="0" y1="20" x2="0" y2="5" stroke-width="4"/>
@@ -584,7 +584,7 @@ const CREST_MASTER = [
       <path d="M 0 5 L 5 -20"/>
     </g>` },
   { id:"friend",   name:"友誼の紋",  category:"ユーティリティ系", color:"#0f0", rgb:"0,255,0",
-    desc:"DAIGOのTIPSを見た時にHPを回復する",
+    desc:"DAIGOに出会った時にHPを回復する", // システム: DAIGOのTIPSを見た時にHPを回復する
     unlockCond:"未実装",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <circle cx="0" cy="0" r="22" stroke-width="3"/>
@@ -643,6 +643,7 @@ function commitStats(died, carry=0){
   state.stats.goddess    += state.runStats.goddess;
   state.stats.goldenMole += state.runStats.goldenMole;
   state.stats.thiefMole  += state.runStats.thiefMole;
+  state.stats.daigo      += state.runStats.daigo;
   resetRunStats();
 }
 
@@ -977,6 +978,7 @@ function render(){
   <div>女神像に会った回数：<span style="color:#fff;">${s.goddess.toLocaleString()} 回</span></div>
   <div>金モグラに会った回数：<span style="color:#fff;">${s.goldenMole.toLocaleString()} 回</span></div>
   <div>泥棒モグラに会った回数：<span style="color:#fff;">${s.thiefMole.toLocaleString()} 回</span></div>
+  <div>DAIGOに会った回数：<span style="color:#fff;">${s.daigo.toLocaleString()} 回</span></div>
   <div style="height:120px;"></div>
   <div style="display:flex;justify-content:flex-end;">
     <button onclick="deleteAllData()" style="border-color:#f55;color:#f55;background:rgba(245,85,85,0.1);min-width:120px;max-width:160px;font-size:22px;padding:12px 0;">データ削除</button>
@@ -1020,6 +1022,7 @@ function toggleRelicView(){
 function renderRelicCollection(){
   const categories = ["採取系","防御系","リスク系","コンボ系","ユーティリティ系"];
   const catColors = {"採取系":"#f55","防御系":"#0ff","リスク系":"#ffcc66","コンボ系":"#f9f","ユーティリティ系":"#0f0"};
+  const descColors = {"採取系":"#ffdddd","防御系":"#ddfbff","リスク系":"#fff5dd","コンボ系":"#ffeeff","ユーティリティ系":"#dfffdf"};
 
   let html = `<div style="padding:8px 16px;">`;
   categories.forEach(cat => {
@@ -1037,7 +1040,7 @@ function renderRelicCollection(){
         ${cardSvg}
         <div style="flex:1;">
           <div style="color:${unlocked ? c.color : "#666"};font-size:28px;font-weight:bold;">${c.name}</div>
-          <div style="color:#fff;font-size:22px;margin-top:6px;line-height:1.4;">${c.desc}<br><span style="color:#888;font-size:20px;">　解放条件：${c.unlockCond}</span></div>
+          <div style="color:${descColors[cat]};font-size:22px;margin-top:6px;line-height:1.4;">${c.desc}<br><span style="color:${c.unlockCond === "未実装" ? "#666" : "#fff"};font-size:20px;">　解放条件：${c.unlockCond}</span></div>
         </div>
       </div>`;
     });
@@ -1159,7 +1162,7 @@ function changeName(){
 }
 
 function resetRunStats(){
-  state.runStats = { floors:0, scrap:0, damage:0, potions:0, goddess:0, goldenMole:0, thiefMole:0 };
+  state.runStats = { floors:0, scrap:0, damage:0, potions:0, goddess:0, goldenMole:0, thiefMole:0, daigo:0 };
 }
 
 // --- 採掘開始 ---
@@ -1268,6 +1271,7 @@ function next(){
         ];
         let tip = DAIGO_TIPS[Math.floor(Math.random() * DAIGO_TIPS.length)];
         state.daigoLastFloor = state.floor;
+        state.runStats.daigo++;
         state.mode = "event_daigo";
         addLog(`採掘者DAIGOに出会った！`);
         state.log[0].tip = tip; // ログエントリにtipを付加
