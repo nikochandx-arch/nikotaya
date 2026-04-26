@@ -338,7 +338,7 @@ function applyPoison(turns){
       // 毒で死なない：HP1を必ず残す
       d = Math.min(d, state.hp - 1);
       if(d > 0){
-        damage(d);
+        damage(d, true); // 毒は鋼皮の紋の軽減対象外
         addLog(`🩸 毒ダメージ ${d}`, "damage");
       }
     }
@@ -454,8 +454,8 @@ function deleteAllData(){
 const CREST_MASTER = [
   // ① 採取系（赤）
   { id:"mining",   name:"採掘の紋",  category:"採取系", color:"#f55", rgb:"255,85,85",
-    desc:"採掘イベントのスクラップ獲得量に固定値を加算する",
-    unlockCond:"未実装",
+    desc:"「採掘」で得るスクラップ増加",
+    unlockCond:"50階達成",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <path d="M -15 -15 Q 0 -28 15 -15 L 12 -12 Q 0 -22 -12 -12 Z" fill="currentColor"/>
       <line x1="0" y1="-15" x2="-20" y2="25" stroke-width="4"/>
@@ -483,8 +483,8 @@ const CREST_MASTER = [
     </g>` },
   // ② 防御系（青）
   { id:"steel",    name:"鋼皮の紋",  category:"防御系", color:"#0ff", rgb:"0,255,255",
-    desc:"全ダメージを固定値軽減する",
-    unlockCond:"未実装",
+    desc:"全ダメージを2軽減（毒は対象外）",
+    unlockCond:"50階達成",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <polygon points="0,-25 20,-10 20,15 0,30 -20,15 -20,-10" stroke-width="4"/>
       <polygon points="0,-12 10,-4 10,7 0,15 -10,7 -10,-4" stroke-width="2"/>
@@ -559,8 +559,8 @@ const CREST_MASTER = [
     </g>` },
   // ⑤ ユーティリティ系（緑）
   { id:"detect",   name:"探知の紋",  category:"ユーティリティ系", color:"#0f0", rgb:"0,255,0",
-    desc:"重イベントの出現率をアップする",
-    unlockCond:"未実装",
+    desc:"重イベントの出現率が50%に上昇",
+    unlockCond:"50階達成",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <circle cx="0" cy="0" r="20" stroke-dasharray="4 4" stroke-width="2"/>
       <line x1="0" y1="0" x2="14" y2="-14" stroke-width="3"/>
@@ -647,8 +647,12 @@ function getPotionHealCost() { return Math.floor(2000 * Math.pow(4, state.upgrad
 function getPotionHealValue(){ return 3 + state.upgrades.potionHeal; }
 
 // --- HP処理 ---
-function damage(d){
-  let actual = Math.min(d, state.hp); // 実際に受けたダメージ
+function damage(d, ignoreArmor=false){
+  // 鋼皮の紋：毒以外のダメージを2軽減（最低1）
+  if(!ignoreArmor && state.relics.some(r => r.id === "steel")){
+    d = Math.max(1, d - 2);
+  }
+  let actual = Math.min(d, state.hp);
   state.hp = Math.max(0, state.hp - d);
   state.runStats.damage += actual;
 }
@@ -1021,12 +1025,11 @@ function renderRelicCollection(){
         ${!unlocked ? `<rect x="2" y="2" width="96" height="136" rx="6" fill="rgba(0,0,0,0.75)"/>
         <text x="50" y="80" text-anchor="middle" font-size="44" fill="#666">🔒</text>` : ""}
       </svg>`;
-      let infoColor = unlocked ? "#fff" : "#666";
       html += `<div style="display:flex;align-items:center;gap:16px;margin:10px 0;padding:12px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;">
         ${cardSvg}
         <div style="flex:1;">
           <div style="color:${unlocked ? c.color : "#666"};font-size:28px;font-weight:bold;">${c.name}</div>
-          <div style="color:${infoColor};font-size:22px;margin-top:6px;line-height:1.4;">${unlocked ? c.desc : "???　解放条件：" + c.unlockCond}</div>
+          <div style="color:#fff;font-size:22px;margin-top:6px;line-height:1.4;">${c.desc}<br><span style="color:#888;font-size:20px;">　解放条件：${c.unlockCond}</span></div>
         </div>
       </div>`;
     });
@@ -1216,6 +1219,10 @@ function next(){
     // 採掘 60%
     { w: 60, fn: () => {
       let g = Math.floor(calcScrap() * getMiningMultiplier());
+      // 採掘の紋：floor(採掘力/2) + floor(階数/20) を加算
+      if(state.relics.some(r => r.id === "mining")){
+        g += Math.floor(state.power / 2) + Math.floor(state.floor / 20);
+      }
       state.scrap += g;
       addLog(`採掘した スクラップ +${g.toLocaleString()}`, "scrap");
     }},
@@ -1291,7 +1298,9 @@ function next(){
     { w: 30, fn: () => { state.mode = "event_bat";      addLog("コウモリの群れだ！"); }},
   ];
 
-  if(Math.random() < 0.70){
+  // 探知の紋：重イベント率50%に
+  let heavyThreshold = state.relics.some(r => r.id === "detect") ? 0.50 : 0.70;
+  if(Math.random() < heavyThreshold){
     // 軽イベント：condition対応重み付き抽選
     let avail = LIGHT_EVENTS.filter(e => !e.condition || e.condition());
     if(avail.length === 0) avail = LIGHT_EVENTS.filter(e => !e.condition);
@@ -1303,7 +1312,7 @@ function next(){
     checkDeath();
     render();
   } else {
-    // 重イベント：condition対応重み付き抽選
+    // 重イベント：condition対応重み付き抽選（探知の紋で50%に上昇）
     let availH = HEAVY_EVENTS.filter(e => !e.condition || e.condition());
     if(availH.length === 0) availH = HEAVY_EVENTS.filter(e => !e.condition);
     let totalHW = availH.reduce((s, e) => s + e.w, 0);
