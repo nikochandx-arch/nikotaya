@@ -39,6 +39,12 @@ font-size: 28px;
 #shop button {
 width: 100%;
 margin-top: 8px;
+transition: transform 0.08s, filter 0.08s;
+}
+
+button:active:not(:disabled) {
+transform: scale(0.95);
+filter: brightness(1.6);
 }
 
 button {
