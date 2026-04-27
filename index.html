@@ -718,9 +718,9 @@ function colorizeLog(text, type){
   // ダメージ数値を赤に（「X ダメージ」）
   text = text.replace(/(\d+)( ダメージ)/g,
     '<span style="color:#f55;font-weight:bold;">$1</span>$2');
-  // スクラップ数値をオレンジに（「+X」）、前にSVGアイコン挿入
-  text = text.replace(/(\+\d+)/g,
-    `${SVG_ICONS.scrap}<span style="color:#ffcc66;font-weight:bold;">$1</span>`);
+  // スクラップ数値をオレンジに（「スクラップ +X」の形のみ）、前にSVGアイコン挿入
+  text = text.replace(/(スクラップ )(\+\d+)/g,
+    `$1${SVG_ICONS.scrap}<span style="color:#ffcc66;font-weight:bold;">$2</span>`);
   // HP回復を黄緑に（全タイプ共通）
   text = text.replace(/(HP\+\d+|HP \+\d+)/g,
     '<span style="color:#aaff66;font-weight:bold;">$1</span>');
