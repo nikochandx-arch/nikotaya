@@ -503,10 +503,31 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 
+// 購入音：ピロリン（ゲーム風コイン）
+async function playCoinSound(){
+  await initAudio();
+  const osc  = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(987.77, audioCtx.currentTime);
+  osc.frequency.setValueAtTime(1318.51, audioCtx.currentTime + 0.08);
+
+  gain.gain.setValueAtTime(0, audioCtx.currentTime);
+  gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.4);
+}
+
 // SE管理マスタ（将来ここに追加していく）
 const SE = {
   dig:  playDigSound,
   heal: playHealSound,
+  coin: playCoinSound,
 };
 
 async function playSE(name){
@@ -1525,6 +1546,7 @@ function buyRelicSlot(){
   showConfirm(`エメラルド ${cost} で紋スロットを拡張しますか？<br>（${cur}枠 → ${cur+1}枠）`, () => {
     state.totalEmerald -= cost;
     state.upgrades.relicSlots++;
+    playSE("coin");
     saveAll();
     render();
   });
@@ -2176,6 +2198,7 @@ function buyPotion(){
   showConfirm(`スクラップ ${cost} でポーションを購入しますか？`, () => {
     state.totalScrap -= cost;
     state.items.push({ name: "ポーション", effect: "hp3" });
+    playSE("coin");
     saveAll();
     render();
   });
@@ -2188,6 +2211,7 @@ function buyAntidote(){
   showConfirm(`スクラップ ${cost} で毒消し草を購入しますか？`, () => {
     state.totalScrap -= cost;
     state.items.push({ name: "毒消し草", effect: "antidote" });
+    playSE("coin");
     saveAll();
     render();
   });
@@ -2201,6 +2225,7 @@ function buyPotionHeal(){
   showConfirm(`スクラップ ${cost.toLocaleString()} でポーション回復量を +1 強化しますか？<br>（${curVal} → ${curVal+1}）`, () => {
     state.totalScrap -= cost;
     state.upgrades.potionHeal++;
+    playSE("coin");
     saveAll();
     render();
   });
