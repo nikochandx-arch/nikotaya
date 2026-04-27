@@ -1847,15 +1847,15 @@ function digVein(){
     checkDeath();
     if(state.mode !== "dead") state.mode = "explore";
   } else {
-    // 成功
-    let g = Math.floor(calcScrap() * p.mult);
+    // 成功（前回獲得量以上を保証）
+    let g = Math.max(state.veinLastGain, Math.floor(calcScrap() * p.mult));
     state.scrap += g;
     state.veinLastGain = g;
     addLog(`鉱脈を掘り当てた！ スクラップ +${g.toLocaleString()}`, "sub");
     state.veinDepth++;
     // 4回目終了 or 続行
     if(state.veinDepth >= 4){
-      addLog("これ以上は無理だ…", "sub");
+      addLog("この鉱脈を掘りつくした！", "sub");
       state.mode = "explore";
     }
     // 4回未満なら event_vein のまま→renderVeinEventがボタンを描画
