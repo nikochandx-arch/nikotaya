@@ -1817,10 +1817,10 @@ function ignoreEvent(){
 
 // --- 鉱脈イベント ---
 const VEIN_PARAMS = [
-  { collapse:0.20, mult:1.0, dmgRate:0.15 },
-  { collapse:0.40, mult:1.5, dmgRate:0.25 },
-  { collapse:0.60, mult:2.5, dmgRate:0.40 },
-  { collapse:0.80, mult:4.0, dmgRate:0.60 },
+  { collapse:0.20, mult:1.5, dmgCoef:3  },
+  { collapse:0.40, mult:2.5, dmgCoef:5  },
+  { collapse:0.60, mult:4.0, dmgCoef:8  },
+  { collapse:0.80, mult:6.0, dmgCoef:12 },
 ];
 
 function renderVeinEvent(){
@@ -1840,7 +1840,8 @@ function digVein(){
 
   if(Math.random() < p.collapse){
     // 崩落
-    let d = Math.ceil(state.maxHp * p.dmgRate) + floorDmgBonus();
+    let tier = Math.floor((state.floor - 1) / 10) + 1;
+    let d = tier * p.dmgCoef;
     damage(d);
     addLog(`地盤が崩れた！ ${d} ダメージ`, "sub");
     checkDeath();
