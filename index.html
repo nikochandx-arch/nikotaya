@@ -1124,8 +1124,11 @@ ${unlockHTML}
           </svg>
           <div style="color:${c.color};font-size:18px;margin-top:2px;">${c.name}</div>
         </div>`).join("");
+      let pickTitle = state.floor === 15
+        ? '<div style="font-size:22px;color:#ffcc66;margin-bottom:8px;line-height:1.5;">深淵に挑みし者よ…<br>紋をその身に纏い、奈落を目指せ</div>'
+        : '<div style="font-size:24px;color:#0ff;margin-bottom:8px;">紋を選べ！</div>';
       document.getElementById("current-event-text").innerHTML = `
-        <div style="font-size:24px;color:#0ff;margin-bottom:8px;">紋を選べ！</div>
+        ${pickTitle}
         <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;">${cardsHTML}</div>
       `;
     } else
@@ -1599,23 +1602,25 @@ function next(){
   tickBuffs();
   if(state.hp <= 0){ checkDeath(); render(); return; }
 
-  // 紋獲得イベント：51階,101階,151階...
-  if(state.floor > 1 && (state.floor - 1) % 50 === 0 && !state.relicEventFloors.has(state.floor)){
+  // 紋獲得イベント：15階 または 51,101,151...階
+  let isRelicFloor = state.floor === 15 || (state.floor > 1 && (state.floor - 1) % 50 === 0);
+  if(isRelicFloor && !state.relicEventFloors.has(state.floor)){
     state.relicEventFloors.add(state.floor);
     let pool = CREST_MASTER.filter(c =>
       UNLOCKED_CRESTS.has(c.id) &&
       !state.relics.some(r => r.id === c.id)
     );
     if(pool.length > 0){
-      // ランダムに最大3つ選ぶ
       let shuffled = [...pool].sort(() => Math.random() - 0.5);
       state.relicChoices = shuffled.slice(0, 3);
       state.mode = "event_relic_pick";
-      addLog("紋を発見した！");
+      let msg = state.floor === 15
+        ? "深淵に挑みし者よ…紋をその身に纏い、奈落を目指せ"
+        : "紋を発見した！";
+      addLog(msg);
       render();
       return;
     }
-    // 候補が1つもない場合はスキップして通常進行
   }
 
   if(state.floor % 30 === 0){
