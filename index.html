@@ -2229,7 +2229,7 @@ function continueRun(){
 
 // --- ショップ購入 ---
 function buyPotion(){
-  const cost = 10;
+  const cost = 1;
   if(state.totalScrap < cost){ showAlert("スクラップが足りない"); return; }
   if(state.items.length >= 5){ showAlert("持ち物がいっぱい"); return; }
   showConfirm(`スクラップ ${cost} でポーションを購入しますか？`, () => {
