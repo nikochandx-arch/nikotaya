@@ -783,7 +783,7 @@ function buildShopHTML(){
   return `
 <div>▼ショップ</div>
 <div style="color:#888;margin:6px 0;">[ 消耗品 ] ${itemFullMsg}</div>
-<button onclick="buyPotion()" style="${shopStyle}height:auto;padding:12px 8px;${disabledStyle}">ポーション<br><span ${descStyle}>HP+${getPotionHealValue()}</span><br>${priceSpan(10)}</button>
+<button onclick="buyPotion()" style="${shopStyle}height:auto;padding:12px 8px;${disabledStyle}">ポーション<br><span ${descStyle}>HP+${getPotionHealValue()}</span><br>${priceSpan(1)}</button>
 <button onclick="buyAntidote()" style="${shopStyle}height:auto;padding:12px 8px;${disabledStyle}">毒消し草<br><span ${descStyle}>毒を治す</span><br>${priceSpan(10)}</button>
 <div style="color:#888;margin:6px 0;">[ 永続強化 ]</div>
 ${potionMax
@@ -1241,7 +1241,7 @@ ${unlockHTML}
       break;
     case "event_goddess":
       btn("回復してほしい", goddessHeal, "special");
-      btn("ホームに帰りたい", goddessReturn, "danger");
+      btn("ホームに帰りたい", confirmGoddessReturn, "danger");
       break;
     case "return":
       btn("続行する", continueRun, "main");
@@ -2196,6 +2196,12 @@ function goddessHeal(){
   addLog(`女神の加護！ HP +${h} 回復した`, "heal");
   state.mode = "explore";
   render();
+}
+
+function confirmGoddessReturn(){
+  showConfirm("本当に帰還しますか？<br>（スクラップを全額持ち帰ります）", () => {
+    goddessReturn();
+  });
 }
 
 function goddessReturn(){
