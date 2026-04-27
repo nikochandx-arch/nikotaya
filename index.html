@@ -257,6 +257,7 @@ if(savedUpgrades.potionHeal === undefined) savedUpgrades.potionHeal = 0;
 let savedScrap     = parseInt(localStorage.getItem("totalScrap")) || 0;
 let savedName      = localStorage.getItem("playerName") || "プレイヤー";
 let savedBestFloor = parseInt(localStorage.getItem("bestFloor")) || 1;
+let savedEmerald   = parseInt(localStorage.getItem("totalEmerald")) || 0;
 let savedItems     = JSON.parse(localStorage.getItem("items") || "[]");
 let savedSeOn      = localStorage.getItem("seOn") !== "false"; // デフォルトON
 let savedStats     = JSON.parse(localStorage.getItem("stats") || JSON.stringify({
@@ -298,6 +299,7 @@ let state = {
   veinDepth: 0,  // 鉱脈を掘った回数
   veinLastGain: 0,  // 鉱脈で最後に得たスクラップ数
   emerald: 0,  // 採掘中のエメラルド所持数
+  totalEmerald: savedEmerald,  // 倉庫エメラルド（永続）
   seOn: savedSeOn,
   stats: savedStats,  // 永続累計統計
   runStats: {         // ラン中の一時記録
@@ -873,8 +875,8 @@ function render(){
   }
   document.getElementById("buff-container").innerHTML = buffHTML;
 
-  document.getElementById("storage").innerText =
-    `倉庫：スクラップ ${state.totalScrap.toLocaleString()}`;
+  document.getElementById("storage").innerHTML =
+    `倉庫：スクラップ ${state.totalScrap.toLocaleString()} ／ ${SVG_ICONS.emerald} ${state.totalEmerald}`;
 
   document.getElementById("playerStatus").innerHTML =
 `<span onclick="changeName()" style="cursor:pointer;">名前：${state.name} ✏️</span>
@@ -927,6 +929,9 @@ function render(){
     let survived = r.survived ? "帰還成功 🎉" : "力尽きた… 💀";
     document.getElementById("current-event-icon").innerText = r.survived ? "🎉" : "💀";
     let carryNote = r.goddess ? "（女神の加護・全額）" : "（半分）";
+    let emeraldLine = r.emeraldCarry > 0
+      ? `<div style="color:#58d68d;">持ち帰ったエメラルド：${SVG_ICONS.emerald} ${r.emeraldCarry}</div>`
+      : r.survived ? `<div style="color:#666;">エメラルド：なし</div>` : `<div style="color:#666;">エメラルド：ロスト</div>`;
     let unlockHTML = "";
     if(r.unlocks && r.unlocks.length > 0){
       unlockHTML = r.unlocks.map(id => {
@@ -939,6 +944,7 @@ function render(){
 <div>${survived}</div>
 <div>到達階層：${r.floor} 階</div>
 <div style="color:#ffcc66;">持ち帰ったスクラップ：${r.carry.toLocaleString()} ${carryNote}</div>
+${emeraldLine}
 <div style="color:#aaa;">最高到達階：${state.bestFloor} 階</div>
 ${unlockHTML}
 `;
@@ -1375,6 +1381,7 @@ function startRun(){
   state.relics = [];
   state.relicEventFloors = new Set();
   state.emerald = 0;
+  state.veinLastGain = 0;
   state.activeCrestId = null;
   state.mode  = "explore";
   addLog("採掘開始！");
@@ -1962,21 +1969,25 @@ function confirmReturn(){
 function doReturn(){
   let carry = Math.floor(state.scrap / 2);
   state.totalScrap += carry;
+  let emeraldCarry = state.emerald;
+  state.totalEmerald += emeraldCarry;
+  state.emerald = 0;
   if(state.floor > state.bestFloor) state.bestFloor = state.floor;
   commitStats(false, carry);
   saveAll();
   let unlocks = checkUnlocks();
-  state.lastResult = { survived: true, floor: state.floor, carry, unlocks };
+  state.lastResult = { survived: true, floor: state.floor, carry, emeraldCarry, unlocks };
   state.mode = "result";
   render();
 }
 
 function forceReturn(){
+  state.emerald = 0;  // 死亡でロスト
   if(state.floor > state.bestFloor) state.bestFloor = state.floor;
   commitStats(true);
   saveAll();
   let unlocks = checkUnlocks();
-  state.lastResult = { survived: false, floor: state.floor, carry: 0, unlocks };
+  state.lastResult = { survived: false, floor: state.floor, carry: 0, emeraldCarry: 0, unlocks };
   state.mode = "result";
   render();
 }
@@ -2015,11 +2026,14 @@ function goddessReturn(){
   state.runStats.goddess++;
   let carry = state.scrap;
   state.totalScrap += carry;
+  let emeraldCarry = state.emerald;
+  state.totalEmerald += emeraldCarry;
+  state.emerald = 0;
   if(state.floor > state.bestFloor) state.bestFloor = state.floor;
   commitStats(false, carry);
   saveAll();
   let unlocks = checkUnlocks();
-  state.lastResult = { survived: true, floor: state.floor, carry, goddess: true, unlocks };
+  state.lastResult = { survived: true, floor: state.floor, carry, emeraldCarry, goddess: true, unlocks };
   state.mode = "result";
   render();
 }
