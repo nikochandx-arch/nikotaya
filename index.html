@@ -857,7 +857,7 @@ function render(){
   let hpColor = hpRatio > 0.5 ? "#0f0" : hpRatio > 0.25 ? "#ff0" : "#f55";
   document.getElementById("se-toggle").innerText = state.seOn ? "🔔" : "🔕";
   document.getElementById("status").innerHTML =
-    `<span style="color:${hpColor}">HP:${state.hp}/${state.maxHp}</span> | スクラップ:<span style="color:#ffcc66;">${state.scrap.toLocaleString()}</span> | 現在地:${state.floor}階`;
+    `<span style="color:${hpColor}">HP:${state.hp}/${state.maxHp}</span> | ${SVG_ICONS.scrap}:<span style="color:#ffcc66;">${state.scrap.toLocaleString()}</span> | ${SVG_ICONS.emerald}:<span style="color:#58d68d;">${state.emerald || 0}</span> | 現在地:${state.floor}階`;
 
   // バフ・デバフ表示
   let buffHTML = "";
