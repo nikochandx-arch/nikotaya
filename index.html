@@ -305,7 +305,7 @@ let state = {
   stats: savedStats,  // 永続累計統計
   runStats: {         // ラン中の一時記録
     floors: 0, scrap: 0, damage: 0,
-    potions: 0, goddess: 0, goldenMole: 0, thiefMole: 0, daigo: 0, emerald: 0
+    potions: 0, goddess: 0, goldenMole: 0, thiefMole: 0, daigo: 0
   }
 };
 
@@ -699,7 +699,6 @@ function commitStats(died, carry=0){
   state.stats.goldenMole += state.runStats.goldenMole;
   state.stats.thiefMole  += state.runStats.thiefMole;
   state.stats.daigo      += state.runStats.daigo;
-  state.stats.emerald    += state.runStats.emerald;
   resetRunStats();
 }
 
@@ -1383,7 +1382,7 @@ function changeName(){
 }
 
 function resetRunStats(){
-  state.runStats = { floors:0, scrap:0, damage:0, potions:0, goddess:0, goldenMole:0, thiefMole:0, daigo:0, emerald:0 };
+  state.runStats = { floors:0, scrap:0, damage:0, potions:0, goddess:0, goldenMole:0, thiefMole:0, daigo:0 };
 }
 
 // --- 採掘開始 ---
@@ -1517,7 +1516,6 @@ function next(){
       let dropRate = getEmeraldDropRate();
       if(dropRate > 0 && Math.random() < dropRate){
         state.emerald++;
-        state.runStats.emerald++;
         addLog(`採掘した スクラップ +${g.toLocaleString()} エメラルド +1`, "scrap");
       } else {
         addLog(`採掘した スクラップ +${g.toLocaleString()}`, "scrap");
@@ -2017,6 +2015,7 @@ function doReturn(){
   state.emerald = 0;
   if(state.floor > state.bestFloor) state.bestFloor = state.floor;
   commitStats(false, carry);
+  state.stats.emerald += emeraldCarry;
   saveAll();
   let unlocks = checkUnlocks();
   state.lastResult = { survived: true, floor: state.floor, carry, emeraldCarry, unlocks };
@@ -2074,6 +2073,7 @@ function goddessReturn(){
   state.emerald = 0;
   if(state.floor > state.bestFloor) state.bestFloor = state.floor;
   commitStats(false, carry);
+  state.stats.emerald += emeraldCarry;
   saveAll();
   let unlocks = checkUnlocks();
   state.lastResult = { survived: true, floor: state.floor, carry, emeraldCarry, goddess: true, unlocks };
