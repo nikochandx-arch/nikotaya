@@ -297,6 +297,7 @@ let state = {
   activeCrestId: null,  // フキダシ表示中の紋ID
   veinDepth: 0,  // 鉱脈を掘った回数
   veinLastGain: 0,  // 鉱脈で最後に得たスクラップ数
+  emerald: 0,  // 採掘中のエメラルド所持数
   seOn: savedSeOn,
   stats: savedStats,  // 永続累計統計
   runStats: {         // ラン中の一時記録
@@ -721,6 +722,9 @@ function colorizeLog(text, type){
   // スクラップ数値をオレンジに（「スクラップ +X」の形のみ）、前にSVGアイコン挿入
   text = text.replace(/(スクラップ )(\+\d+)/g,
     `$1${SVG_ICONS.scrap}<span style="color:#ffcc66;font-weight:bold;">$2</span>`);
+  // エメラルド数値を緑に
+  text = text.replace(/(エメラルド )(\+\d+)/g,
+    `$1${SVG_ICONS.emerald}<span style="color:#58d68d;font-weight:bold;">$2</span>`);
   // HP回復を黄緑に（全タイプ共通）
   text = text.replace(/(HP\+\d+|HP \+\d+)/g,
     '<span style="color:#aaff66;font-weight:bold;">$1</span>');
@@ -1370,6 +1374,7 @@ function startRun(){
   state.daigoLastFloor = -999;
   state.relics = [];
   state.relicEventFloors = new Set();
+  state.emerald = 0;
   state.activeCrestId = null;
   state.mode  = "explore";
   addLog("採掘開始！");
@@ -1395,6 +1400,12 @@ function getMiningMultiplier(){
     .filter(b => b.miningPenalty)
     .reduce((prod, b) => prod * b.miningPenalty, 1);
   return (1 + bonus) * penalty;
+}
+
+// --- エメラルドドロップ確率 ---
+function getEmeraldDropRate(){
+  if(state.floor < 30) return 0;
+  return Math.floor((state.floor - 30) / 10) * 0.005; // 0.5%ずつ増加
 }
 
 // --- 階層補正ヘルパー ---
@@ -1454,7 +1465,14 @@ function next(){
         g += Math.floor(state.power / 2) + Math.floor(state.floor / 20);
       }
       state.scrap += g;
-      addLog(`採掘した スクラップ +${g.toLocaleString()}`, "scrap");
+      // エメラルドドロップ判定
+      let dropRate = getEmeraldDropRate();
+      if(dropRate > 0 && Math.random() < dropRate){
+        state.emerald++;
+        addLog(`採掘した スクラップ +${g.toLocaleString()} エメラルド +1`, "scrap");
+      } else {
+        addLog(`採掘した スクラップ +${g.toLocaleString()}`, "scrap");
+      }
     }},
     // 落石 20%
     { w: 20, fn: () => {
