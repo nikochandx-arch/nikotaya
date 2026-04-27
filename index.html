@@ -554,6 +554,26 @@ function toggleSE(){
   render();
 }
 
+// --- お知らせモーダル（OKボタンのみ） ---
+function showAlert(message){
+  let overlay = document.getElementById("modal-overlay");
+  document.getElementById("modal-message").innerHTML = message;
+  let yesBtn = document.getElementById("modal-yes");
+  let noBtn  = document.getElementById("modal-no");
+  let newYes = yesBtn.cloneNode(true);
+  let newNo  = noBtn.cloneNode(true);
+  yesBtn.parentNode.replaceChild(newYes, yesBtn);
+  noBtn.parentNode.replaceChild(newNo, noBtn);
+  newNo.style.display = "none";
+  newYes.innerText = "OK";
+  overlay.classList.add("show");
+  newYes.onclick = () => {
+    overlay.classList.remove("show");
+    newNo.style.display = "";
+    newYes.innerText = "はい";
+  };
+}
+
 // --- 確認モーダル ---
 function showConfirm(message, onYes){
   let overlay = document.getElementById("modal-overlay");
@@ -1547,8 +1567,8 @@ function getRelicSlotCost(){
 
 function buyRelicSlot(){
   let cost = getRelicSlotCost();
-  if(cost === null){ alert("これ以上拡張できない"); return; }
-  if(state.totalEmerald < cost){ alert("エメラルドが足りない"); return; }
+  if(cost === null){ showAlert("これ以上拡張できない"); return; }
+  if(state.totalEmerald < cost){ showAlert("エメラルドが足りない"); return; }
   let cur = getRelicSlotCount();
   showConfirm(`エメラルド ${cost} で紋スロットを拡張しますか？<br>（${cur}枠 → ${cur+1}枠）`, () => {
     state.totalEmerald -= cost;
@@ -2199,8 +2219,8 @@ function continueRun(){
 // --- ショップ購入 ---
 function buyPotion(){
   const cost = 10;
-  if(state.totalScrap < cost){ alert("スクラップが足りない"); return; }
-  if(state.items.length >= 5){ alert("持ち物がいっぱい"); return; }
+  if(state.totalScrap < cost){ showAlert("スクラップが足りない"); return; }
+  if(state.items.length >= 5){ showAlert("持ち物がいっぱい"); return; }
   showConfirm(`スクラップ ${cost} でポーションを購入しますか？`, () => {
     state.totalScrap -= cost;
     state.items.push({ name: "ポーション", effect: "hp3" });
@@ -2212,8 +2232,8 @@ function buyPotion(){
 
 function buyAntidote(){
   const cost = 10;
-  if(state.totalScrap < cost){ alert("スクラップが足りない"); return; }
-  if(state.items.length >= 5){ alert("持ち物がいっぱい"); return; }
+  if(state.totalScrap < cost){ showAlert("スクラップが足りない"); return; }
+  if(state.items.length >= 5){ showAlert("持ち物がいっぱい"); return; }
   showConfirm(`スクラップ ${cost} で毒消し草を購入しますか？`, () => {
     state.totalScrap -= cost;
     state.items.push({ name: "毒消し草", effect: "antidote" });
@@ -2224,9 +2244,9 @@ function buyAntidote(){
 }
 
 function buyPotionHeal(){
-  if(state.upgrades.potionHeal >= 7){ alert("これ以上強化できない"); return; }
+  if(state.upgrades.potionHeal >= 7){ showAlert("これ以上強化できない"); return; }
   let cost = getPotionHealCost();
-  if(state.totalScrap < cost){ alert("スクラップが足りない"); return; }
+  if(state.totalScrap < cost){ showAlert("スクラップが足りない"); return; }
   let curVal = getPotionHealValue();
   showConfirm(`スクラップ ${cost.toLocaleString()} でポーション回復量を +1 強化しますか？<br>（${curVal} → ${curVal+1}）`, () => {
     state.totalScrap -= cost;
@@ -2239,7 +2259,7 @@ function buyPotionHeal(){
 
 function buyHp(){
   let cost = getHpCost();
-  if(state.totalScrap < cost){ alert("スクラップが足りない"); return; }
+  if(state.totalScrap < cost){ showAlert("スクラップが足りない"); return; }
   showConfirm(`スクラップ ${cost.toLocaleString()} で最大HP +1 を購入しますか？`, () => {
     state.totalScrap  -= cost;
     state.maxHp++;
@@ -2253,7 +2273,7 @@ function buyHp(){
 
 function buyPower(){
   let cost = getPowerCost();
-  if(state.totalScrap < cost){ alert("スクラップが足りない"); return; }
+  if(state.totalScrap < cost){ showAlert("スクラップが足りない"); return; }
   showConfirm(`スクラップ ${cost.toLocaleString()} で採掘力 +1 を購入しますか？`, () => {
     state.totalScrap   -= cost;
     state.power++;
