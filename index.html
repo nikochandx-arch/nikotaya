@@ -252,8 +252,9 @@ font-size: 14px;
 
 <script>
 // --- 永続データ読み込み ---
-let savedUpgrades  = JSON.parse(localStorage.getItem("upgrades") || '{"hp":0,"power":0,"potionHeal":0}');
+let savedUpgrades  = JSON.parse(localStorage.getItem("upgrades") || '{"hp":0,"power":0,"potionHeal":0,"relicSlots":0}');
 if(savedUpgrades.potionHeal === undefined) savedUpgrades.potionHeal = 0;
+if(savedUpgrades.relicSlots === undefined) savedUpgrades.relicSlots = 0;
 let savedScrap     = parseInt(localStorage.getItem("totalScrap")) || 0;
 let savedName      = localStorage.getItem("playerName") || "プレイヤー";
 let savedBestFloor = parseInt(localStorage.getItem("bestFloor")) || 1;
@@ -665,6 +666,14 @@ ${potionMax
 }
 <button onclick="buyHp()" style="${shopStyle}height:auto;padding:12px 8px;">最大HP +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getHpCost().toLocaleString())}</button>
 <button onclick="buyPower()" style="${shopStyle}height:auto;padding:12px 8px;">採掘力 +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getPowerCost().toLocaleString())}</button>
+${(() => {
+  let cost = getRelicSlotCost();
+  let cur = getRelicSlotCount();
+  if(cost === null){
+    return `<button disabled style="${maxStyle}height:auto;padding:12px 8px;">紋スロット拡張<br><span ${descStyle}>MAX（5枠）</span></button>`;
+  }
+  return `<button onclick="buyRelicSlot()" style="${shopStyle}height:auto;padding:12px 8px;">紋スロット拡張<br><span ${descStyle}>${cur}枠 → ${cur+1}枠</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">${cost}</span></button>`;
+})()}
 `;
 }
 
@@ -1125,8 +1134,14 @@ ${unlockHTML}
     crestEl.style.display = inRun ? "flex" : "none";
     if(inRun){
       let crestHTML = "";
+      let unlockedSlots = getRelicSlotCount();
       for(let i = 0; i < 5; i++){
+        let isLocked = i >= unlockedSlots;
         let relic = state.relics[i];
+        if(isLocked){
+          crestHTML += `<div class="crest-empty" style="border-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.3);font-size:36px;">🔒</div>`;
+          continue;
+        }
         if(relic){
           let c = CREST_MASTER.find(m => m.id === relic.id);
           if(c){
@@ -1407,6 +1422,30 @@ function getMiningMultiplier(){
     .filter(b => b.miningPenalty)
     .reduce((prod, b) => prod * b.miningPenalty, 1);
   return (1 + bonus) * penalty;
+}
+
+// --- 紋スロット数取得 ---
+function getRelicSlotCount(){
+  return 1 + state.upgrades.relicSlots;  // 初期1枠 + 拡張分（最大5）
+}
+
+// 紋スロット拡張コスト（エメラルド）
+const RELIC_SLOT_COSTS = [1, 6, 15, 35];
+
+function getRelicSlotCost(){
+  let lv = state.upgrades.relicSlots;
+  if(lv >= 4) return null;  // MAX
+  return RELIC_SLOT_COSTS[lv];
+}
+
+function buyRelicSlot(){
+  let cost = getRelicSlotCost();
+  if(cost === null){ alert("これ以上拡張できない"); return; }
+  if(state.totalEmerald < cost){ alert("エメラルドが足りない"); return; }
+  state.totalEmerald -= cost;
+  state.upgrades.relicSlots++;
+  saveAll();
+  render();
 }
 
 // --- エメラルドドロップ確率 ---
@@ -1797,7 +1836,7 @@ function renderRelicPickEvent(){
 }
 
 function pickRelic(crest){
-  if(state.relics.length < 5){
+  if(state.relics.length < getRelicSlotCount()){
     state.relics.push(crest);
     addLog(`『${crest.name}』を装備した`, "sub");
     state.relicChoices = [];
