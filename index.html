@@ -266,7 +266,7 @@ let savedStats     = JSON.parse(localStorage.getItem("stats") || JSON.stringify(
   potions: 0, goddess: 0, goldenMole: 0, thiefMole: 0
 }));
 // 旧データに項目がない場合の補完
-["runs","deaths","floors","scrap","damage","potions","goddess","goldenMole","thiefMole","daigo"].forEach(k => {
+["runs","deaths","floors","scrap","damage","potions","goddess","goldenMole","thiefMole","daigo","emerald"].forEach(k => {
   if(savedStats[k] === undefined) savedStats[k] = 0;
 });
 
@@ -305,7 +305,7 @@ let state = {
   stats: savedStats,  // 永続累計統計
   runStats: {         // ラン中の一時記録
     floors: 0, scrap: 0, damage: 0,
-    potions: 0, goddess: 0, goldenMole: 0, thiefMole: 0, daigo: 0
+    potions: 0, goddess: 0, goldenMole: 0, thiefMole: 0, daigo: 0, emerald: 0
   }
 };
 
@@ -699,6 +699,7 @@ function commitStats(died, carry=0){
   state.stats.goldenMole += state.runStats.goldenMole;
   state.stats.thiefMole  += state.runStats.thiefMole;
   state.stats.daigo      += state.runStats.daigo;
+  state.stats.emerald    += state.runStats.emerald;
   resetRunStats();
 }
 
@@ -1179,6 +1180,7 @@ ${unlockHTML}
   <div>死亡回数：<span style="color:#fff;">${s.deaths.toLocaleString()} 回</span></div>
   <div>進んだ階層累計：<span style="color:#fff;">${s.floors.toLocaleString()} 階</span></div>
   <div>入手スクラップ累計：<span style="color:#ffcc66;">${s.scrap.toLocaleString()}</span></div>
+  <div>入手エメラルド累計：<span style="color:#58d68d;">${s.emerald.toLocaleString()}</span></div>
   <div>受けたダメージ累計：<span style="color:#f55;">${s.damage.toLocaleString()}</span></div>
   <div>飲んだポーション数：<span style="color:#fff;">${s.potions.toLocaleString()} 個</span></div>
   <div>女神像に会った回数：<span style="color:#fff;">${s.goddess.toLocaleString()} 回</span></div>
@@ -1381,7 +1383,7 @@ function changeName(){
 }
 
 function resetRunStats(){
-  state.runStats = { floors:0, scrap:0, damage:0, potions:0, goddess:0, goldenMole:0, thiefMole:0, daigo:0 };
+  state.runStats = { floors:0, scrap:0, damage:0, potions:0, goddess:0, goldenMole:0, thiefMole:0, daigo:0, emerald:0 };
 }
 
 // --- 採掘開始 ---
@@ -1515,6 +1517,7 @@ function next(){
       let dropRate = getEmeraldDropRate();
       if(dropRate > 0 && Math.random() < dropRate){
         state.emerald++;
+        state.runStats.emerald++;
         addLog(`採掘した スクラップ +${g.toLocaleString()} エメラルド +1`, "scrap");
       } else {
         addLog(`採掘した スクラップ +${g.toLocaleString()}`, "scrap");
