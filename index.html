@@ -1470,11 +1470,11 @@ function useItem(index){
 
 function discardItem(index){
   let item = state.items[index];
-  if(confirm(`「${item.name}」を本当に捨てますか？`)){
+  showConfirm(`「${item.name}」を本当に捨てますか？`, () => {
     state.items.splice(index, 1);
     saveAll();
     render();
-  }
+  });
 }
 
 // --- 名前変更 ---
@@ -2111,10 +2111,9 @@ function checkDeath(){
 
 // --- 帰還 ---
 function confirmReturn(){
-  if(confirm("本当に帰還しますか？（スクラップの半分を持ち帰ります）")){
-    state.mode = "result";  // returnモードを先に抜ける
+  showConfirm("本当に帰還しますか？<br>（スクラップの半分を持ち帰ります）", () => {
     doReturn();
-  }
+  });
 }
 
 function doReturn(){
@@ -2241,26 +2240,28 @@ function buyPotionHeal(){
 function buyHp(){
   let cost = getHpCost();
   if(state.totalScrap < cost){ alert("スクラップが足りない"); return; }
-  if(confirm(`スクラップ ${cost} で購入しますか？`)){
+  showConfirm(`スクラップ ${cost.toLocaleString()} で最大HP +1 を購入しますか？`, () => {
     state.totalScrap  -= cost;
     state.maxHp++;
-    state.hp++;          // 現在HPも+1（即時反映）
+    state.hp++;
     state.upgrades.hp++;
+    playSE("coin");
     saveAll();
     render();
-  }
+  });
 }
 
 function buyPower(){
   let cost = getPowerCost();
   if(state.totalScrap < cost){ alert("スクラップが足りない"); return; }
-  if(confirm(`スクラップ ${cost} で購入しますか？`)){
+  showConfirm(`スクラップ ${cost.toLocaleString()} で採掘力 +1 を購入しますか？`, () => {
     state.totalScrap   -= cost;
     state.power++;
     state.upgrades.power++;
+    playSE("coin");
     saveAll();
     render();
-  }
+  });
 }
 
 render();
