@@ -650,7 +650,7 @@ function buildShopHTML(){
   let maxStyle  = "border-color:#666;color:#666;background:transparent;opacity:0.5;width:100%;";
   let disabledStyle = itemFull ? "opacity:0.4;" : "";
   let potionMax = state.upgrades.potionHeal >= 7;
-  let priceSpan = (val) => `スクラップ <span style="color:#ffcc66;font-size:26px;">${val}</span>`;
+  let priceSpan = (val) => `${SVG_ICONS.scrap}<span style="color:#ffcc66;font-size:26px;">${val}</span>`;
   let descStyle = 'style="font-size:18px;"';
   let itemFullMsg = itemFull ? '<span style="color:#f55;font-size:20px;margin-left:8px;">※持ち物がいっぱい</span>' : "";
   return `
@@ -876,7 +876,7 @@ function render(){
   document.getElementById("buff-container").innerHTML = buffHTML;
 
   document.getElementById("storage").innerHTML =
-    `倉庫：スクラップ ${state.totalScrap.toLocaleString()} ／ ${SVG_ICONS.emerald} ${state.totalEmerald}`;
+    `倉庫：${SVG_ICONS.scrap} ${state.totalScrap.toLocaleString()} ／ ${SVG_ICONS.emerald} ${state.totalEmerald}`;
 
   document.getElementById("playerStatus").innerHTML =
 `<span onclick="changeName()" style="cursor:pointer;">名前：${state.name} ✏️</span>
@@ -928,10 +928,10 @@ function render(){
     let r = state.lastResult;
     let survived = r.survived ? "帰還成功 🎉" : "力尽きた… 💀";
     document.getElementById("current-event-icon").innerText = r.survived ? "🎉" : "💀";
-    let carryNote = r.goddess ? "（女神の加護・全額）" : "（半分）";
-    let emeraldLine = r.emeraldCarry > 0
-      ? `<div style="color:#58d68d;">持ち帰ったエメラルド：${SVG_ICONS.emerald} ${r.emeraldCarry}</div>`
-      : r.survived ? `<div style="color:#666;">エメラルド：なし</div>` : `<div style="color:#666;">エメラルド：ロスト</div>`;
+    let carryNote = r.goddess ? "（女神の加護・全額）" : r.survived ? "（半分）" : "";
+    let emeraldLine = r.survived
+      ? `<div style="color:#58d68d;">持ち帰ったエメラルド：${SVG_ICONS.emerald} ${r.emeraldCarry || 0}</div>`
+      : `<div style="color:#666;">エメラルド：0</div>`;
     let unlockHTML = "";
     if(r.unlocks && r.unlocks.length > 0){
       unlockHTML = r.unlocks.map(id => {
