@@ -609,6 +609,15 @@ function deleteAllData(){
 // --- 紋マスタデータ ---
 const CREST_MASTER = [
   // ① 採取系（赤）
+  { id:"beginner", name:"初心の紋", category:"採取系", color:"#f55", rgb:"255,85,85",
+    desc:"「採掘」で得るスクラップ+1", // システム: 採掘イベント時+1固定加算
+    unlockCond:"10階到達",
+    svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
+      <line x1="0" y1="20" x2="0" y2="0" stroke-width="4"/>
+      <path d="M0 5L-15 -10L-5 -15L0 0"/>
+      <path d="M0 10L15 -5L5 -10L0 5"/>
+      <line x1="-15" y1="20" x2="15" y2="20" stroke-width="4"/>
+    </g>` },
   { id:"mining",   name:"採掘の紋",  category:"採取系", color:"#f55", rgb:"255,85,85",
     desc:"「採掘」で得るスクラップ増加", // システム: floor(採掘力/2)+floor(階数/20)を加算
     unlockCond:"50階達成",
@@ -749,6 +758,7 @@ const UNLOCKED_CRESTS = new Set(JSON.parse(localStorage.getItem("unlockedCrests"
 
 // 解放条件判定（必要に応じて条件を追加）
 const UNLOCK_CHECKS = {
+  beginner: () => state.bestFloor >= 10,
   mining: () => state.bestFloor >= 50,
   steel:  () => state.bestFloor >= 50,
   detect: () => state.bestFloor >= 50,
@@ -1642,6 +1652,12 @@ function next(){
     // 採掘 60%
     { w: 60, fn: () => {
       let g = Math.floor(calcScrap() * getMiningMultiplier());
+      // 初心の紋：+1固定加算
+      if(state.relics.some(r => r.id === "beginner")) g += 1;
+      // 初心の紋：+1固定
+      if(state.relics.some(r => r.id === "beginner")){
+        g += 1;
+      }
       // 採掘の紋：floor(採掘力/2) + floor(階数/20) を加算
       if(state.relics.some(r => r.id === "mining")){
         g += Math.floor(state.power / 2) + Math.floor(state.floor / 20);
