@@ -737,6 +737,37 @@ function colorizeLog(text, type){
   return text;
 }
 
+// --- カスタムSVGアイコン ---
+const SVG_ICONS = {
+  goldenMole: `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
+    <path d="M12 0L13 3L16 4L13 5L12 8L11 5L8 4L11 3Z" fill="#FFA500"/>
+    <path d="M21 4L22 6L24 7L22 8L21 10L20 8L18 7L20 6Z" fill="#FFA500"/>
+    <path d="M4 5L5 7L7 8L5 9L4 11L3 9L1 8L3 7Z" fill="#FFA500"/>
+    <path d="M4 24C4 10,20 10,20 24" fill="#FFD700" stroke="#DAA520" stroke-width="1"/>
+    <ellipse cx="12" cy="18" rx="5.5" ry="4.5" fill="#FFF8DC"/>
+    <ellipse cx="12" cy="16" rx="2" ry="1.5" fill="#FF69B4"/>
+    <path d="M7.5 14Q9 12 10.5 14" fill="none" stroke="#654321" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M13.5 14Q15 12 16.5 14" fill="none" stroke="#654321" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M5 24C5 19,9 19,9 24" fill="#FFD700" stroke="#DAA520" stroke-width="1"/>
+    <path d="M15 24C15 19,19 19,19 24" fill="#FFD700" stroke="#DAA520" stroke-width="1"/>
+  </svg>`,
+  thiefMole: `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
+    <path d="M4 24C4 10,20 10,20 24" fill="#8B4513" stroke="#5C2E0B" stroke-width="1"/>
+    <path d="M4 15C4 8,20 8,20 15Z" fill="#2E8B57" stroke="#1C5C39" stroke-width="1"/>
+    <circle cx="8" cy="10" r="1.5" fill="#FFF" opacity="0.8"/>
+    <circle cx="16" cy="10" r="1.5" fill="#FFF" opacity="0.8"/>
+    <circle cx="12" cy="12" r="1.5" fill="#FFF" opacity="0.8"/>
+    <path d="M5.5 13Q12 16.5 18.5 13Q12 18 5.5 13Z" fill="#222"/>
+    <line x1="8" y1="13.5" x2="10" y2="14.5" stroke="#FFF" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="16" y1="13.5" x2="14" y2="14.5" stroke="#FFF" stroke-width="1.5" stroke-linecap="round"/>
+    <ellipse cx="12" cy="19" rx="4.5" ry="3.5" fill="#D2B48C"/>
+    <ellipse cx="12" cy="17" rx="2" ry="1.5" fill="#FF9999"/>
+    <path d="M5 24C5 20,8 20,8 24" fill="#8B4513" stroke="#5C2E0B" stroke-width="1"/>
+    <polygon points="17,16 23,16 20,21" fill="#00FFFF" stroke="#008080" stroke-width="1"/>
+    <path d="M16 24C16 20,19 20,19 24" fill="#8B4513" stroke="#5C2E0B" stroke-width="1"/>
+  </svg>`,
+};
+
 // --- 絵文字取得 ---
 function getEmoji(text, type){
   if(type==="divider")     return "🚪";
@@ -888,7 +919,7 @@ ${unlockHTML}
   if(state.log.length > 0){
     let entry = state.log[0];
     let firstLine = entry.lines[0];
-    document.getElementById("current-event-icon").innerText = firstLine.emoji || "📋";
+    document.getElementById("current-event-icon").innerHTML = firstLine.emoji || "📋";
 
     // 鉱脈イベント専用表示
     if(state.mode === "event_vein"){
