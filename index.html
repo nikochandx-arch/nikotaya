@@ -1038,7 +1038,8 @@ function render(){
     document.getElementById("current-event").style.display = "none";
     document.getElementById("current-event").style.flexGrow = "1";
     document.getElementById("log").classList.add("relic-scroll");
-    document.getElementById("log").style.maxHeight = "";
+    document.getElementById("log").style.maxHeight = "none";
+    document.getElementById("log").style.flex = "1";
     renderRelicCollection();
     // ショップはホームから開いた時のみ
     if(relicPrevMode === "home"){
@@ -1057,6 +1058,7 @@ function render(){
     document.getElementById("current-event-text").innerText = "採掘を開始しよう！";
     document.getElementById("log").classList.remove("relic-scroll");
     document.getElementById("log").style.maxHeight = "0";
+    document.getElementById("log").style.flex = "";
     document.getElementById("log").innerHTML = "";
   }
 
