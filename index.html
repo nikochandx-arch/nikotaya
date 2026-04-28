@@ -275,7 +275,7 @@ font-weight: bold;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:32px;padding-right:24px;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;"></span></h2>
     <div id="status"></div>
     <div id="buff-container"></div>
   </div>
@@ -858,16 +858,16 @@ function colorizeLog(text, type){
   text = text.replace(/(\d+)( ダメージ)/g,
     '<span style="color:#f55;font-weight:bold;">$1</span>$2');
   // スクラップ数値をオレンジに（「スクラップ +X」の形のみ）、前にSVGアイコン挿入
-  text = text.replace(/(スクラップ )(\+\d+)/g,
+  text = text.replace(/(スクラップ )(\+[\d,]+)/g,
     `$1${SVG_ICONS.scrap}<span style="color:#ffcc66;font-weight:bold;">$2</span>`);
   // エメラルド数値を緑に
-  text = text.replace(/(エメラルド )(\+\d+)/g,
+  text = text.replace(/(エメラルド )(\+[\d,]+)/g,
     `$1${SVG_ICONS.emerald}<span style="color:#58d68d;font-weight:bold;">$2</span>`);
   // HP回復を黄緑に（全タイプ共通）
   text = text.replace(/(HP\+\d+|HP \+\d+)/g,
     '<span style="color:#aaff66;font-weight:bold;">$1</span>');
   // 単独のスクラップ数値（マイナス時など、+なしのもの）をオレンジに
-  text = text.replace(/スクラップ (\d+)(?![\d])/g,
+  text = text.replace(/スクラップ ([\d,]+)(?![\d])/g,
     'スクラップ <span style="color:#ffcc66;font-weight:bold;">$1</span>');
   return text;
 }
@@ -1714,6 +1714,7 @@ function next(){
           "こないだコンテナからポーション拾っちゃった",
           "キノコ食べると稀にパワーアップするとか…ホントかな？",
           "30階以降はエメラルドも掘れるらしいよ。まぁ滅多にみつからないんだけどね",
+          "採掘中に授かった紋は1度帰還すると消えてしまうらしいよ。次また新しく授けてもらわないとね",
         ];
         let tip = DAIGO_TIPS[Math.floor(Math.random() * DAIGO_TIPS.length)];
         state.daigoLastFloor = state.floor;
