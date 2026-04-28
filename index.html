@@ -469,7 +469,7 @@ async function playDigSound(){
   filter.type  = "lowpass";
   filter.frequency.value = 800;
   const gain   = audioCtx.createGain();
-  gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+  gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
 
   src.connect(filter);
@@ -2233,26 +2233,22 @@ function buyPotion(){
   const cost = 1;
   if(state.totalScrap < cost){ showAlert("スクラップが足りない"); return; }
   if(state.items.length >= 5){ showAlert("持ち物がいっぱい"); return; }
-  showConfirm(`スクラップ ${cost} でポーションを購入しますか？`, () => {
-    state.totalScrap -= cost;
-    state.items.push({ name: "ポーション", effect: "hp3" });
-    playSE("coin");
-    saveAll();
-    render();
-  });
+  state.totalScrap -= cost;
+  state.items.push({ name: "ポーション", effect: "hp3" });
+  playSE("coin");
+  saveAll();
+  render();
 }
 
 function buyAntidote(){
   const cost = 10;
   if(state.totalScrap < cost){ showAlert("スクラップが足りない"); return; }
   if(state.items.length >= 5){ showAlert("持ち物がいっぱい"); return; }
-  showConfirm(`スクラップ ${cost} で毒消し草を購入しますか？`, () => {
-    state.totalScrap -= cost;
-    state.items.push({ name: "毒消し草", effect: "antidote" });
-    playSE("coin");
-    saveAll();
-    render();
-  });
+  state.totalScrap -= cost;
+  state.items.push({ name: "毒消し草", effect: "antidote" });
+  playSE("coin");
+  saveAll();
+  render();
 }
 
 function buyPotionHeal(){
