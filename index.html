@@ -39,7 +39,6 @@ font-size: 28px;
 #shop button {
 width: 100%;
 margin-top: 8px;
-transition: transform 0.08s, filter 0.08s;
 }
 
 button.nikotaya-press-fx {
@@ -60,7 +59,6 @@ border: 2px solid #0f0;
 font-size: 26px;
 font-family: monospace;
 border-radius: 12px;
-transition: all 0.1s;
 box-shadow: 0 0 10px rgba(0, 255, 0, 0.4);
 outline: none;
 -webkit-tap-highlight-color: transparent;
@@ -324,7 +322,7 @@ let savedItems     = JSON.parse(localStorage.getItem("items") || "[]");
 let savedSeOn      = localStorage.getItem("seOn") !== "false"; // デフォルトON
 let savedStats     = JSON.parse(localStorage.getItem("stats") || JSON.stringify({
   runs: 0, deaths: 0, floors: 0, scrap: 0, damage: 0,
-  potions: 0, goddess: 0, goldenMole: 0, thiefMole: 0
+  potions: 0, goddess: 0, goldenMole: 0, thiefMole: 0, daigo: 0, emerald: 0
 }));
 // 旧データに項目がない場合の補完
 ["runs","deaths","floors","scrap","damage","potions","goddess","goldenMole","thiefMole","daigo","emerald"].forEach(k => {
@@ -335,10 +333,7 @@ let state = {
   name:       savedName,
   hp:         10 + savedUpgrades.hp,
   maxHp:      10 + savedUpgrades.hp,
-  mp:         0,    // 未実装（将来用）
-  maxMp:      0,    // 未実装（将来用）
   power:      1  + savedUpgrades.power,
-  skills:     [],   // 未実装（将来用）
   items:      savedItems,   // 消耗品アイテム（最大5個）
   scrap:      0,
   totalScrap: savedScrap,
@@ -554,48 +549,43 @@ function toggleSE(){
   render();
 }
 
-// --- お知らせモーダル（OKボタンのみ） ---
-function showAlert(message){
+// --- モーダル基盤（共通） ---
+function showModal(message, opts){
   let overlay = document.getElementById("modal-overlay");
   document.getElementById("modal-message").innerHTML = message;
   let yesBtn = document.getElementById("modal-yes");
   let noBtn  = document.getElementById("modal-no");
-  let newYes = yesBtn.cloneNode(true);
-  let newNo  = noBtn.cloneNode(true);
-  yesBtn.parentNode.replaceChild(newYes, yesBtn);
-  noBtn.parentNode.replaceChild(newNo, noBtn);
-  newNo.style.display = "none";
-  newYes.innerText = "OK";
-  overlay.classList.add("show");
-  newYes.onclick = () => {
-    overlay.classList.remove("show");
-    newNo.style.display = "";
-    newYes.innerText = "はい";
-  };
-}
-
-// --- 確認モーダル ---
-function showConfirm(message, onYes){
-  let overlay = document.getElementById("modal-overlay");
-  document.getElementById("modal-message").innerHTML = message;
-  overlay.classList.add("show");
-
-  let yesBtn = document.getElementById("modal-yes");
-  let noBtn  = document.getElementById("modal-no");
-
   // 古いリスナー除去のためclone
   let newYes = yesBtn.cloneNode(true);
   let newNo  = noBtn.cloneNode(true);
   yesBtn.parentNode.replaceChild(newYes, yesBtn);
   noBtn.parentNode.replaceChild(newNo, noBtn);
 
+  if(opts.alertOnly){
+    newNo.style.display = "none";
+    newYes.innerText = "OK";
+  } else {
+    newNo.style.display = "";
+    newYes.innerText = "はい";
+  }
+
+  overlay.classList.add("show");
   newYes.onclick = () => {
     overlay.classList.remove("show");
-    onYes();
+    if(opts.onYes) opts.onYes();
   };
   newNo.onclick = () => {
     overlay.classList.remove("show");
+    if(opts.onNo) opts.onNo();
   };
+}
+
+function showAlert(message){
+  showModal(message, { alertOnly: true });
+}
+
+function showConfirm(message, onYes){
+  showModal(message, { onYes });
 }
 
 // --- データ全削除 ---
@@ -815,12 +805,13 @@ ${(() => {
 
 // --- 保存ヘルパー ---
 function saveAll() {
-  localStorage.setItem("totalScrap",  state.totalScrap);
-  localStorage.setItem("upgrades",    JSON.stringify(state.upgrades));
-  localStorage.setItem("bestFloor",   state.bestFloor);
-  localStorage.setItem("items",       JSON.stringify(state.items));
-  localStorage.setItem("stats",       JSON.stringify(state.stats));
-  localStorage.setItem("playerName",  state.name);
+  localStorage.setItem("totalScrap",   state.totalScrap);
+  localStorage.setItem("totalEmerald", state.totalEmerald);
+  localStorage.setItem("upgrades",     JSON.stringify(state.upgrades));
+  localStorage.setItem("bestFloor",    state.bestFloor);
+  localStorage.setItem("items",        JSON.stringify(state.items));
+  localStorage.setItem("stats",        JSON.stringify(state.stats));
+  localStorage.setItem("playerName",   state.name);
 }
 
 // ランの統計を永続に加算してリセット
@@ -875,16 +866,9 @@ function colorizeLog(text, type){
   // HP回復を黄緑に（全タイプ共通）
   text = text.replace(/(HP\+\d+|HP \+\d+)/g,
     '<span style="color:#aaff66;font-weight:bold;">$1</span>');
-  // subのダメージ・回復も色付け
-  if(type === "sub"){
-    text = text.replace(/(\d+)( ダメージ)/g,
-      '<span style="color:#f55;font-weight:bold;">$1</span>$2');
-    text = text.replace(/(HP \+\d+)/g,
-      '<span style="color:#aaff66;font-weight:bold;">$1</span>');
-    // スクラップ捨てはオレンジ
-    text = text.replace(/スクラップ (\d+)/g,
-      'スクラップ <span style="color:#ffcc66;font-weight:bold;">$1</span>');
-  }
+  // 単独のスクラップ数値（マイナス時など、+なしのもの）をオレンジに
+  text = text.replace(/スクラップ (\d+)(?![\d])/g,
+    'スクラップ <span style="color:#ffcc66;font-weight:bold;">$1</span>');
   return text;
 }
 
@@ -1008,7 +992,7 @@ function render(){
   let hpColor = hpRatio > 0.5 ? "#0f0" : hpRatio > 0.25 ? "#ff0" : "#f55";
   document.getElementById("se-toggle").innerText = state.seOn ? "🔔" : "🔕";
   document.getElementById("status").innerHTML =
-    `<span style="color:${hpColor}">HP:${state.hp}/${state.maxHp}</span> | ${SVG_ICONS.scrap}:<span style="color:#ffcc66;">${state.scrap.toLocaleString()}</span> | ${SVG_ICONS.emerald}:<span style="color:#58d68d;">${state.emerald || 0}</span> | 現在地:${state.floor}階`;
+    `<span style="color:${hpColor}">HP:${state.hp}/${state.maxHp}</span> | ${SVG_ICONS.scrap}:<span style="color:#ffcc66;">${state.scrap.toLocaleString()}</span> | ${SVG_ICONS.emerald}:<span style="color:#58d68d;">${(state.emerald || 0).toLocaleString()}</span> | 現在地:${state.floor}階`;
 
   // バフ・デバフ表示
   let buffHTML = "";
@@ -1021,7 +1005,7 @@ function render(){
   document.getElementById("buff-container").innerHTML = buffHTML;
 
   document.getElementById("storage").innerHTML =
-    `倉庫：${SVG_ICONS.scrap} ${state.totalScrap.toLocaleString()} ／ ${SVG_ICONS.emerald} ${state.totalEmerald}`;
+    `倉庫：${SVG_ICONS.scrap} ${state.totalScrap.toLocaleString()} ／ ${SVG_ICONS.emerald} ${state.totalEmerald.toLocaleString()}`;
 
   document.getElementById("playerStatus").innerHTML =
 `<span onclick="changeName()" style="cursor:pointer;">名前：${state.name} ✏️</span>
