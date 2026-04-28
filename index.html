@@ -527,11 +527,31 @@ async function playCoinSound(){
   osc.stop(audioCtx.currentTime + 0.4);
 }
 
+// エメラルド発見音：上昇アルペジオ（レア感）
+async function playEmeraldSound(){
+  await initAudio();
+  const now = audioCtx.currentTime;
+  [880, 1108, 1318, 1760].forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const g   = audioCtx.createGain();
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(freq, now + i * 0.05);
+    g.gain.setValueAtTime(0, now + i * 0.05);
+    g.gain.linearRampToValueAtTime(0.2, now + i * 0.05 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.05 + 0.4);
+    osc.connect(g);
+    g.connect(audioCtx.destination);
+    osc.start(now + i * 0.05);
+    osc.stop(now + i * 0.05 + 0.4);
+  });
+}
+
 // SE管理マスタ（将来ここに追加していく）
 const SE = {
-  dig:  playDigSound,
-  heal: playHealSound,
-  coin: playCoinSound,
+  dig:     playDigSound,
+  heal:    playHealSound,
+  coin:    playCoinSound,
+  emerald: playEmeraldSound,
 };
 
 async function playSE(name){
@@ -1604,7 +1624,6 @@ function floorHealBonus() { return Math.floor(state.floor / 20); }
 
 // --- 探索 ---
 function next(){
-  playSE("dig");
   state.floor++;
   state.runStats.floors++;
 
@@ -1669,6 +1688,7 @@ function next(){
         state.emerald++;
         addLog(`採掘した スクラップ +${g.toLocaleString()} エメラルド +1`, "scrap");
       } else {
+        playSE("dig");
         addLog(`採掘した スクラップ +${g.toLocaleString()}`, "scrap");
       }
     }},
