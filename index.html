@@ -937,6 +937,38 @@ const SVG_ICONS = {
     <path d="M5 24C5 19,9 19,9 24" fill="#FFD700" stroke="#DAA520" stroke-width="1"/>
     <path d="M15 24C15 19,19 19,19 24" fill="#FFD700" stroke="#DAA520" stroke-width="1"/>
   </svg>`,
+  goddess: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
+    <circle cx="50" cy="35" r="25" fill="none" stroke="#fcd34d" stroke-width="0.5" opacity="0.5">
+      <animate attributeName="r" values="22;28;22" dur="4s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.3;0.6;0.3" dur="4s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="50" cy="35" r="18" fill="#fef3c7" opacity="0.2">
+      <animate attributeName="opacity" values="0.1;0.3;0.1" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <g fill="#d4d4d8">
+      <circle cx="50" cy="25" r="8"/>
+      <path d="M50,33 L35,85 L65,85 Z"/>
+      <path d="M42,40 Q50,45 58,40" fill="none" stroke="#d4d4d8" stroke-width="3" stroke-linecap="round"/>
+      <path d="M38,35 Q20,20 15,50 Q20,60 38,55" fill="#a1a1aa" opacity="0.6">
+        <animateTransform attributeName="transform" type="rotate" from="-2 50 35" to="2 50 35" dur="5s" repeatCount="indefinite" additive="sum"/>
+      </path>
+      <path d="M62,35 Q80,20 85,50 Q80,60 62,55" fill="#a1a1aa" opacity="0.6">
+        <animateTransform attributeName="transform" type="rotate" from="2 50 35" to="-2 50 35" dur="5s" repeatCount="indefinite" additive="sum"/>
+      </path>
+    </g>
+    <rect x="30" y="85" width="40" height="8" rx="2" fill="#71717a"/>
+    <circle cx="25" cy="20" r="1.2" fill="#fbbf24">
+      <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="cy" values="20;15" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="75" cy="45" r="1.2" fill="#fbbf24">
+      <animate attributeName="opacity" values="0;1;0" dur="3s" begin="1s" repeatCount="indefinite"/>
+      <animate attributeName="cy" values="45;35" dur="3s" begin="1s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="50" cy="15" r="1" fill="#fff">
+      <animate attributeName="opacity" values="0;0.8;0" dur="2.5s" repeatCount="indefinite"/>
+    </circle>
+  </svg>`,
   scrap: `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
     <path d="M12 2L13.5 2L14.5 4.5L16.5 5.5L19 4L20 5L18.5 7.5L19.5 9.5L22 10.5L22 12L22 13.5L19.5 14.5L18.5 16.5L20 19L19 20L16.5 18.5L14.5 19.5L13.5 22L12 22L10.5 22L9.5 19.5L7.5 18.5L5 20L4 19L5.5 16.5L4.5 14.5L2 13.5L2 12L2 10.5L4.5 9.5L5.5 7.5L4 5L5 4L7.5 5.5L9.5 4.5L10.5 2Z" fill="#7F8C8D" stroke="#2C3E50" stroke-width="1" stroke-linejoin="round"/>
     <circle cx="12" cy="12" r="4" fill="#2C3E50"/>
@@ -986,7 +1018,7 @@ function getEmoji(text, type){
   // テキスト優先チェック（型より先に）
   if(text.includes("金モグラ"))        return SVG_ICONS.goldenMole;
   if(text.includes("泥棒モグラ"))      return SVG_ICONS.thiefMole;
-  if(type==="divider")     return "🚪";
+  if(type==="divider")     return text.includes("女神") ? SVG_ICONS.goddess : "🚪";
   if(type==="damage")      return text.includes("毒") ? "🩸" : "💥";
   if(type==="scrap")       return "⛏️";
   if(type==="heal")        return "💤";
@@ -1005,8 +1037,8 @@ function getEmoji(text, type){
   if(text.includes("足を滑らせ"))    return "🧊";
   if(text.includes("手首を痛め"))    return "🤕";
   if(text.includes("コウモリ"))     return "🦇";
-  if(text.includes("女神"))         return "🗿";
-  if(text.includes("加護"))          return "🗿";
+  if(text.includes("女神"))         return SVG_ICONS.goddess;
+  if(text.includes("加護"))          return SVG_ICONS.goddess;
   if(text.includes("DAIGO"))         return "👤";
   return "📋";
 }
