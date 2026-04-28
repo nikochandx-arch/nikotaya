@@ -546,12 +546,41 @@ async function playEmeraldSound(){
   });
 }
 
+// ボタン選択音：ピコ（汎用ボタンSE）
+async function playSelectSound(){
+  await initAudio();
+  const t = audioCtx.currentTime;
+  const partials = [
+    { ratio: 1,    vol: 1.0,  decayMult: 1.0  },
+    { ratio: 3.73, vol: 0.4,  decayMult: 0.55 },
+    { ratio: 7.8,  vol: 0.12, decayMult: 0.25 },
+  ];
+  const freq  = 1100;
+  const decay = 0.3;
+  const vol   = 0.25;
+  partials.forEach(({ ratio, vol: v, decayMult }) => {
+    const osc = audioCtx.createOscillator();
+    const g   = audioCtx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq * ratio * 1.004, t);
+    osc.frequency.exponentialRampToValueAtTime(freq * ratio, t + 0.012);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol * v, t + 0.003);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + decay * decayMult);
+    osc.connect(g);
+    g.connect(audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + decay * decayMult + 0.05);
+  });
+}
+
 // SE管理マスタ（将来ここに追加していく）
 const SE = {
   dig:     playDigSound,
   heal:    playHealSound,
   coin:    playCoinSound,
   emerald: playEmeraldSound,
+  select:  playSelectSound,  // 汎用ボタンSE（将来専用SEに差し替え可能）
 };
 
 async function playSE(name){
@@ -1365,10 +1394,10 @@ const BTN_STYLES = {
   shop:    { color: "#f9f",    bg: "rgba(255,153,255,0.1)" },
 };
 
-function btn(t, f, style="main"){
+function btn(t, f, style="main", seName="select"){
   let b = document.createElement("button");
   b.innerText = t;
-  b.onclick   = f;
+  b.onclick   = () => { playSE(seName); f(); };
   let s = BTN_STYLES[style] || BTN_STYLES.main;
   b.style.borderColor = s.color;
   b.style.color       = s.color;
