@@ -322,10 +322,11 @@ let savedItems     = JSON.parse(localStorage.getItem("items") || "[]");
 let savedSeOn      = localStorage.getItem("seOn") !== "false"; // デフォルトON
 let savedStats     = JSON.parse(localStorage.getItem("stats") || JSON.stringify({
   runs: 0, deaths: 0, floors: 0, scrap: 0, damage: 0,
-  potions: 0, goddess: 0, goldenMole: 0, thiefMole: 0, daigo: 0, emerald: 0
+  potions: 0, goddess: 0, goldenMole: 0, thiefMole: 0, daigo: 0, emerald: 0,
+  maxScrapCarry: 0, maxEmeraldCarry: 0, poisonTurns: 0, chests: 0
 }));
 // 旧データに項目がない場合の補完
-["runs","deaths","floors","scrap","damage","potions","goddess","goldenMole","thiefMole","daigo","emerald"].forEach(k => {
+["runs","deaths","floors","scrap","damage","potions","goddess","goldenMole","thiefMole","daigo","emerald","maxScrapCarry","maxEmeraldCarry","poisonTurns","chests"].forEach(k => {
   if(savedStats[k] === undefined) savedStats[k] = 0;
 });
 
@@ -425,6 +426,7 @@ function applyPoison(turns){
       d = Math.min(d, state.hp - 1);
       if(d > 0){
         damage(d, true); // 毒は鋼皮の紋の軽減対象外
+        state.stats.poisonTurns++;
         addLog(`🩸 毒ダメージ ${d}`, "damage");
       }
     }
@@ -1313,6 +1315,10 @@ ${unlockHTML}
   <div>進んだ階層累計：<span style="color:#fff;">${s.floors.toLocaleString()} 階</span></div>
   <div>入手スクラップ累計：<span style="color:#ffcc66;">${s.scrap.toLocaleString()}</span></div>
   <div>入手エメラルド累計：<span style="color:#58d68d;">${s.emerald.toLocaleString()}</span></div>
+  <div>最大持ち帰りスクラップ：<span style="color:#ffcc66;">${s.maxScrapCarry.toLocaleString()}</span></div>
+  <div>最大持ち帰りエメラルド：<span style="color:#58d68d;">${s.maxEmeraldCarry.toLocaleString()}</span></div>
+  <div>毒を受けたターン数累計：<span style="color:#fff;">${s.poisonTurns.toLocaleString()} ターン</span></div>
+  <div>コンテナを開けた回数：<span style="color:#fff;">${s.chests.toLocaleString()} 回</span></div>
   <div>受けたダメージ累計：<span style="color:#f55;">${s.damage.toLocaleString()}</span></div>
   <div>飲んだポーション数：<span style="color:#fff;">${s.potions.toLocaleString()} 個</span></div>
   <div>女神像に会った回数：<span style="color:#fff;">${s.goddess.toLocaleString()} 回</span></div>
@@ -1801,6 +1807,7 @@ function next(){
 
 // --- コンテナ ---
 function openChest(){
+  state.stats.chests++;
   let r = Math.random();
   if(r < 0.60){
     // スクラップ 60%
@@ -2161,6 +2168,8 @@ function doReturn(){
   if(state.floor > state.bestFloor) state.bestFloor = state.floor;
   commitStats(false, carry);
   state.stats.emerald += emeraldCarry;
+  if(carry > state.stats.maxScrapCarry) state.stats.maxScrapCarry = carry;
+  if(emeraldCarry > state.stats.maxEmeraldCarry) state.stats.maxEmeraldCarry = emeraldCarry;
   saveAll();
   let unlocks = checkUnlocks();
   state.lastResult = { survived: true, floor: state.floor, carry, emeraldCarry, unlocks };
@@ -2225,6 +2234,8 @@ function goddessReturn(){
   if(state.floor > state.bestFloor) state.bestFloor = state.floor;
   commitStats(false, carry);
   state.stats.emerald += emeraldCarry;
+  if(carry > state.stats.maxScrapCarry) state.stats.maxScrapCarry = carry;
+  if(emeraldCarry > state.stats.maxEmeraldCarry) state.stats.maxEmeraldCarry = emeraldCarry;
   saveAll();
   let unlocks = checkUnlocks();
   state.lastResult = { survived: true, floor: state.floor, carry, emeraldCarry, goddess: true, unlocks };
