@@ -1266,7 +1266,7 @@ ${unlockHTML}
       btn("採掘開始", startRun, "main");
       break;
     case "explore":
-      btn("採掘する", next, "main");
+      btn("採掘する", next, "main", null);
       break;
     case "event":
       btn("開ける", openChest, "risk");
@@ -1397,7 +1397,7 @@ const BTN_STYLES = {
 function btn(t, f, style="main", seName="select"){
   let b = document.createElement("button");
   b.innerText = t;
-  b.onclick   = () => { playSE(seName); f(); };
+  b.onclick   = () => { if(seName) playSE(seName); f(); };
   let s = BTN_STYLES[style] || BTN_STYLES.main;
   b.style.borderColor = s.color;
   b.style.color       = s.color;
@@ -1723,6 +1723,7 @@ function next(){
     }},
     // 落石 20%
     { w: 20, fn: () => {
+      playSE("select");
       let d = Math.floor(Math.random()*3) + 1 + floorDmgBonus();
       damage(d);
       addLog(`落石！ ${d} ダメージ`, "damage");
@@ -1736,17 +1737,20 @@ function next(){
     }},
     // 亀裂 10%
     { w: 10, fn: () => {
+      playSE("select");
       let lost = Math.min(calcScrap(), state.scrap);
       state.scrap = Math.max(0, state.scrap - lost);
       addLog(`亀裂の隙間にスクラップを落としてしまった スクラップ -${lost.toLocaleString()}`, "loss");
     }},
     // 有毒ガス 8%
     { w: 8, fn: () => {
+      playSE("select");
       applyPoison(2);
       addLog("有毒ガスが充満している！ 毒2ターン", "damage");
     }},
     // 暗闇で岩 7%
     { w: 7, fn: () => {
+      playSE("select");
       let base = Math.floor(Math.random()*3) + 1 + floorDmgBonus();
       let d = Math.max(1, Math.floor(base / 2));
       damage(d);
@@ -1754,6 +1758,7 @@ function next(){
     }},
     // 足を滑らせた 7%
     { w: 7, fn: () => {
+      playSE("select");
       let lost = Math.max(0, Math.floor(Math.floor(calcScrap() * 0.1) / 2));
       state.scrap = Math.max(0, state.scrap - lost);
       let d = Math.max(1, Math.ceil(state.maxHp * 0.05));
@@ -1763,6 +1768,7 @@ function next(){
     }},
     // 手首を痛めた 5%（採掘量低下デバフ3T）
     { w: 5, fn: () => {
+      playSE("select");
       applyMiningDown(3);
       addLog("採掘中に手首を痛めた… 採掘量低下（3ターン）", "damage");
     }},
@@ -1781,6 +1787,7 @@ function next(){
           "30階以降はエメラルドも掘れるらしいよ。まぁ滅多にみつからないんだけどね",
           "採掘中に授かった紋は1度帰還すると消えてしまうらしいよ。次また新しく授けてもらわないとね",
         ];
+        playSE("select");
         let tip = DAIGO_TIPS[Math.floor(Math.random() * DAIGO_TIPS.length)];
         state.daigoLastFloor = state.floor;
         state.runStats.daigo++;
@@ -1796,6 +1803,7 @@ function next(){
         return state.moleBlock !== block;
       },
       fn: () => {
+        playSE("select");
         let block = Math.floor((state.floor - 1) / 30);
         state.moleBlock = block;
         if(Math.random() < 0.5){
@@ -1816,14 +1824,15 @@ function next(){
   ];
 
   const HEAVY_EVENTS = [
-    { w: 20, fn: () => { state.mode = "event";          addLog("コンテナを発見した！"); }},
+    { w: 20, fn: () => { playSE("select"); state.mode = "event";          addLog("コンテナを発見した！"); }},
     { w: 40, fn: () => {
+      playSE("select");
       state.veinDepth = 0;
       state.mode = "event_vein";
       addLog("鉱脈だ！だけど地盤が脆そうだ…");
     }},
-    { w: 40, fn: () => { state.mode = "event_mushroom"; addLog("謎のキノコだ！"); }},
-    { w: 30, fn: () => { state.mode = "event_bat";      addLog("コウモリの群れだ！"); }},
+    { w: 40, fn: () => { playSE("select"); state.mode = "event_mushroom"; addLog("謎のキノコだ！"); }},
+    { w: 30, fn: () => { playSE("select"); state.mode = "event_bat";      addLog("コウモリの群れだ！"); }},
   ];
 
   // 探知の紋：重イベント率50%に
