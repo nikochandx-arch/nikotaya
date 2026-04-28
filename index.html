@@ -991,6 +991,10 @@ function render(){
   let hpRatio = state.maxHp > 0 ? state.hp / state.maxHp : 1;
   let hpColor = hpRatio > 0.5 ? "#0f0" : hpRatio > 0.25 ? "#ff0" : "#f55";
   document.getElementById("se-toggle").innerText = state.seOn ? "🔔" : "🔕";
+  if(state.mode !== "home") {
+    document.getElementById("current-event").style.flexGrow = "";
+    document.getElementById("log").style.maxHeight = "";
+  }
   document.getElementById("status").innerHTML =
     `<span style="color:${hpColor}">HP:${state.hp}/${state.maxHp}</span> | ${SVG_ICONS.scrap}:<span style="color:#ffcc66;">${state.scrap.toLocaleString()}</span> | ${SVG_ICONS.emerald}:<span style="color:#58d68d;">${(state.emerald || 0).toLocaleString()}</span> | 現在地:${state.floor}階`;
 
@@ -1032,6 +1036,7 @@ function render(){
   // 紋一覧表示
   if(state.mode === "relic_view"){
     document.getElementById("current-event").style.display = "none";
+    document.getElementById("current-event").style.flexGrow = "";
     document.getElementById("log").classList.add("relic-scroll");
     renderRelicCollection();
     // ショップはホームから開いた時のみ
@@ -1046,9 +1051,11 @@ function render(){
     return;
   } else if(state.mode === "home"){
     document.getElementById("current-event").style.display = "";
+    document.getElementById("current-event").style.flexGrow = "1";
     document.getElementById("current-event-icon").innerText = "";
     document.getElementById("current-event-text").innerText = "採掘を開始しよう！";
     document.getElementById("log").classList.remove("relic-scroll");
+    document.getElementById("log").style.maxHeight = "0";
     document.getElementById("log").innerHTML = "";
   }
 
