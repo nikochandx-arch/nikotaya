@@ -1036,8 +1036,9 @@ function render(){
   // 紋一覧表示
   if(state.mode === "relic_view"){
     document.getElementById("current-event").style.display = "none";
-    document.getElementById("current-event").style.flexGrow = "";
+    document.getElementById("current-event").style.flexGrow = "1";
     document.getElementById("log").classList.add("relic-scroll");
+    document.getElementById("log").style.maxHeight = "";
     renderRelicCollection();
     // ショップはホームから開いた時のみ
     if(relicPrevMode === "home"){
