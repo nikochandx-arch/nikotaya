@@ -1181,7 +1181,17 @@ ${unlockHTML}
   if(state.log.length > 0){
     let entry = state.log[0];
     let firstLine = entry.lines[0];
-    document.getElementById("current-event-icon").innerHTML = firstLine.emoji || "📋";
+    let iconEl = document.getElementById("current-event-icon");
+    let emoji = firstLine.emoji || "📋";
+    // 女神像SVGはメイン枠では2倍サイズで表示
+    if(typeof emoji === "string" && emoji.includes("viewBox=\"0 0 100 100\"")){
+      iconEl.innerHTML = emoji.replace(
+        "width:1em;height:1em;",
+        "width:2em;height:2em;"
+      );
+    } else {
+      iconEl.innerHTML = emoji;
+    }
 
     // 鉱脈イベント専用表示
     if(state.mode === "event_vein"){
