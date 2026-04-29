@@ -1638,7 +1638,7 @@ function startRun(){
 function calcScrap(){
   let bonus    = Math.floor((state.floor-1)/10) + 1;
   let base     = state.power * bonus;
-  let variance = Math.floor(base * (Math.random() - 0.5) * 0.4);  // ±20%
+  let variance = Math.floor(base * (Math.random() - 0.5) * 0.14);  // ±7%
   return Math.max(1, base + variance);
 }
 
