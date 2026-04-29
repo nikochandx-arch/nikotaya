@@ -1760,22 +1760,22 @@ function next(){
       state.scrap = Math.max(0, state.scrap - lost);
       addLog(`亀裂の隙間にスクラップを落としてしまった スクラップ -${lost.toLocaleString()}`, "loss");
     }},
-    // 有毒ガス 8%
-    { w: 8, fn: () => {
+    // 有毒ガス 3%
+    { w: 3, fn: () => {
       playSE("select");
       applyPoison(2);
       addLog("有毒ガスが充満している！ 毒2ターン", "damage");
     }},
-    // 暗闇で岩 7%
-    { w: 7, fn: () => {
+    // 暗闇で岩 9%
+    { w: 9, fn: () => {
       playSE("select");
       let base = Math.floor(Math.random()*3) + 1 + floorDmgBonus();
       let d = Math.max(1, Math.floor(base / 2));
       damage(d);
       addLog(`暗闇で岩にぶつかった！ ${d} ダメージ`, "damage");
     }},
-    // 足を滑らせた 7%
-    { w: 7, fn: () => {
+    // 足を滑らせた 8%
+    { w: 8, fn: () => {
       playSE("select");
       let lost = Math.max(0, Math.floor(Math.floor(calcScrap() * 0.1) / 2));
       state.scrap = Math.max(0, state.scrap - lost);
@@ -1784,8 +1784,8 @@ function next(){
       addLog(`足を滑らせた！`, "damage");
       addLog(`スクラップを ${lost.toLocaleString()} 落とした / ${d} ダメージを受けた`, "sub");
     }},
-    // 手首を痛めた 5%（採掘量低下デバフ3T）
-    { w: 5, fn: () => {
+    // 手首を痛めた 7%（採掘量低下デバフ3T）
+    { w: 7, fn: () => {
       playSE("select");
       applyMiningDown(3);
       addLog("採掘中に手首を痛めた… 採掘量低下（3ターン）", "damage");
