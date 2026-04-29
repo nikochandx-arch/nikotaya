@@ -997,6 +997,23 @@ const SVG_ICONS = {
     <polygon points="4,7 7,4 12,4 7,9" fill="#FFFFFF" opacity="0.5"/>
     <path d="M19 13L20 16L23 17L20 18L19 21L18 18L15 17L18 16Z" fill="#FFF"/>
   </svg>`,
+  door: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
+    <defs>
+      <filter id="rustEffect"><feTurbulence type="fractalNoise" baseFrequency="0.1" numOctaves="3"></feTurbulence><feDiffuseLighting lighting-color="#451a03" surfaceScale="2"><feDistantLight azimuth="45" elevation="50"></feDistantLight></feDiffuseLighting><feComposite in2="SourceAlpha" operator="in"></feComposite></filter>
+      <linearGradient id="doorGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#3f3f46"></stop><stop offset="50%" stop-color="#71717a"></stop><stop offset="100%" stop-color="#3f3f46"></stop></linearGradient>
+    </defs>
+    <rect x="15" y="10" width="70" height="85" fill="#18181b" stroke="#3f3f46" stroke-width="3"></rect>
+    <rect x="20" y="15" width="60" height="80" fill="url(#doorGrad)"></rect>
+    <rect x="20" y="15" width="60" height="80" fill="#451a03" filter="url(#rustEffect)" opacity="0.4"></rect>
+    <rect x="20" y="30" width="60" height="6" fill="#27272a"></rect>
+    <rect x="20" y="70" width="60" height="6" fill="#27272a"></rect>
+    <circle cx="25" cy="33" r="1.5" fill="#18181b"></circle><circle cx="75" cy="33" r="1.5" fill="#18181b"></circle>
+    <circle cx="25" cy="73" r="1.5" fill="#18181b"></circle><circle cx="75" cy="73" r="1.5" fill="#18181b"></circle>
+    <rect x="65" y="45" width="10" height="15" rx="1" fill="#18181b"></rect>
+    <circle cx="70" cy="50" r="2.5" fill="#000"></circle>
+    <path d="M70,50 L70,56" stroke="#000" stroke-width="2" stroke-linecap="round"></path>
+    <rect x="18" y="15" width="2" height="80" fill="#fbbf24" opacity="0.1"></rect>
+  </svg>`,
   thiefMole: `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
     <path d="M4 24C4 10,20 10,20 24" fill="#8B4513" stroke="#5C2E0B" stroke-width="1"/>
     <path d="M4 15C4 8,20 8,20 15Z" fill="#2E8B57" stroke="#1C5C39" stroke-width="1"/>
@@ -1019,7 +1036,7 @@ function getEmoji(text, type){
   // テキスト優先チェック（型より先に）
   if(text.includes("金モグラ"))        return SVG_ICONS.goldenMole;
   if(text.includes("泥棒モグラ"))      return SVG_ICONS.thiefMole;
-  if(type==="divider")     return text.includes("女神") ? SVG_ICONS.goddess : "🚪";
+  if(type==="divider")     return text.includes("女神") ? SVG_ICONS.goddess : SVG_ICONS.door;
   if(type==="damage")      return text.includes("毒") ? "🩸" : "💥";
   if(type==="scrap")       return "⛏️";
   if(type==="heal")        return "💤";
@@ -1184,8 +1201,8 @@ ${unlockHTML}
     let firstLine = entry.lines[0];
     let iconEl = document.getElementById("current-event-icon");
     let emoji = firstLine.emoji || "📋";
-    // 女神像SVGはメイン枠では2倍サイズで表示
-    if(typeof emoji === "string" && emoji.includes("viewBox=\"0 0 100 100\"")){
+    // 女神像・扉SVGはメイン枠では2倍サイズで表示
+    if(typeof emoji === "string" && (emoji.includes("viewBox=\"0 0 100 100\""))){
       iconEl.innerHTML = emoji.replace(
         "width:1em;height:1em;",
         "width:2em;height:2em;"
