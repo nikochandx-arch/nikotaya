@@ -1198,15 +1198,17 @@ ${unlockHTML}
       let depth = state.veinDepth;
       let p = VEIN_PARAMS[Math.min(depth, 3)];
       document.getElementById("current-event-icon").innerText = "💎";
+      let tier = Math.floor((state.floor - 1) / 10) + 1;
+      let dmg = tier * p.dmgCoef;
       if(depth === 0){
         document.getElementById("current-event-text").innerHTML = `
 <div style="font-size:28px;">鉱脈だ！だけど地盤が脆そうだ…</div>
-<div style="color:#ffcc66;font-size:22px;margin-top:6px;">崩落確率：${p.collapse*100}%　獲得倍率：×${p.mult}</div>`;
+<div style="color:#ffcc66;font-size:22px;margin-top:6px;">崩落確率：${p.collapse*100}%　獲得倍率：×${p.mult}　想定ダメージ：${dmg}</div>`;
       } else {
         let collapseColor = p.collapse >= 0.6 ? "#f55" : p.collapse >= 0.4 ? "#ffcc66" : "#0f0";
         document.getElementById("current-event-text").innerHTML = `
 <div style="font-size:26px;">${depth}回掘った <span style="color:#ffcc66;">スクラップ+${state.veinLastGain.toLocaleString()}</span>　やめるなら今のうち…</div>
-<div style="color:${collapseColor};font-size:24px;font-weight:bold;margin-top:6px;">次の崩落確率：${p.collapse*100}%</div>
+<div style="color:${collapseColor};font-size:24px;font-weight:bold;margin-top:6px;">次の崩落確率：${p.collapse*100}%　想定ダメージ：${dmg}</div>
 <div style="color:#ffcc66;font-size:22px;">成功時獲得倍率：×${p.mult}</div>`;
       }
     } else
