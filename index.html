@@ -784,8 +784,8 @@ const CREST_MASTER = [
       <path d="M 0 5 L 5 -20"/>
     </g>` },
   { id:"friend",   name:"友誼の紋",  category:"ユーティリティ系", color:"#0f0", rgb:"0,255,0",
-    desc:"DAIGOに出会った時にHPを回復する", // システム: DAIGOのTIPSを見た時にHPを回復する
-    unlockCond:"未実装",
+    desc:"DAIGOに出会った時にHP20%回復", // システム: DAIGOイベント時にheal(ceil(maxHp*0.2))
+    unlockCond:"DAIGOに15回会う",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <circle cx="0" cy="0" r="22" stroke-width="3"/>
       <circle cx="-8" cy="-5" r="3" fill="currentColor" stroke="none"/>
@@ -803,6 +803,7 @@ const UNLOCK_CHECKS = {
   mining: () => state.bestFloor >= 50,
   steel:  () => state.bestFloor >= 50,
   detect: () => state.bestFloor >= 50,
+  friend: () => state.stats.daigo >= 15,
   // 他の紋は今後追加
 };
 
@@ -1813,7 +1814,14 @@ function next(){
         state.runStats.daigo++;
         state.mode = "event_daigo";
         addLog(`採掘者DAIGOに出会った！`);
-        state.log[0].tip = tip; // ログエントリにtipを付加
+        state.log[0].tip = tip;
+        // 友誼の紋：HP20%回復
+        if(state.relics.some(r => r.id === "friend")){
+          let h = Math.ceil(state.maxHp * 0.2);
+          heal(h);
+          playSE("heal");
+          addLog(`友誼の紋が輝いた！ HP +${h} 回復`, "heal");
+        }
       }
     },
     // モグラ 1%（30階ブロック内で1回まで）
@@ -1856,9 +1864,10 @@ function next(){
   ];
 
   // イベント比率定数（紋や仕様変更で調整可能）
-  const RATE_MINING = 0.40;  // 採掘固定確率
-  const RATE_LIGHT  = state.relics.some(r => r.id === "detect") ? 0.30 : 0.30;  // 軽イベント（探知の紋で将来変動可）
-  const RATE_HEAVY  = state.relics.some(r => r.id === "detect") ? 0.30 : 0.30;  // 重イベント（探知の紋で将来変動可）
+  const hasDetect = state.relics.some(r => r.id === "detect");
+  const RATE_MINING = hasDetect ? 0.30 : 0.40;
+  const RATE_LIGHT  = hasDetect ? 0.20 : 0.30;
+  const RATE_HEAVY  = hasDetect ? 0.50 : 0.30;
 
   const roll = Math.random();
 
