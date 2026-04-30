@@ -1730,6 +1730,21 @@ function getEmeraldDropRate(){
 function floorDmgBonus()  { return Math.floor(state.floor / 10); }
 function floorHealBonus() { return Math.floor(state.floor / 20); }
 
+// --- イベント発生条件マスタ ---
+const EVENT_COND = {
+  lowHp:      () => state.hp / state.maxHp <= 0.30,
+  highHp:     () => state.hp / state.maxHp >= 0.75,
+  isPoisoned: () => state.buffs.some(b => b.id === "poison"),
+  miningUp:   () => state.buffs.some(b => b.id === "miningUp"),
+  miningDown: () => state.buffs.some(b => b.id === "miningDown"),
+  itemEmpty:  () => state.items.length === 0,
+  itemFull:   () => state.items.length >= 5,
+  hasPotion:  () => state.items.some(i => i.effect === "hp3"),
+  richScrap:  () => state.scrap >= 200,
+  poorScrap:  () => state.scrap === 0,
+  hasEmerald: () => state.emerald > 0,
+};
+
 // --- 探索 ---
 function next(){
   state.floor++;
@@ -1927,6 +1942,12 @@ function next(){
       } else {
         playSE("dig");
         addLog(`採掘した スクラップ +${g.toLocaleString()}`, "scrap");
+      }
+      // 高HP（75%以上）時：10%の確率で採掘ボーナス
+      if(EVENT_COND.highHp() && Math.random() < 0.10){
+        let bonus = Math.max(1, Math.floor(g * 0.3));
+        state.scrap += bonus;
+        addLog(`採掘の調子が良い！追加 スクラップ +${bonus.toLocaleString()}`, "sub");
       }
     })();
     checkDeath();
