@@ -1026,6 +1026,23 @@ const SVG_ICONS = {
     <path d="M70,50 L70,56" stroke="#000" stroke-width="2" stroke-linecap="round"></path>
     <rect x="18" y="15" width="2" height="80" fill="#fbbf24" opacity="0.1"></rect>
   </svg>`,
+  vein: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
+    <defs>
+      <filter id="fRock1"><feTurbulence type="fractalNoise" baseFrequency="0.15" numOctaves="4"></feTurbulence><feDiffuseLighting lighting-color="#444" surfaceScale="2"><feDistantLight azimuth="225" elevation="45"></feDistantLight></feDiffuseLighting><feComposite in2="SourceAlpha" operator="in"></feComposite></filter>
+      <linearGradient id="gSilver" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f8fafc"></stop><stop offset="50%" stop-color="#94a3b8"></stop><stop offset="100%" stop-color="#334155"></stop></linearGradient>
+    </defs>
+    <path d="M5,15 L95,10 L90,90 L10,85 Z" fill="#262626" filter="url(#fRock1)"></path>
+    <path d="M45,10 L40,40 L55,60 L50,90" stroke="#000" stroke-width="3" fill="none" opacity="0.7"></path>
+    <g transform="translate(20,25) rotate(-15)">
+      <path d="M0,0 L15,-5 L18,10 L5,12 Z" fill="url(#gSilver)"></path>
+      <path d="M2,2 L12,2" stroke="#fff" stroke-width="0.5" opacity="0.8"><animate attributeName="opacity" values="0.2;1;0.2" dur="1.5s" repeatCount="indefinite"></animate></path>
+    </g>
+    <g transform="translate(55,50)">
+      <path d="M0,0 L10,-3 L12,7 L2,8 Z" fill="url(#gSilver)"></path>
+    </g>
+    <path d="M65,25 L75,20 L78,30 L68,35 Z" fill="#3b82f6"><animate attributeName="fill" values="#3b82f6;#93c5fd;#3b82f6" dur="3s" repeatCount="indefinite"></animate></path>
+    <circle cx="28" cy="22" r="0.6" fill="#fff"><animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite"></animate></circle>
+  </svg>`,
   thiefMole: `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
     <path d="M4 24C4 10,20 10,20 24" fill="#8B4513" stroke="#5C2E0B" stroke-width="1"/>
     <path d="M4 15C4 8,20 8,20 15Z" fill="#2E8B57" stroke="#1C5C39" stroke-width="1"/>
@@ -1056,7 +1073,7 @@ function getEmoji(text, type){
   if(type==="sub")         return "";
   if(text.includes("採掘開始"))     return "⛏️";
   if(text.includes("コンテナ"))     return "📦";
-  if(text.includes("鉱脈"))         return "💎";
+  if(text.includes("鉱脈"))         return SVG_ICONS.vein;
   if(text.includes("キノコ"))       return "🍄";
   if(text.includes("帰還"))         return "🏠";
   if(text.includes("HPが0"))        return "💀";
@@ -1227,7 +1244,7 @@ ${unlockHTML}
     if(state.mode === "event_vein"){
       let depth = state.veinDepth;
       let p = VEIN_PARAMS[Math.min(depth, 3)];
-      document.getElementById("current-event-icon").innerText = "💎";
+      iconEl.innerHTML = SVG_ICONS.vein.replace("width:1em;height:1em;", "width:2em;height:2em;");
       let tier = Math.floor((state.floor - 1) / 10) + 1;
       let dmg = tier * p.dmgCoef;
       if(depth === 0){
