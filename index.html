@@ -1731,19 +1731,21 @@ function floorDmgBonus()  { return Math.floor(state.floor / 10); }
 function floorHealBonus() { return Math.floor(state.floor / 20); }
 
 // --- イベント発生条件マスタ ---
-const EVENT_COND = {
-  lowHp:      () => state.hp / state.maxHp <= 0.30,
-  highHp:     () => state.hp / state.maxHp >= 0.75,
-  isPoisoned: () => state.buffs.some(b => b.id === "poison"),
-  miningUp:   () => state.buffs.some(b => b.id === "miningUp"),
-  miningDown: () => state.buffs.some(b => b.id === "miningDown"),
-  itemEmpty:  () => state.items.length === 0,
-  itemFull:   () => state.items.length >= 5,
-  hasPotion:  () => state.items.some(i => i.effect === "hp3"),
-  richScrap:  () => state.scrap >= 200,
-  poorScrap:  () => state.scrap === 0,
-  hasEmerald: () => state.emerald > 0,
-};
+function EVENT_COND(){
+  return {
+    lowHp:      state.hp / state.maxHp <= 0.25,
+    highHp:     state.hp / state.maxHp >= 0.75,
+    isPoisoned: state.buffs.some(b => b.id === "poison"),
+    miningUp:   state.buffs.some(b => b.id === "miningUp"),
+    miningDown: state.buffs.some(b => b.id === "miningDown"),
+    itemEmpty:  state.items.length === 0,
+    itemFull:   state.items.length >= 5,
+    hasPotion:  state.items.some(i => i.effect === "hp3"),
+    richScrap:  state.scrap >= 200,
+    poorScrap:  state.scrap === 0,
+    hasEmerald: state.emerald > 0,
+  };
+}
 
 // --- 探索 ---
 function next(){
@@ -1931,6 +1933,12 @@ function next(){
       if(state.relics.some(r => r.id === "mining")){
         g += Math.floor(state.power / 2) + Math.floor(state.floor / 20);
       }
+      // 低HP（25%以下）時：15%の確率で採掘ペナルティ（スクラップ30%減）
+      let lowHpPenalty = EVENT_COND().lowHp && Math.random() < 0.15;
+      if(lowHpPenalty){
+        let penalty = Math.floor(g * 0.3);
+        g -= penalty;
+      }
       state.scrap += g;
       // エメラルドドロップ判定
       let dropRate = getEmeraldDropRate();
@@ -1943,8 +1951,11 @@ function next(){
         playSE("dig");
         addLog(`採掘した スクラップ +${g.toLocaleString()}`, "scrap");
       }
-      // 高HP（75%以上）時：10%の確率で採掘ボーナス
-      if(EVENT_COND.highHp() && Math.random() < 0.10){
+      if(lowHpPenalty){
+        addLog(`疲れて採掘が捗らない…`, "sub");
+      }
+      // 高HP（75%以上）時：15%の確率で採掘ボーナス
+      if(EVENT_COND().highHp && Math.random() < 0.15){
         let bonus = Math.max(1, Math.floor(g * 0.3));
         state.scrap += bonus;
         addLog(`採掘の調子が良い！追加 スクラップ +${bonus.toLocaleString()}`, "sub");
