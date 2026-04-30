@@ -1270,11 +1270,16 @@ ${unlockHTML}
       `;
     } else
     // DAIGOイベントは専用表示
-    if(state.mode === "event_daigo" && entry.tip){
+    if(state.mode === "event_daigo"){
       document.getElementById("current-event-icon").innerText = "👤";
+      let tipText = entry.tip || "…";
+      let friendHTML = entry.friendHeal
+        ? `<div style="font-size:22px;color:#aaff66;margin-top:8px;">💚 友誼の紋が輝いた！ HP +${entry.friendHeal} 回復</div>`
+        : "";
       document.getElementById("current-event-text").innerHTML = `
 <div style="font-size:26px;color:#0ff;">採掘者DAIGO</div>
-<div style="font-size:22px;color:#fff;margin-top:6px;">『${entry.tip}』</div>
+<div style="font-size:22px;color:#fff;margin-top:6px;">『${tipText}』</div>
+${friendHTML}
 `;
       // ボタンは下のswitchで描画するのでここではスキップ
     } else {
@@ -1849,7 +1854,8 @@ function next(){
           let h = Math.ceil(state.maxHp * 0.2);
           heal(h);
           playSE("heal");
-          addLog(`友誼の紋が輝いた！ HP +${h} 回復`, "heal");
+          state.log[0].friendHeal = h;
+          addLog(`友誼の紋が輝いた！ HP +${h} 回復`, "sub");
         }
       }
     },
