@@ -453,7 +453,14 @@ let audioCtx = null;
 
 async function initAudio(){
   if(!audioCtx) audioCtx = new AudioCtx();
-  if(audioCtx.state === "suspended") await audioCtx.resume();
+  if(audioCtx.state === "suspended"){
+    await audioCtx.resume();
+  }
+  // それでもsuspendedのままなら再生成
+  if(audioCtx.state === "suspended"){
+    audioCtx = new AudioCtx();
+    await audioCtx.resume();
+  }
 }
 
 // 採掘音：ザクッ（こもった土の音）
@@ -501,9 +508,14 @@ async function playHealSound(){
 }
 
 // フォアグラウンド復帰時にAudioContextを自動resume
-document.addEventListener("visibilitychange", () => {
+document.addEventListener("visibilitychange", async () => {
   if(document.visibilityState === "visible" && audioCtx) {
-    audioCtx.resume();
+    try {
+      await audioCtx.resume();
+    } catch(e) {
+      // resume失敗時はaudioCtxをリセットして次回initAudioで再生成
+      audioCtx = null;
+    }
   }
 });
 
