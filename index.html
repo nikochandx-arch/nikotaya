@@ -275,7 +275,7 @@ font-weight: bold;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v10.47</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v10.48</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <div id="buff-container"></div>
   </div>
@@ -1201,15 +1201,8 @@ function render(){
     document.getElementById("log").style.maxHeight = "none";
     document.getElementById("log").style.flex = "1";
     renderRelicCollection();
-    // ショップはホームから開いた時のみ
-    if(relicPrevMode === "home"){
-      let a = document.getElementById("actions");
-      a.innerHTML = "";
-      btn("採掘開始", startRun, "main");
-      document.getElementById("shop").innerHTML = buildShopHTML();
-    } else {
-      document.getElementById("shop").innerHTML = "";
-    }
+    document.getElementById("actions").innerHTML = "";
+    document.getElementById("shop").innerHTML = "";
     return;
   } else if(state.mode === "home"){
     document.getElementById("current-event").style.display = "";
