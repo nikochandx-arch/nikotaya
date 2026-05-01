@@ -275,7 +275,7 @@ font-weight: bold;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v10.48</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v10.49</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <div id="buff-container"></div>
   </div>
@@ -2527,26 +2527,82 @@ function buyPotionHeal(){
 }
 
 function buyHp(){
-  let cost = getHpCost();
-  if(state.totalScrap < cost){ showAlert("スクラップが足りない"); return; }
-  showConfirm(`スクラップ ${cost.toLocaleString()} で最大HP +1 を購入しますか？`, () => {
-    state.totalScrap  -= cost;
-    state.maxHp++;
-    state.hp++;
-    state.upgrades.hp++;
-    playSE("coin");
-    saveAll();
-    render();
-  });
+  showBulkBuyModal(
+    "最大HP",
+    () => getHpCost(),
+    (n) => {
+      state.totalScrap -= calcBulkCost(getHpCost, n);
+      for(let i = 0; i < n; i++){
+        state.maxHp++;
+        state.hp++;
+        state.upgrades.hp++;
+      }
+    }
+  );
 }
 
 function buyPower(){
-  let cost = getPowerCost();
-  if(state.totalScrap < cost){ showAlert("スクラップが足りない"); return; }
-  showConfirm(`スクラップ ${cost.toLocaleString()} で採掘力 +1 を購入しますか？`, () => {
-    state.totalScrap   -= cost;
-    state.power++;
-    state.upgrades.power++;
+  showBulkBuyModal(
+    "採掘力",
+    () => getPowerCost(),
+    (n) => {
+      state.totalScrap -= calcBulkCost(getPowerCost, n);
+      for(let i = 0; i < n; i++){
+        state.power++;
+        state.upgrades.power++;
+      }
+    }
+  );
+}
+
+// まとめ買いの合計コスト計算（1個ずつコストが上がるため逐次計算）
+function calcBulkCost(costFn, n){
+  let saved = { hp: state.upgrades.hp, power: state.upgrades.power };
+  let total = 0;
+  for(let i = 0; i < n; i++){
+    total += costFn();
+    // コスト関数がupgradesを参照するので仮適用
+    if(costFn === getHpCost)    state.upgrades.hp++;
+    if(costFn === getPowerCost) state.upgrades.power++;
+  }
+  // 仮適用を元に戻す
+  state.upgrades.hp    = saved.hp;
+  state.upgrades.power = saved.power;
+  return total;
+}
+
+// 個数選択モーダル
+function showBulkBuyModal(label, costFn, onBuy){
+  const counts = [1, 5, 10, 20];
+  let buttonsHTML = counts.map(n => {
+    let total = calcBulkCost(costFn, n);
+    let canAfford = state.totalScrap >= total;
+    let style = canAfford
+      ? `border:2px solid #f9f;color:#f9f;background:rgba(255,153,255,0.1);border-radius:8px;padding:12px 0;font-size:22px;font-family:monospace;width:100%;margin:4px 0;cursor:pointer;`
+      : `border:2px solid #666;color:#666;background:transparent;border-radius:8px;padding:12px 0;font-size:22px;font-family:monospace;width:100%;margin:4px 0;opacity:0.4;`;
+    return `<button style="${style}" ${canAfford ? `onclick="doBulkBuy(${n})"` : "disabled"}>
+      +${n}<br><span style="font-size:18px;">${SVG_ICONS.scrap} ${total.toLocaleString()}</span>
+    </button>`;
+  }).join("");
+
+  showModal(
+    `<div style="font-size:26px;margin-bottom:12px;">${label} を何個購入しますか？</div>
+    <div id="bulk-buy-buttons">${buttonsHTML}</div>`,
+    { alertOnly: true }
+  );
+
+  // グローバルに一時保持
+  window._bulkBuyState = { label, costFn, onBuy };
+}
+
+function doBulkBuy(n){
+  let { costFn, onBuy } = window._bulkBuyState;
+  let total = calcBulkCost(costFn, n);
+  if(state.totalScrap < total){ showAlert("スクラップが足りない"); return; }
+  // モーダルを閉じる
+  document.getElementById("modal-overlay").classList.remove("show");
+  showConfirm(`スクラップ ${total.toLocaleString()} で ${n}個購入しますか？`, () => {
+    onBuy(n);
     playSE("coin");
     saveAll();
     render();
