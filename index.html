@@ -275,7 +275,7 @@ font-weight: bold;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v10.52</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v10.54</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <div id="buff-container"></div>
   </div>
@@ -349,6 +349,7 @@ let state = {
   moleBlock: -1,  // モグラが発生した30階ブロック番号
   relicViewOpen: false,
   daigoLastFloor: -999,  // DAIGOの最終遭遇階
+  merchantLastFloor: -999,  // 商人の最終遭遇階
   relics: [],  // 装備中の紋（最大5つ、ラン中のみ有効）
   pendingItem: null,  // 手持ちいっぱい時の入手待ちアイテム
   relicEventFloors: new Set(),  // この採掘中に紋イベント発生済みの階層
@@ -1066,6 +1067,23 @@ const SVG_ICONS = {
     <polygon points="4,7 7,4 12,4 7,9" fill="#FFFFFF" opacity="0.5"/>
     <path d="M19 13L20 16L23 17L20 18L19 21L18 18L15 17L18 16Z" fill="#FFF"/>
   </svg>`,
+  merchant: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
+    <path d="M20,100 L25,50 Q25,15 50,15 Q75,15 75,50 L80,100 Z" fill="#2e1065"/>
+    <path d="M25,50 Q25,15 50,15 Q75,15 75,50 L70,50 Q70,22 50,22 Q30,22 30,50 Z" fill="#4c1d95"/>
+    <path d="M35,35 Q50,30 65,35 Q65,65 50,70 Q35,65 35,35 Z" fill="#000"/>
+    <circle cx="43" cy="48" r="1.5" fill="#f43f5e">
+      <animate attributeName="opacity" values="0.2;1;0.2" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="57" cy="48" r="1.5" fill="#f43f5e">
+      <animate attributeName="opacity" values="0.2;1;0.2" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="50" cy="75" r="4" fill="#ca8a04"/>
+    <path d="M50,72 L50,78 M47,75 L53,75" stroke="#fef08a" stroke-width="1"/>
+    <circle cx="80" cy="80" r="4" fill="#a855f7" opacity="0.3">
+      <animate attributeName="cy" values="80;70" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.3;0" dur="2s" repeatCount="indefinite"/>
+    </circle>
+  </svg>`,
   door: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
     <defs>
       <filter id="rustEffect"><feTurbulence type="fractalNoise" baseFrequency="0.1" numOctaves="3"></feTurbulence><feDiffuseLighting lighting-color="#451a03" surfaceScale="2"><feDistantLight azimuth="45" elevation="50"></feDistantLight></feDiffuseLighting><feComposite in2="SourceAlpha" operator="in"></feComposite></filter>
@@ -1144,6 +1162,7 @@ function getEmoji(text, type){
   if(text.includes("女神"))         return SVG_ICONS.goddess;
   if(text.includes("加護"))          return SVG_ICONS.goddess;
   if(text.includes("DAIGO"))         return "👤";
+  if(text.includes("商人"))          return SVG_ICONS.merchant;
   return "📋";
 }
 
@@ -1356,6 +1375,17 @@ ${unlockHTML}
 ${friendHTML}
 `;
       // ボタンは下のswitchで描画するのでここではスキップ
+    } else
+    // 商人イベントは専用表示
+    if(state.mode === "event_merchant"){
+      document.getElementById("current-event-icon").innerHTML = SVG_ICONS.merchant.replace("width:1em;height:1em;","width:2em;height:2em;");
+      let price = Math.max(1, Math.floor(state.scrap * 0.2));
+      document.getElementById("current-event-text").innerHTML = `
+<div style="font-size:26px;color:#a855f7;">謎の商人</div>
+<div style="font-size:22px;color:#fff;margin-top:6px;">『やあ、${state.name}さん。何か入り用かい？』</div>
+<div style="font-size:20px;color:#aaa;margin-top:4px;">ポーション：${SVG_ICONS.scrap}<span style="color:#ffcc66;">${price.toLocaleString()}</span></div>
+`;
+      // ボタンは下のswitchで描画するのでここではスキップ
     } else {
 
     let eventHTML = "";
@@ -1446,6 +1476,9 @@ ${friendHTML}
       break;
     case "event_daigo":
       renderDaigoEvent();
+      break;
+    case "event_merchant":
+      renderMerchantEvent();
       break;
     case "event_goddess":
       btn("回復してほしい", goddessHeal, "special");
@@ -1741,6 +1774,7 @@ function startRun(){
   clearBuffs();
   resetRunStats();
   state.daigoLastFloor = -999;
+  state.merchantLastFloor = -999;
   state.relics = [];
   state.relicEventFloors = new Set();
   state.emerald = 0;
@@ -1984,7 +2018,7 @@ function next(){
   ];
 
   const HEAVY_EVENTS = [
-    { w: 20, fn: () => { state.mode = "event";          addLog("コンテナを発見した！"); }},
+    { w: 15, fn: () => { state.mode = "event";          addLog("コンテナを発見した！"); }},
     { w: 40, fn: () => {
       state.veinDepth = 0;
       state.mode = "event_vein";
@@ -1992,6 +2026,18 @@ function next(){
     }},
     { w: 40, fn: () => { playSE("select"); state.mode = "event_mushroom"; addLog("謎のキノコだ！"); }},
     { w: 30, fn: () => { playSE("select"); state.mode = "event_bat";      addLog("コウモリの群れだ！"); }},
+    { w: 10,
+      condition: () =>
+        state.items.length <= 4 &&
+        state.scrap >= 10 &&
+        state.floor - state.merchantLastFloor >= 15,
+      fn: () => {
+        playSE("select");
+        state.merchantLastFloor = state.floor;
+        state.mode = "event_merchant";
+        addLog("謎の商人が現れた！");
+      }
+    },
   ];
 
   // イベント比率定数（紋や仕様変更で調整可能）
@@ -2308,6 +2354,42 @@ function cancelSwap(){
   render();
 }
 
+// --- 商人イベント ---
+function renderMerchantEvent(){
+  let price = Math.max(1, Math.floor(state.scrap * 0.2));
+  let canBuy = state.scrap >= price && state.items.length < 5;
+  let b = document.createElement("button");
+  b.innerHTML = `ポーション<br><span style="font-size:22px;">${SVG_ICONS.scrap}<span style="color:#ffcc66;">${price.toLocaleString()}</span></span>`;
+  let s = canBuy ? BTN_STYLES.risk : BTN_STYLES.skip;
+  b.style.borderColor = s.color;
+  b.style.color       = s.color;
+  b.style.background  = s.bg;
+  b.style.boxShadow   = `0 0 10px ${s.color}66`;
+  b.style.opacity     = canBuy ? "1" : "0.4";
+  b.disabled          = !canBuy;
+  if(canBuy) b.onclick = () => { playSE("coin"); buyFromMerchant(price); };
+  document.getElementById("actions").appendChild(b);
+  btn("いらない", ignoreMerchant, "skip");
+}
+
+function buyFromMerchant(price){
+  state.scrap -= price;
+  let newItem = { name: "ポーション", effect: "hp3" };
+  if(state.items.length < 5){
+    state.items.push(newItem);
+    saveAll();
+    addLog(`ポーションを ${price.toLocaleString()} で購入した`, "sub");
+  }
+  state.mode = "explore";
+  render();
+}
+
+function ignoreMerchant(){
+  addLog("商人と別れた", "sub");
+  state.mode = "explore";
+  render();
+}
+
 // --- DAIGOイベント ---
 function renderDaigoEvent(){
   btn("了解！", ignoreDaigo, "main");
@@ -2337,10 +2419,10 @@ const VEIN_PARAMS = [
 function renderVeinEvent(){
   let depth = state.veinDepth;
   if(depth === 0){
-    btn("掘る", digVein, "risk");
+    btn("掘る", digVein, "risk", null);
   } else {
     let label = depth < 4 ? "もう1回掘る" : null;
-    if(label) btn(label, digVein, "risk");
+    if(label) btn(label, digVein, "risk", null);
     btn("やめる", leaveVein, "skip");
   }
 }
@@ -2368,6 +2450,7 @@ function digVein(){
     let g = Math.max(state.veinLastGain, Math.floor(calcScrap() * p.mult));
     state.scrap += g;
     state.veinLastGain = g;
+    playSE("dig");
     addLog(`鉱脈を掘り当てた！ スクラップ +${g.toLocaleString()}`, "sub");
     state.veinDepth++;
     // 4回目終了 or 続行
