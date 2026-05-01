@@ -275,7 +275,7 @@ font-weight: bold;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v10.54</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v10.55</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <div id="buff-container"></div>
   </div>
@@ -1972,6 +1972,7 @@ function next(){
           "キノコ食べると稀にパワーアップするとか…ホントかな？",
           "30階以降はエメラルドも掘れるらしいよ。まぁ滅多にみつからないんだけどね",
           "採掘中に授かった紋は1度帰還すると消えてしまうらしいよ。次また新しく授けてもらわないとね",
+          "鉱脈からもエメラルドは掘れるみたいだね",
         ];
         playSE("select");
         let tip = DAIGO_TIPS[Math.floor(Math.random() * DAIGO_TIPS.length)];
@@ -2450,8 +2451,20 @@ function digVein(){
     let g = Math.max(state.veinLastGain, Math.floor(calcScrap() * p.mult));
     state.scrap += g;
     state.veinLastGain = g;
-    playSE("dig");
-    addLog(`鉱脈を掘り当てた！ スクラップ +${g.toLocaleString()}`, "sub");
+    // エメラルドドロップ判定（1回目=depth0は0%、2回目以降は倍率適用）
+    const veinEmeraldMult = [0, 1.0, 1.5, 2.0];
+    let baseRate = getEmeraldDropRate();
+    let emeraldRate = baseRate * (veinEmeraldMult[Math.min(state.veinDepth, 3)]);
+    let gotEmerald = emeraldRate > 0 && Math.random() < emeraldRate;
+    if(gotEmerald){
+      state.emerald++;
+      state.runStats.emerald++;
+      playSE("emerald");
+      addLog(`鉱脈を掘り当てた！ スクラップ +${g.toLocaleString()} エメラルド +1`, "sub");
+    } else {
+      playSE("dig");
+      addLog(`鉱脈を掘り当てた！ スクラップ +${g.toLocaleString()}`, "sub");
+    }
     state.veinDepth++;
     // 4回目終了 or 続行
     if(state.veinDepth >= 4){
