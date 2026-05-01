@@ -275,7 +275,7 @@ font-weight: bold;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v10.56</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v10.57</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <div id="buff-container"></div>
   </div>
@@ -955,7 +955,7 @@ function commitStats(died, carry=0){
 // --- コスト ---
 function getHpCost()      { return 30  + state.upgrades.hp    * 20; }
 function getPowerCost()   { return 100 + state.upgrades.power * 50; }
-function getPotionHealCost() { return Math.floor(2000 * Math.pow(4, state.upgrades.potionHeal)); }
+function getPotionHealCost() { return Math.floor(1000 * Math.pow(3.5, state.upgrades.potionHeal)); }
 function getPotionHealValue(){ return 3 + state.upgrades.potionHeal; }
 
 // --- HP処理 ---
