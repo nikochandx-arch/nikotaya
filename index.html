@@ -730,6 +730,29 @@ const CREST_MASTER = [
       </g>
       <path d="M 0 -20 L -5 -30 M 10 -15 L 20 -25" stroke-width="2"/>
     </g>` },
+  { id:"skilldig", name:"巧掘の紋",  category:"防御系", color:"#0ff", rgb:"0,255,255",
+    desc:"鉱脈採掘時の崩落確率が半減", // システム: VEIN_PARAMSのcollapse値を半減する
+    unlockCond:"鉱脈を3回掘りつくす",
+    svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
+  <g stroke-width="2">
+    <polygon points="-25,12 -18,0 -8,12 -18,24"/>
+    <line x1="-18" y1="0" x2="-18" y2="24"/>
+    <polygon points="25,12 18,0 8,12 18,24"/>
+    <line x1="18" y1="0" x2="18" y2="24"/>
+  </g>
+  <line x1="-22" y1="-15" x2="18" y2="25" stroke-width="4"/>
+  <line x1="22" y1="-15" x2="-18" y2="25" stroke-width="4"/>
+  <path d="M -32 -5 Q -25 -25 -10 -18"/>
+  <path d="M 32 -5 Q 25 -25 10 -18"/>
+  <path d="M -16 -6 C -16 -22 16 -22 16 -6 Z" fill="#1a1a1a" stroke="none"/>
+  <line x1="-20" y1="-6" x2="20" y2="-6" stroke-width="4"/>
+  <path d="M -16 -6 C -16 -22 16 -22 16 -6"/>
+  <circle cx="0" cy="-14" r="4" fill="currentColor" stroke="none"/>
+  <circle cx="-20" cy="-22" r="1.5" fill="currentColor" stroke="none"/>
+  <circle cx="22" cy="-18" r="1" fill="currentColor" stroke="none"/>
+  <circle cx="-10" cy="8" r="1" fill="currentColor" stroke="none"/>
+  <circle cx="12" cy="18" r="1.5" fill="currentColor" stroke="none"/>
+</g>` },
   // ③ リスク系（黄）
   { id:"blooddig", name:"血掘の紋",  category:"リスク系", color:"#ffcc66", rgb:"255,204,102",
     desc:"毎階HPを失うが採掘量がアップ", // システム: 毎階HPを失うが採掘量が大幅アップする
@@ -814,10 +837,11 @@ const UNLOCKED_CRESTS = new Set(JSON.parse(localStorage.getItem("unlockedCrests"
 // 解放条件判定（必要に応じて条件を追加）
 const UNLOCK_CHECKS = {
   beginner: () => state.bestFloor >= 10,
-  mining: () => state.bestFloor >= 50,
-  steel:  () => state.bestFloor >= 50,
-  detect: () => state.bestFloor >= 50,
-  friend: () => state.stats.daigo >= 15,
+  mining:   () => state.bestFloor >= 50,
+  steel:    () => state.bestFloor >= 50,
+  detect:   () => state.bestFloor >= 50,
+  friend:   () => state.stats.daigo >= 15,
+  skilldig: () => state.stats.veinClears >= 3,
   // 他の紋は今後追加
 };
 
@@ -1250,18 +1274,21 @@ ${unlockHTML}
     if(state.mode === "event_vein"){
       let depth = state.veinDepth;
       let p = VEIN_PARAMS[Math.min(depth, 3)];
+      let hasSkilldig = state.relics.some(r => r.id === "skilldig");
+      let displayCollapse = hasSkilldig ? p.collapse * 0.5 : p.collapse;
       iconEl.innerHTML = SVG_ICONS.vein.replace("width:1em;height:1em;", "width:2em;height:2em;");
       let tier = Math.floor((state.floor - 1) / 10) + 1;
       let dmg = tier * p.dmgCoef;
+      let collapseColor = displayCollapse >= 0.6 ? "#f55" : displayCollapse >= 0.4 ? "#ffcc66" : "#0f0";
+      let skilldigNote = hasSkilldig ? `<span style="color:#0ff;font-size:20px;">（巧掘の紋で半減中）</span>` : "";
       if(depth === 0){
         document.getElementById("current-event-text").innerHTML = `
 <div style="font-size:28px;">鉱脈だ！だけど地盤が脆そうだ…</div>
-<div style="color:#ffcc66;font-size:22px;margin-top:6px;">崩落確率：${p.collapse*100}%　獲得倍率：×${p.mult}　想定ダメージ：${dmg}</div>`;
+<div style="color:#ffcc66;font-size:22px;margin-top:6px;">崩落確率：${displayCollapse*100}% ${skilldigNote}　獲得倍率：×${p.mult}　想定ダメージ：${dmg}</div>`;
       } else {
-        let collapseColor = p.collapse >= 0.6 ? "#f55" : p.collapse >= 0.4 ? "#ffcc66" : "#0f0";
         document.getElementById("current-event-text").innerHTML = `
 <div style="font-size:26px;">${depth}回掘った <span style="color:#ffcc66;">スクラップ+${state.veinLastGain.toLocaleString()}</span>　やめるなら今のうち…</div>
-<div style="color:${collapseColor};font-size:24px;font-weight:bold;margin-top:6px;">次の崩落確率：${p.collapse*100}%　想定ダメージ：${dmg}</div>
+<div style="color:${collapseColor};font-size:24px;font-weight:bold;margin-top:6px;">次の崩落確率：${displayCollapse*100}% ${skilldigNote}　想定ダメージ：${dmg}</div>
 <div style="color:#ffcc66;font-size:22px;">成功時獲得倍率：×${p.mult}</div>`;
       }
     } else
@@ -2296,8 +2323,13 @@ function renderVeinEvent(){
 function digVein(){
   let depth = state.veinDepth;
   let p = VEIN_PARAMS[Math.min(depth, 3)];
+  let collapseRate = p.collapse;
+  // 巧掘の紋：崩落確率を半減
+  if(state.relics.some(r => r.id === "skilldig")){
+    collapseRate = collapseRate * 0.5;
+  }
 
-  if(Math.random() < p.collapse){
+  if(Math.random() < collapseRate){
     // 崩落
     let tier = Math.floor((state.floor - 1) / 10) + 1;
     let d = tier * p.dmgCoef;
