@@ -275,7 +275,7 @@ font-weight: bold;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v10.50</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v10.52</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <div id="buff-container"></div>
   </div>
@@ -1247,10 +1247,14 @@ function render(){
     let r = state.lastResult;
     let survived = r.survived ? "帰還成功 🎉" : "力尽きた… 💀";
     document.getElementById("current-event-icon").innerText = r.survived ? "🎉" : "💀";
-    let carryNote = r.goddess ? "（女神の加護・全額）" : r.survived ? "（半分）" : "";
+    let carryNote = r.survived ? "（半分）" : "";
+    if(r.goddess) carryNote = "";
     let emeraldLine = r.survived
       ? `<div style="color:#58d68d;">持ち帰ったエメラルド：${SVG_ICONS.emerald} ${r.emeraldCarry || 0}</div>`
       : `<div style="color:#666;">エメラルド：0</div>`;
+    let bestFloorLine = r.newBest
+      ? `<div>最高到達階：${state.bestFloor} 階　<span style="color:#ff0;font-weight:bold;text-shadow:0 0 8px #ff0;">最高到達階更新！</span></div>`
+      : `<div style="color:#aaa;">最高到達階：${state.bestFloor} 階</div>`;
     let unlockHTML = "";
     if(r.unlocks && r.unlocks.length > 0){
       unlockHTML = r.unlocks.map(id => {
@@ -1264,7 +1268,7 @@ function render(){
 <div>到達階層：${r.floor} 階</div>
 <div style="color:#ffcc66;">持ち帰ったスクラップ：${r.carry.toLocaleString()} ${carryNote}</div>
 ${emeraldLine}
-<div style="color:#aaa;">最高到達階：${state.bestFloor} 階</div>
+${bestFloorLine}
 ${unlockHTML}
 `;
     document.getElementById("log").innerHTML = "";
@@ -1980,9 +1984,8 @@ function next(){
   ];
 
   const HEAVY_EVENTS = [
-    { w: 20, fn: () => { playSE("select"); state.mode = "event";          addLog("コンテナを発見した！"); }},
+    { w: 20, fn: () => { state.mode = "event";          addLog("コンテナを発見した！"); }},
     { w: 40, fn: () => {
-      playSE("select");
       state.veinDepth = 0;
       state.mode = "event_vein";
       addLog("鉱脈だ！だけど地盤が脆そうだ…");
@@ -2435,25 +2438,27 @@ function doReturn(){
   let emeraldCarry = state.emerald;
   state.totalEmerald += emeraldCarry;
   state.emerald = 0;
-  if(state.floor > state.bestFloor) state.bestFloor = state.floor;
+  let newBest = state.floor > state.bestFloor;
+  if(newBest) state.bestFloor = state.floor;
   commitStats(false, carry);
   state.stats.emerald += emeraldCarry;
   if(carry > state.stats.maxScrapCarry) state.stats.maxScrapCarry = carry;
   if(emeraldCarry > state.stats.maxEmeraldCarry) state.stats.maxEmeraldCarry = emeraldCarry;
   saveAll();
   let unlocks = checkUnlocks();
-  state.lastResult = { survived: true, floor: state.floor, carry, emeraldCarry, unlocks };
+  state.lastResult = { survived: true, floor: state.floor, carry, emeraldCarry, newBest, unlocks };
   state.mode = "result";
   render();
 }
 
 function forceReturn(){
-  state.emerald = 0;  // 死亡でロスト
-  if(state.floor > state.bestFloor) state.bestFloor = state.floor;
+  state.emerald = 0;
+  let newBest = state.floor > state.bestFloor;
+  if(newBest) state.bestFloor = state.floor;
   commitStats(true);
   saveAll();
   let unlocks = checkUnlocks();
-  state.lastResult = { survived: false, floor: state.floor, carry: 0, emeraldCarry: 0, unlocks };
+  state.lastResult = { survived: false, floor: state.floor, carry: 0, emeraldCarry: 0, newBest, unlocks };
   state.mode = "result";
   render();
 }
@@ -2501,14 +2506,15 @@ function goddessReturn(){
   let emeraldCarry = state.emerald;
   state.totalEmerald += emeraldCarry;
   state.emerald = 0;
-  if(state.floor > state.bestFloor) state.bestFloor = state.floor;
+  let newBest = state.floor > state.bestFloor;
+  if(newBest) state.bestFloor = state.floor;
   commitStats(false, carry);
   state.stats.emerald += emeraldCarry;
   if(carry > state.stats.maxScrapCarry) state.stats.maxScrapCarry = carry;
   if(emeraldCarry > state.stats.maxEmeraldCarry) state.stats.maxEmeraldCarry = emeraldCarry;
   saveAll();
   let unlocks = checkUnlocks();
-  state.lastResult = { survived: true, floor: state.floor, carry, emeraldCarry, goddess: true, unlocks };
+  state.lastResult = { survived: true, floor: state.floor, carry, emeraldCarry, goddess: true, newBest, unlocks };
   state.mode = "result";
   render();
 }
