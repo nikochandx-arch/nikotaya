@@ -275,7 +275,7 @@ font-weight: bold;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v10.49</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v10.50</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <div id="buff-container"></div>
   </div>
@@ -588,13 +588,40 @@ async function playSelectSound(){
   });
 }
 
+// ダメージ音：ドスッ（鈍器系打撃）
+async function playDamageBlunt(){
+  await initAudio();
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(150, t);
+  osc.frequency.exponentialRampToValueAtTime(40, t + 0.15);
+  g.gain.setValueAtTime(0.3, t);
+  g.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+  const bufferSize = audioCtx.sampleRate * 0.1;
+  const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = noiseBuffer.getChannelData(0);
+  for(let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+  const noise = audioCtx.createBufferSource();
+  const nGain = audioCtx.createGain();
+  noise.buffer = noiseBuffer;
+  nGain.gain.setValueAtTime(0.2, t);
+  nGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+  osc.connect(g); g.connect(audioCtx.destination);
+  noise.connect(nGain); nGain.connect(audioCtx.destination);
+  osc.start(t); osc.stop(t + 0.2);
+  noise.start(t);
+}
+
 // SE管理マスタ（将来ここに追加していく）
 const SE = {
   dig:     playDigSound,
   heal:    playHealSound,
   coin:    playCoinSound,
   emerald: playEmeraldSound,
-  select:  playSelectSound,  // 汎用ボタンSE（将来専用SEに差し替え可能）
+  select:  playSelectSound,
+  damage:  playDamageBlunt,
 };
 
 async function playSE(name){
@@ -1844,7 +1871,7 @@ function next(){
   const LIGHT_EVENTS = [
     // 落石 20%
     { w: 20, fn: () => {
-      playSE("select");
+      playSE("damage");
       let d = Math.floor(Math.random()*3) + 1 + floorDmgBonus();
       damage(d);
       addLog(`落石！ ${d} ダメージ`, "damage");
@@ -1871,7 +1898,7 @@ function next(){
     }},
     // 暗闇で岩 9%
     { w: 9, fn: () => {
-      playSE("select");
+      playSE("damage");
       let base = Math.floor(Math.random()*3) + 1 + floorDmgBonus();
       let d = Math.max(1, Math.floor(base / 2));
       damage(d);
@@ -1879,7 +1906,7 @@ function next(){
     }},
     // 足を滑らせた 8%
     { w: 8, fn: () => {
-      playSE("select");
+      playSE("damage");
       let lost = Math.max(0, Math.floor(Math.floor(calcScrap() * 0.1) / 2));
       state.scrap = Math.max(0, state.scrap - lost);
       let d = Math.max(1, Math.ceil(state.maxHp * 0.05));
@@ -2070,6 +2097,7 @@ function openChest(){
     // 罠 15%
     let d = Math.ceil(state.maxHp * 0.2);
     damage(d);
+    playSE("damage");
     addLog(`罠だった！ ${d} ダメージ`, "sub");
     checkDeath();
     if(state.mode !== "dead") state.mode = "explore";
@@ -2180,6 +2208,7 @@ function batForce(){
   } else {
     let d = Math.ceil(state.maxHp * 0.1);
     damage(d);
+    playSE("damage");
     applyPoison(3);
     addLog(`コウモリに襲われた！ ${d} ダメージ＋毒3ターン`, "sub");
   }
@@ -2327,6 +2356,7 @@ function digVein(){
     let tier = Math.floor((state.floor - 1) / 10) + 1;
     let d = tier * p.dmgCoef;
     damage(d);
+    playSE("damage");
     addLog(`地盤が崩れた！ ${d} ダメージ`, "sub");
     checkDeath();
     if(state.mode !== "dead") state.mode = "explore";
