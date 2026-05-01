@@ -275,7 +275,7 @@ font-weight: bold;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v10.55</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v10.56</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <div id="buff-container"></div>
   </div>
@@ -358,6 +358,7 @@ let state = {
   activeCrestId: null,  // フキダシ表示中の紋ID
   veinDepth: 0,  // 鉱脈を掘った回数
   veinLastGain: 0,  // 鉱脈で最後に得たスクラップ数
+  veinLastEmerald: false,  // 鉱脈で直前にエメラルドを得たか
   emerald: 0,  // 採掘中のエメラルド所持数
   totalEmerald: savedEmerald,  // 倉庫エメラルド（永続）
   seOn: savedSeOn,
@@ -1322,16 +1323,19 @@ ${unlockHTML}
       iconEl.innerHTML = SVG_ICONS.vein.replace("width:1em;height:1em;", "width:2em;height:2em;");
       let tier = Math.floor((state.floor - 1) / 10) + 1;
       let dmg = tier * p.dmgCoef;
-      let collapseColor = displayCollapse >= 0.6 ? "#f55" : displayCollapse >= 0.4 ? "#ffcc66" : "#0f0";
       let skilldigNote = hasSkilldig ? `<span style="color:#0ff;font-size:20px;">（巧掘の紋で半減中）</span>` : "";
+      // エメラルド表示：直前の掘りでエメラルドを得た場合（veinDepth >= 1 かつ state.veinLastEmerald）
+      let emeraldNote = state.veinLastEmerald
+        ? ` <span style="color:#58d68d;">${SVG_ICONS.emerald}+1</span>`
+        : "";
       if(depth === 0){
         document.getElementById("current-event-text").innerHTML = `
 <div style="font-size:28px;">鉱脈だ！だけど地盤が脆そうだ…</div>
-<div style="color:#ffcc66;font-size:22px;margin-top:6px;">崩落確率：${displayCollapse*100}% ${skilldigNote}　獲得倍率：×${p.mult}　想定ダメージ：${dmg}</div>`;
+<div style="color:#ffcc66;font-size:22px;margin-top:6px;">崩落確率：<span style="color:#f55;">${displayCollapse*100}%</span> ${skilldigNote}　獲得倍率：×${p.mult}　想定ダメージ：<span style="color:#f55;">${dmg}</span></div>`;
       } else {
         document.getElementById("current-event-text").innerHTML = `
-<div style="font-size:26px;">${depth}回掘った <span style="color:#ffcc66;">スクラップ+${state.veinLastGain.toLocaleString()}</span>　やめるなら今のうち…</div>
-<div style="color:${collapseColor};font-size:24px;font-weight:bold;margin-top:6px;">次の崩落確率：${displayCollapse*100}% ${skilldigNote}　想定ダメージ：${dmg}</div>
+<div style="font-size:26px;">${depth}回掘った <span style="color:#ffcc66;">スクラップ+${state.veinLastGain.toLocaleString()}</span>${emeraldNote}　やめるなら今のうち…</div>
+<div style="color:#ffcc66;font-size:24px;font-weight:bold;margin-top:6px;">次の崩落確率：<span style="color:#f55;">${displayCollapse*100}%</span> ${skilldigNote}　想定ダメージ：<span style="color:#f55;">${dmg}</span></div>
 <div style="color:#ffcc66;font-size:22px;">成功時獲得倍率：×${p.mult}</div>`;
       }
     } else
@@ -1779,6 +1783,7 @@ function startRun(){
   state.relicEventFloors = new Set();
   state.emerald = 0;
   state.veinLastGain = 0;
+  state.veinLastEmerald = false;
   state.activeCrestId = null;
   state.mode  = "explore";
   addLog("採掘開始！");
@@ -2443,6 +2448,7 @@ function digVein(){
     let d = tier * p.dmgCoef;
     damage(d);
     playSE("damage");
+    state.veinLastEmerald = false;
     addLog(`地盤が崩れた！ ${d} ダメージ`, "sub");
     checkDeath();
     if(state.mode !== "dead") state.mode = "explore";
@@ -2456,6 +2462,7 @@ function digVein(){
     let baseRate = getEmeraldDropRate();
     let emeraldRate = baseRate * (veinEmeraldMult[Math.min(state.veinDepth, 3)]);
     let gotEmerald = emeraldRate > 0 && Math.random() < emeraldRate;
+    state.veinLastEmerald = gotEmerald;
     if(gotEmerald){
       state.emerald++;
       state.runStats.emerald++;
@@ -2480,6 +2487,7 @@ function digVein(){
 function leaveVein(){
   addLog("鉱脈から引き上げた", "sub");
   state.veinLastGain = 0;
+  state.veinLastEmerald = false;
   state.mode = "explore";
   render();
 }
