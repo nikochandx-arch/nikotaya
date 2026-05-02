@@ -115,6 +115,7 @@ flex-shrink: 0;
 min-height: 200px;
 margin: 10px 16px;
 padding: 20px;
+padding-top: 44px;
 border: 2px solid #0f0;
 background: #1a1a1a;
 font-size: 34px;
@@ -123,6 +124,7 @@ display: flex;
 align-items: center;
 gap: 16px;
 border-radius: 12px;
+position: relative;
 }
 
 #current-event-icon {
@@ -134,6 +136,7 @@ flex-shrink: 0;
 
 #current-event-text {
 flex: 1;
+padding-left: 12px;
 }
 
 #log {
@@ -393,6 +396,14 @@ line-height: 1.4;
 .floor-badge.floor-goddess  { color: #aef; border-color: rgba(170,238,255,0.5); text-shadow: 0 0 10px rgba(170,238,255,0.6); }
 .floor-badge.floor-return   { color: #ff9; border-color: rgba(255,255,153,0.5); text-shadow: 0 0 10px rgba(255,255,153,0.6); }
 .floor-badge.floor-relic    { color: #f9f; border-color: rgba(255,153,255,0.5); text-shadow: 0 0 10px rgba(255,153,255,0.6); }
+
+/* バッジを枠の左上に固定 */
+#current-event .floor-badge {
+position: absolute;
+top: 10px;
+left: 14px;
+margin-bottom: 0;
+}
 </style>
 
 </head>
@@ -401,7 +412,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.06</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.07</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <!-- ステータスグリッド（デザインリニューアル v2） -->
     <div id="status-grid">
