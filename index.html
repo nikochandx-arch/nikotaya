@@ -321,26 +321,26 @@ margin-bottom: 8px;
 
 .stat-cell {
 background: #111;
-padding: 8px 10px;
+padding: 6px 10px;
 }
 
 .stat-label {
-font-size: 9px;
+font-size: 14px;
 letter-spacing: 2px;
-color: rgba(0,255,80,0.35);
-margin-bottom: 3px;
+color: rgba(0,255,80,0.45);
+margin-bottom: 2px;
 }
 
 .stat-value {
-font-size: 18px;
+font-size: 26px;
 color: #00ff50;
-line-height: 1.1;
+line-height: 1.2;
 text-shadow: 0 0 10px rgba(0,255,80,0.4);
 }
 
 .stat-value .stat-sub {
-font-size: 11px;
-color: rgba(0,255,80,0.3);
+font-size: 18px;
+color: rgba(0,255,80,0.5);
 }
 
 .stat-value.val-scrap   { color: #ffcc66; text-shadow: 0 0 8px rgba(255,204,102,0.4); }
@@ -383,12 +383,11 @@ box-shadow: 0 0 18px currentColor !important;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.03</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.04</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <!-- ステータスグリッド（デザインリニューアル v2） -->
     <div id="status-grid">
       <div class="stat-cell">
-        <div class="stat-label">LIFE</div>
         <div class="stat-value" id="sg-hp">—</div>
         <div class="hp-bar-wrap">
           <div class="hp-bar-fill" id="sg-hp-bar"></div>
@@ -1339,12 +1338,12 @@ function render(){
   (function updateStatusGrid(){
     let sgHp = document.getElementById("sg-hp");
     if(sgHp){
-      sgHp.innerHTML = `${state.hp}<span class="stat-sub">/${state.maxHp}</span>`;
       let ratio = state.maxHp > 0 ? state.hp / state.maxHp : 0;
       let hpC = ratio > 0.75 ? "#00ff50"
               : ratio > 0.50 ? "#ddff00"
               : ratio > 0.25 ? "#ff9900"
               : "#ff3333";
+      sgHp.innerHTML = `<span style="font-size:14px;color:rgba(0,255,80,0.45);letter-spacing:2px;">HP</span>　${state.hp}<span class="stat-sub">/${state.maxHp}</span>`;
       sgHp.style.color = hpC;
       sgHp.style.textShadow = `0 0 10px ${hpC}88`;
       let bar = document.getElementById("sg-hp-bar");
