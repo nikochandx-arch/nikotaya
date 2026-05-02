@@ -275,7 +275,7 @@ font-weight: bold;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.01</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.02</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <div id="buff-container"></div>
   </div>
@@ -1912,34 +1912,34 @@ function next(){
 
   // --- 軽(70%) / 重(30%) の2段階抽選 ---
   const LIGHT_EVENTS = [
-    // 落石 20%
-    { w: 20, fn: () => {
+    // 落石 19
+    { w: 19, fn: () => {
       playSE("damage");
       let d = Math.floor(Math.random()*3) + 1 + floorDmgBonus();
       damage(d);
       addLog(`落石！ ${d} ダメージ`, "damage");
     }},
-    // 一休み 10%
-    { w: 10, fn: () => {
+    // 一休み 9
+    { w: 9, fn: () => {
       let h = Math.floor(Math.random()*2) + 1 + floorHealBonus();
       heal(h);
       playSE("heal");
       addLog(`一休みした HP+${h}`, "heal");
     }},
-    // 亀裂 10%
+    // 亀裂 10
     { w: 10, fn: () => {
       playSE("select");
       let lost = Math.min(calcScrap(), state.scrap);
       state.scrap = Math.max(0, state.scrap - lost);
       addLog(`亀裂の隙間にスクラップを落としてしまった スクラップ -${lost.toLocaleString()}`, "loss");
     }},
-    // 有毒ガス 3%
+    // 有毒ガス 3
     { w: 3, fn: () => {
       playSE("select");
       applyPoison(2);
       addLog("有毒ガスが充満している！ 毒2ターン", "damage");
     }},
-    // 暗闇で岩 9%
+    // 暗闇で岩 9
     { w: 9, fn: () => {
       playSE("damage");
       let base = Math.floor(Math.random()*3) + 1 + floorDmgBonus();
@@ -1947,7 +1947,7 @@ function next(){
       damage(d);
       addLog(`暗闇で岩にぶつかった！ ${d} ダメージ`, "damage");
     }},
-    // 足を滑らせた 8%
+    // 足を滑らせた 8
     { w: 8, fn: () => {
       playSE("damage");
       let lost = Math.max(0, Math.floor(Math.floor(calcScrap() * 0.1) / 2));
@@ -1957,15 +1957,15 @@ function next(){
       addLog(`足を滑らせた！`, "damage");
       addLog(`スクラップを ${lost.toLocaleString()} 落とした / ${d} ダメージを受けた`, "sub");
     }},
-    // 手首を痛めた 7%（採掘量低下デバフ3T）
+    // 手首を痛めた 7
     { w: 7, fn: () => {
       playSE("select");
       applyMiningDown(3);
       addLog("採掘中に手首を痛めた… 採掘量低下（3ターン）", "damage");
     }},
-    // DAIGO 3%（遭遇から+30階は再遭遇しない）
-    { w: 3,
-      condition: () => state.floor - state.daigoLastFloor >= 30,
+    // DAIGO 5（遭遇から+20階は再遭遇しない）
+    { w: 5,
+      condition: () => state.floor - state.daigoLastFloor >= 20,
       fn: () => {
         const DAIGO_TIPS = [
           "キノコは食べると毒になることがあるから気をつけて",
