@@ -267,6 +267,114 @@ font-weight: bold;
 }
 .modal-yes { border: 2px solid #0f0; color: #0f0; background: rgba(0,255,0,0.1) !important; box-shadow: 0 0 10px rgba(0,255,0,0.3); }
 .modal-no  { border: 2px solid #aaa; color: #aaa; }
+
+/* === デザインリニューアル v2 === */
+
+@import url(‘https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap’);
+
+body {
+font-family: ‘Share Tech Mono’, monospace;
+}
+
+body::before {
+content: ‘’;
+position: fixed;
+inset: 0;
+background: repeating-linear-gradient(
+0deg,
+transparent,
+transparent 3px,
+rgba(0,255,80,0.010) 3px,
+rgba(0,255,80,0.010) 4px
+);
+pointer-events: none;
+z-index: 9999;
+}
+
+#header {
+border-bottom: 1px solid rgba(0,255,80,0.12);
+padding-bottom: 10px;
+}
+
+h2::before {
+content: ’⬤ ⬤ ⬤  ’;
+font-size: 10px;
+letter-spacing: 2px;
+color: transparent;
+text-shadow: 0 0 0 #ff5f57, 14px 0 0 #ffbd2e, 28px 0 0 #28c840;
+margin-right: 6px;
+}
+
+#status {
+display: none !important;
+}
+
+#status-grid {
+display: grid;
+grid-template-columns: 2fr 1fr 1fr 1fr;
+gap: 1px;
+background: rgba(0,255,80,0.08);
+border-top: 1px solid rgba(0,255,80,0.1);
+border-bottom: 1px solid rgba(0,255,80,0.1);
+margin-bottom: 8px;
+}
+
+.stat-cell {
+background: #111;
+padding: 8px 10px;
+}
+
+.stat-label {
+font-size: 9px;
+letter-spacing: 2px;
+color: rgba(0,255,80,0.35);
+margin-bottom: 3px;
+}
+
+.stat-value {
+font-size: 18px;
+color: #00ff50;
+line-height: 1.1;
+text-shadow: 0 0 10px rgba(0,255,80,0.4);
+}
+
+.stat-value .stat-sub {
+font-size: 11px;
+color: rgba(0,255,80,0.3);
+}
+
+.stat-value.val-scrap   { color: #ffcc66; text-shadow: 0 0 8px rgba(255,204,102,0.4); }
+.stat-value.val-emerald { color: #58d68d; text-shadow: 0 0 8px rgba(88,214,141,0.4); }
+.stat-value.val-floor   { color: #fff;    text-shadow: 0 0 8px rgba(255,255,255,0.25); }
+
+.hp-bar-wrap {
+margin-top: 4px;
+height: 3px;
+background: rgba(0,255,80,0.08);
+border-radius: 2px;
+overflow: hidden;
+}
+
+.hp-bar-fill {
+height: 100%;
+border-radius: 2px;
+transition: width 0.35s ease, background 0.35s ease, box-shadow 0.35s ease;
+}
+
+#current-event {
+border: 1px solid rgba(0,255,80,0.18) !important;
+border-left: 2px solid rgba(0,255,80,0.55) !important;
+background: rgba(0,255,80,0.025) !important;
+border-radius: 10px !important;
+box-shadow: inset 0 0 20px rgba(0,255,80,0.03);
+}
+
+button {
+transition: box-shadow 0.15s, transform 0.08s !important;
+}
+button:hover {
+box-shadow: 0 0 18px currentColor !important;
+}
 </style>
 
 </head>
@@ -275,8 +383,30 @@ font-weight: bold;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.02</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.03</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
+    <!-- ステータスグリッド（デザインリニューアル v2） -->
+    <div id="status-grid">
+      <div class="stat-cell">
+        <div class="stat-label">LIFE</div>
+        <div class="stat-value" id="sg-hp">—</div>
+        <div class="hp-bar-wrap">
+          <div class="hp-bar-fill" id="sg-hp-bar"></div>
+        </div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-label">SCRAP</div>
+        <div class="stat-value val-scrap" id="sg-scrap">—</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-label">EMERALD</div>
+        <div class="stat-value val-emerald" id="sg-emerald">—</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-label">FLOOR</div>
+        <div class="stat-value val-floor" id="sg-floor">—</div>
+      </div>
+    </div>
     <div id="buff-container"></div>
   </div>
   <div id="current-event">
@@ -1204,6 +1334,38 @@ function render(){
   }
   document.getElementById("status").innerHTML =
     `<span style="color:${hpColor}">HP:${state.hp}/${state.maxHp}</span> | ${SVG_ICONS.scrap}:<span style="color:#ffcc66;">${state.scrap.toLocaleString()}</span> | ${SVG_ICONS.emerald}:<span style="color:#58d68d;">${(state.emerald || 0).toLocaleString()}</span> | 現在地:${state.floor}階`;
+
+  // --- ステータスグリッド更新（デザインリニューアル v2） ---
+  (function updateStatusGrid(){
+    let sgHp = document.getElementById("sg-hp");
+    if(sgHp){
+      sgHp.innerHTML = `${state.hp}<span class="stat-sub">/${state.maxHp}</span>`;
+      let ratio = state.maxHp > 0 ? state.hp / state.maxHp : 0;
+      let hpC = ratio > 0.75 ? "#00ff50"
+              : ratio > 0.50 ? "#ddff00"
+              : ratio > 0.25 ? "#ff9900"
+              : "#ff3333";
+      sgHp.style.color = hpC;
+      sgHp.style.textShadow = `0 0 10px ${hpC}88`;
+      let bar = document.getElementById("sg-hp-bar");
+      if(bar){
+        bar.style.width = Math.round(ratio * 100) + "%";
+        let barColor = ratio > 0.75 ? "linear-gradient(90deg,#00c844,#00ff50)"
+                     : ratio > 0.50 ? "linear-gradient(90deg,#b8cc00,#ddff00)"
+                     : ratio > 0.25 ? "linear-gradient(90deg,#cc6600,#ff9900)"
+                     : "linear-gradient(90deg,#aa1111,#ff3333)";
+        bar.style.background = barColor;
+        bar.style.boxShadow  = `0 0 6px ${hpC}`;
+      }
+    }
+    let sgScrap = document.getElementById("sg-scrap");
+    if(sgScrap) sgScrap.textContent = state.scrap.toLocaleString();
+    let sgEm = document.getElementById("sg-emerald");
+    if(sgEm) sgEm.textContent = (state.emerald || 0).toLocaleString();
+    let sgFloor = document.getElementById("sg-floor");
+    if(sgFloor) sgFloor.textContent = state.floor + "F";
+  })();
+  // --- ここまで追記 ---
 
   // バフ・デバフ表示
   let buffHTML = "";
