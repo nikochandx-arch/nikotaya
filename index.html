@@ -401,7 +401,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.05</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.06</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <!-- ステータスグリッド（デザインリニューアル v2） -->
     <div id="status-grid">
@@ -603,16 +603,38 @@ const AudioCtx = window.AudioContext || window.webkitAudioContext;
 let audioCtx = null;
 
 async function initAudio(){
-  if(!audioCtx) audioCtx = new AudioCtx();
-  if(audioCtx.state === "suspended"){
-    await audioCtx.resume();
-  }
-  // それでもsuspendedのままなら再生成
-  if(audioCtx.state === "suspended"){
+  if(!audioCtx){
     audioCtx = new AudioCtx();
-    await audioCtx.resume();
+  }
+  if(audioCtx.state !== "running"){
+    try {
+      await audioCtx.resume();
+    } catch(e) { /* ignore */ }
+  }
+  // resumeしても running にならない場合、AudioContextを作り直す
+  if(audioCtx.state !== "running"){
+    try { audioCtx.close(); } catch(e) { /* ignore */ }
+    audioCtx = new AudioCtx();
+    try { await audioCtx.resume(); } catch(e) { /* ignore */ }
   }
 }
+
+// バックグラウンド復帰時：iOSではAudioContextが壊れることがあるため、
+// 強制的に破棄して次回再生時に作り直させる
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState === "hidden" && audioCtx){
+    try { audioCtx.close(); } catch(e) { /* ignore */ }
+    audioCtx = null;
+  }
+});
+
+// pageshow（bfcache復帰）時にも同様の処理
+window.addEventListener("pageshow", (e) => {
+  if(e.persisted && audioCtx){
+    try { audioCtx.close(); } catch(e2) { /* ignore */ }
+    audioCtx = null;
+  }
+});
 
 // 採掘音：ザクッ（こもった土の音）
 async function playDigSound(){
@@ -657,18 +679,6 @@ async function playHealSound(){
   osc.start(audioCtx.currentTime);
   osc.stop(audioCtx.currentTime + duration);
 }
-
-// フォアグラウンド復帰時にAudioContextを自動resume
-document.addEventListener("visibilitychange", async () => {
-  if(document.visibilityState === "visible" && audioCtx) {
-    try {
-      await audioCtx.resume();
-    } catch(e) {
-      // resume失敗時はaudioCtxをリセットして次回initAudioで再生成
-      audioCtx = null;
-    }
-  }
-});
 
 // 購入音：ピロリン（ゲーム風コイン）
 async function playCoinSound(){
