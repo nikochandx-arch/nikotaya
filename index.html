@@ -409,7 +409,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.20</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.22</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <!-- ステータスグリッド（デザインリニューアル v2） -->
     <div id="status-grid">
@@ -460,6 +460,7 @@ line-height: 1.4;
     <div id="itemBox"></div>
   </div>
   <div id="crest-container" style="display:none;"></div>
+  <div id="precious"></div>
   <div id="shop"></div>
   <div id="stats"></div>
 </div>
@@ -1504,17 +1505,8 @@ function render(){
   }
   document.getElementById("buff-container").innerHTML = buffHTML;
 
-  const journalIcon = state.upgrades.journal
-    ? `<span onclick="openJournal()" style="cursor:pointer;margin-left:8px;vertical-align:middle;">${SVG_ICONS.journal.replace('width:1.4em;height:1.4em;', 'width:2.8em;height:2.8em;')}</span>`
-    : "";
-  const journalLabel = state.upgrades.journal
-    ? `<span style="color:#888;font-size:22px;">貴重品：${journalIcon}</span>`
-    : "";
   document.getElementById("storage").innerHTML =
-    `<div style="display:flex;justify-content:space-between;align-items:center;">` +
-    `<span>倉庫：${SVG_ICONS.scrap} ${state.totalScrap.toLocaleString()} <span style="color:rgba(0,180,60,0.6);">|</span> ${SVG_ICONS.emerald} ${state.totalEmerald.toLocaleString()}</span>` +
-    `${journalLabel}` +
-    `</div>`;
+    `倉庫：${SVG_ICONS.scrap} ${state.totalScrap.toLocaleString()} <span style="color:rgba(0,180,60,0.6);">|</span> ${SVG_ICONS.emerald} ${state.totalEmerald.toLocaleString()}`;
 
   document.getElementById("playerStatus").innerHTML =
 `<span onclick="changeName()" style="cursor:pointer;">名前：${state.name} ✏️</span>
@@ -1552,16 +1544,7 @@ function render(){
   }
 
   // 採掘日誌表示
-  if(state.mode === "journal"){
-    document.getElementById("current-event").style.display = "none";
-    document.getElementById("log").classList.add("relic-scroll");
-    document.getElementById("log").style.maxHeight = "none";
-    document.getElementById("log").style.flex = "1";
-    renderJournal();
-    document.getElementById("actions").innerHTML = "";
-    document.getElementById("shop").innerHTML = "";
-    return;
-  } else if(state.mode === "home"){
+  if(state.mode === "home"){
     document.getElementById("current-event").style.display = "";
     document.getElementById("current-event").style.flexGrow = "1";
     document.getElementById("current-event-icon").innerText = "";
@@ -1811,8 +1794,6 @@ ${friendHTML}
     case "relic_view":
       // ボタンなし（▲閉じるボタンはステータス欄に表示）
       break;
-    case "journal":
-      break;
     case "home":
       btn("採掘開始", startRun, "main");
       break;
@@ -1901,6 +1882,9 @@ ${friendHTML}
       crestEl.innerHTML = crestHTML;
     }
   }
+
+  let preciousEl = document.getElementById("precious");
+  if(preciousEl) preciousEl.innerHTML = state.mode === "home" ? buildPreciousHTML() : "";
 
   document.getElementById("shop").innerHTML = state.mode === "home" ? buildShopHTML() : "";
 
@@ -2202,32 +2186,27 @@ function buyJournal(){
   });
 }
 
-let prevModeJournal = "home";
+function buildPreciousHTML(){
+  if(!state.upgrades.journal) return "";
+  return `
+<div style="margin-top:16px;padding-top:10px;border-top:2px solid #fef3c7;color:#fef3c7;font-size:28px;">
+  ▼貴重品
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+    <button onclick="openJournalModal()" style="border-color:#fef3c7;color:#fef3c7;background:rgba(254,243,199,0.1);box-shadow:0 0 10px rgba(254,243,199,0.3);height:auto;padding:12px 16px;display:flex;align-items:center;gap:12px;min-width:unset;max-width:unset;">
+      ${SVG_ICONS.journal}
+      <span style="font-size:24px;">採掘日誌</span>
+    </button>
+  </div>
+</div>`;
+}
 
-function openJournal(){
+function openJournalModal(){
   if(!state.upgrades.journal) return;
-  if(state.mode === "journal"){
-    closeJournal();
-  } else {
-    prevModeJournal = state.mode;
-    state.mode = "journal";
-    render();
-  }
-}
-
-function closeJournal(){
-  state.mode = prevModeJournal;
-  let el = document.getElementById("current-event");
-  if(el) el.style.display = "";
-  render();
-}
-
-function renderJournal(){
-  document.getElementById("log").innerHTML = `
-    <div style="padding:8px 16px;">
-      <div style="color:#fef3c7;font-size:28px;margin:16px 0 8px;border-bottom:1px solid rgba(255,255,255,0.15);padding-bottom:6px;font-weight:bold;">[ 採掘日誌 ]</div>
-      <div style="color:#888;font-size:24px;margin-top:24px;text-align:center;">準備中…</div>
-    </div>`;
+  showModal(
+    `<div style="font-size:26px;color:#fef3c7;margin-bottom:16px;">[ 採掘日誌 ]</div>
+     <div style="font-size:22px;color:#888;text-align:center;padding:24px 0;">準備中…</div>`,
+    { alertOnly: true }
+  );
 }
 
 function buyRelicSlot(){
