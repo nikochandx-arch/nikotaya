@@ -403,7 +403,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.10</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.13</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <!-- ステータスグリッド（デザインリニューアル v2） -->
     <div id="status-grid">
@@ -508,6 +508,7 @@ let state = {
   veinDepth: 0,  // 鉱脈を掘った回数
   veinLastGain: 0,  // 鉱脈で最後に得たスクラップ数
   veinLastEmerald: false,  // 鉱脈で直前にエメラルドを得たか
+  mushroomBad: false,  // キノコでマイナス効果を引いたか
   emerald: 0,  // 採掘中のエメラルド所持数
   totalEmerald: savedEmerald,  // 倉庫エメラルド（永続）
   seOn: savedSeOn,
@@ -1168,6 +1169,68 @@ const SVG_ICONS = {
     <path d="M5 24C5 19,9 19,9 24" fill="#FFD700" stroke="#DAA520" stroke-width="1"/>
     <path d="M15 24C15 19,19 19,19 24" fill="#FFD700" stroke="#DAA520" stroke-width="1"/>
   </svg>`,
+  mushroom: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
+    <defs>
+      <radialGradient id="bodyShade" cx="50%" cy="50%" r="50%" fx="40%" fy="40%">
+        <stop offset="0%" stop-color="#ffffff"/>
+        <stop offset="100%" stop-color="#e2e2d0"/>
+      </radialGradient>
+      <path id="capPath" d="M 12,48 C 12,10 88,10 88,48 C 88,60 75,65 50,65 C 25,65 12,60 12,48 Z"/>
+      <clipPath id="capClip">
+        <use href="#capPath"/>
+      </clipPath>
+    </defs>
+    <path d="M 32,58 C 24,85 30,95 50,95 C 70,95 76,85 68,58" fill="url(#bodyShade)" stroke="#3f231a" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M 32,58 Q 50,68 68,58" fill="none" stroke="#3f231a" stroke-width="2" opacity="0.15"/>
+    <use href="#capPath" fill="#ef4444"/>
+    <g clip-path="url(#capClip)">
+      <circle cx="20" cy="40" r="7" fill="#fff" opacity="0.9"/>
+      <circle cx="50" cy="22" r="11" fill="#fff" opacity="0.9"/>
+      <circle cx="82" cy="38" r="8" fill="#fff" opacity="0.9"/>
+      <circle cx="35" cy="24" r="4.5" fill="#fff" opacity="0.9"/>
+      <circle cx="65" cy="46" r="6" fill="#fff" opacity="0.9"/>
+      <circle cx="32" cy="55" r="5" fill="#fff" opacity="0.9"/>
+      <circle cx="50" cy="65" r="6" fill="#fff" opacity="0.9"/>
+    </g>
+    <use href="#capPath" fill="none" stroke="#3f231a" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <g fill="#3f231a">
+      <circle cx="41" cy="78" r="2.2"/>
+      <circle cx="59" cy="78" r="2.2"/>
+      <path d="M 46,82 Q 50,86 54,82" fill="none" stroke="#3f231a" stroke-width="1.5" stroke-linecap="round"/>
+    </g>
+    <circle cx="36" cy="81" r="3" fill="#fca5a5" opacity="0.6"/>
+    <circle cx="64" cy="81" r="3" fill="#fca5a5" opacity="0.6"/>
+  </svg>`,
+  badMushroom: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
+    <defs>
+      <radialGradient id="bodyShade2" cx="50%" cy="50%" r="50%" fx="40%" fy="40%">
+        <stop offset="0%" stop-color="#ffffff"/>
+        <stop offset="100%" stop-color="#cbd5e1"/>
+      </radialGradient>
+      <path id="capPath2" d="M 12,48 C 12,10 88,10 88,48 C 88,60 75,65 50,65 C 25,65 12,60 12,48 Z"/>
+      <clipPath id="capClip2"><use href="#capPath2"/></clipPath>
+    </defs>
+    <path d="M 32,58 C 24,85 30,95 50,95 C 70,95 76,85 68,58" fill="url(#bodyShade2)" stroke="#1e1b4b" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M 32,58 Q 50,68 68,58" fill="none" stroke="#1e1b4b" stroke-width="2" opacity="0.2"/>
+    <use href="#capPath2" fill="#7e22ce"/>
+    <g clip-path="url(#capClip2)">
+      <circle cx="20" cy="40" r="7" fill="#fff" opacity="0.9"/>
+      <circle cx="50" cy="22" r="11" fill="#fff" opacity="0.9"/>
+      <circle cx="82" cy="38" r="8" fill="#fff" opacity="0.9"/>
+      <circle cx="35" cy="24" r="4.5" fill="#fff" opacity="0.9"/>
+      <circle cx="65" cy="46" r="6" fill="#fff" opacity="0.9"/>
+      <circle cx="32" cy="55" r="5" fill="#fff" opacity="0.9"/>
+      <circle cx="50" cy="65" r="6" fill="#fff" opacity="0.9"/>
+    </g>
+    <use href="#capPath2" fill="none" stroke="#1e1b4b" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <g stroke="#1e1b4b" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 38,76 L 43,80" stroke-width="2.5"/>
+      <path d="M 62,76 L 57,80" stroke-width="2.5"/>
+      <path d="M 45,82 Q 47.5,86 50,83 Q 52.5,86 55,82" fill="none" stroke-width="1.5"/>
+    </g>
+    <circle cx="36" cy="81" r="3" fill="#d946ef" opacity="0.5"/>
+    <circle cx="64" cy="81" r="3" fill="#d946ef" opacity="0.5"/>
+  </svg>`,
   goddess: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
     <circle cx="50" cy="35" r="25" fill="none" stroke="#fcd34d" stroke-width="0.5" opacity="0.5">
       <animate attributeName="r" values="22;28;22" dur="4s" repeatCount="indefinite"/>
@@ -1309,7 +1372,7 @@ function getEmoji(text, type){
   if(text.includes("採掘開始"))     return "⛏️";
   if(text.includes("コンテナ"))     return "📦";
   if(text.includes("鉱脈"))         return SVG_ICONS.vein;
-  if(text.includes("キノコ"))       return "🍄";
+  if(text.includes("キノコ"))       return SVG_ICONS.mushroom;
   if(text.includes("帰還"))         return "🏠";
   if(text.includes("HPが0"))        return "💀";
   if(text.includes("一休み"))       return "💤";
@@ -1504,6 +1567,10 @@ ${unlockHTML}
     let firstLine = entry.lines[0];
     let iconEl = document.getElementById("current-event-icon");
     let emoji = firstLine.emoji || "📋";
+    // キノコでマイナス効果の場合は悪キノコアイコンに切り替え
+    if(state.mushroomBad && typeof emoji === "string" && emoji === SVG_ICONS.mushroom){
+      emoji = SVG_ICONS.badMushroom;
+    }
     // 女神像・扉SVGはメイン枠では2倍サイズで表示
     if(typeof emoji === "string" && (emoji.includes("viewBox=\"0 0 100 100\""))){
       iconEl.innerHTML = emoji.replace(
@@ -1987,6 +2054,7 @@ function startRun(){
   state.emerald = 0;
   state.veinLastGain = 0;
   state.veinLastEmerald = false;
+  state.mushroomBad = false;
   state.activeCrestId = null;
   state.mode  = "explore";
   addLog("採掘開始！");
@@ -2699,26 +2767,36 @@ function leaveVein(){
 function eatMushroom(){
   state.runStats.mushrooms++;
   let r = Math.random();
+  let isBad = false;
   if(r < 0.40){
-    applyPoison(2);
-    addLog("苦い！ 毒を受けた（2ターン）", "sub");
+    // 毒 40%
+    isBad = true;
+    applyPoison(1);
+    addLog("苦い！ 毒を受けた（1ターン）", "sub");
   } else if(r < 0.80){
+    // 回復 40%
     let h = 3 + floorHealBonus();
     heal(h);
     playSE("heal");
     addLog(`甘い香り… HP +${h} 回復した`, "sub");
-  } else if(r < 0.88){
+  } else if(r < 0.90){
+    // 採掘力UP 10%
+    applyMiningUp(5);
+    addLog("不思議な胞子を吸い込んだ… 採掘力UP！（5ターン）", "sub");
+  } else if(r < 0.95){
+    // 錯乱：階層戻り 5%
+    isBad = true;
     let back = Math.min(2, state.floor - 1);
     state.floor -= back;
     addLog(`錯乱した！ ${back}階層戻された`, "sub");
-  } else if(r < 0.96){
+  } else {
+    // 錯乱：スクラップ破棄 5%
+    isBad = true;
     let lost = Math.floor(state.scrap * 0.1);
     state.scrap = Math.max(0, state.scrap - lost);
     addLog(`錯乱した！ スクラップ ${lost.toLocaleString()} をばらまいた`, "sub");
-  } else {
-    applyMiningUp(5);
-    addLog("不思議な胞子を吸い込んだ… 採掘力UP！（5ターン）", "sub");
   }
+  state.mushroomBad = isBad;
   checkDeath();
   if(state.mode !== "dead") state.mode = "explore";
   render();
