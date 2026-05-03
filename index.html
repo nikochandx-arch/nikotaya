@@ -403,7 +403,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.14</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.15</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <!-- ステータスグリッド（デザインリニューアル v2） -->
     <div id="status-grid">
@@ -1611,28 +1611,69 @@ ${unlockHTML}
     // 紋選択イベント専用表示
     if(state.mode === "event_relic_pick"){
       document.getElementById("current-event-icon").innerText = "💎";
-      let cardsHTML = state.relicChoices.map(c => `
-        <div style="text-align:center;">
-          <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" style="width:64px;height:90px;filter:drop-shadow(0 0 6px rgba(${c.rgb},0.5));">
+      let pickTitle = state.floor === 15
+        ? '<div style="font-size:22px;color:#ffcc66;line-height:1.5;">深淵に挑みし者よ…<br>紋をその身に纏い、奈落を目指せ</div>'
+        : '<div style="font-size:24px;color:#0ff;">紋を選べ！</div>';
+      document.getElementById("current-event-text").innerHTML =
+        floorBadgeHTML(state.floor) + pickTitle;
+
+      // ログエリアに紋カード＋効果説明を表示
+      let relicHTML = state.relicChoices.map(c => `
+        <div style="display:flex;align-items:center;gap:16px;padding:12px;margin:8px 0;border:1px solid ${c.color};border-radius:10px;background:rgba(${c.rgb},0.06);">
+          <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" style="width:64px;height:90px;flex-shrink:0;filter:drop-shadow(0 0 6px rgba(${c.rgb},0.5));">
             <rect x="2" y="2" width="96" height="136" rx="6" fill="#222" stroke="${c.color}" stroke-width="2"/>
             <g style="color:${c.color};">${c.svg}</g>
           </svg>
-          <div style="color:${c.color};font-size:18px;margin-top:2px;">${c.name}</div>
+          <div style="flex:1;">
+            <div style="color:${c.color};font-size:26px;font-weight:bold;">${c.name}</div>
+            <div style="color:#ccc;font-size:20px;margin-top:6px;line-height:1.5;">${c.desc}</div>
+          </div>
         </div>`).join("");
-      let pickTitle = state.floor === 15
-        ? '<div style="font-size:22px;color:#ffcc66;margin-bottom:8px;line-height:1.5;">深淵に挑みし者よ…<br>紋をその身に纏い、奈落を目指せ</div>'
-        : '<div style="font-size:24px;color:#0ff;margin-bottom:8px;">紋を選べ！</div>';
-      document.getElementById("current-event-text").innerHTML =
-        floorBadgeHTML(state.floor) +
-        `${pickTitle}<div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;">${cardsHTML}</div>`;
+      document.getElementById("log").classList.add("relic-scroll");
+      document.getElementById("log").innerHTML = relicHTML;
     } else
     // 紋入れ替え選択
     if(state.mode === "event_relic_swap"){
       document.getElementById("current-event-icon").innerText = "🔄";
+      let pr = state.pendingRelic;
       document.getElementById("current-event-text").innerHTML =
         floorBadgeHTML(state.floor) +
-        `<div style="font-size:22px;color:#0ff;margin-bottom:6px;">『${state.pendingRelic.name}』 を装備する</div>
-        <div style="font-size:20px;color:#fff;">どれと入れ替える？</div>`;
+        `<div style="font-size:22px;color:#0ff;margin-bottom:4px;">新たな紋を発見！</div>
+        <div style="font-size:20px;color:#fff;">スロットが埋まっている。どれと入れ替える？</div>`;
+
+      // ログエリアに新規紋＋装備中紋の一覧を表示
+      let newCard = `
+        <div style="margin-bottom:8px;font-size:18px;color:#aaa;letter-spacing:1px;">▼ 新しい紋</div>
+        <div style="display:flex;align-items:center;gap:16px;padding:12px;margin-bottom:12px;border:2px solid ${pr.color};border-radius:10px;background:rgba(${pr.rgb},0.1);">
+          <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" style="width:56px;height:78px;flex-shrink:0;filter:drop-shadow(0 0 6px rgba(${pr.rgb},0.6));">
+            <rect x="2" y="2" width="96" height="136" rx="6" fill="#222" stroke="${pr.color}" stroke-width="2"/>
+            <g style="color:${pr.color};">${pr.svg}</g>
+          </svg>
+          <div style="flex:1;">
+            <div style="color:${pr.color};font-size:24px;font-weight:bold;">${pr.name}</div>
+            <div style="color:#ccc;font-size:19px;margin-top:4px;">${pr.desc}</div>
+          </div>
+        </div>
+        <div style="margin-bottom:8px;font-size:18px;color:#aaa;letter-spacing:1px;">▼ 装備中（タップで入れ替え）</div>`;
+
+      let equippedCards = state.relics.map((r, i) => {
+        let c = CREST_MASTER.find(m => m.id === r.id);
+        if(!c) return "";
+        return `
+        <div style="display:flex;align-items:center;gap:16px;padding:12px;margin:6px 0;border:1px solid ${c.color};border-radius:10px;background:rgba(${c.rgb},0.05);opacity:0.85;">
+          <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" style="width:48px;height:67px;flex-shrink:0;">
+            <rect x="2" y="2" width="96" height="136" rx="6" fill="#222" stroke="${c.color}" stroke-width="2"/>
+            <g style="color:${c.color};">${c.svg}</g>
+          </svg>
+          <div style="flex:1;">
+            <div style="color:${c.color};font-size:22px;font-weight:bold;">${c.name}</div>
+            <div style="color:#aaa;font-size:18px;margin-top:4px;">${c.desc}</div>
+          </div>
+        </div>`;
+      }).join("");
+
+      document.getElementById("log").classList.add("relic-scroll");
+      document.getElementById("log").innerHTML = newCard + equippedCards;
     } else
     // DAIGOイベントは専用表示
     if(state.mode === "event_daigo"){
@@ -1689,28 +1730,30 @@ ${friendHTML}
     } // end DAIGOチェック
   }
 
-  // --- 履歴ログ：最新エントリ以外を階層単位で表示 ---
-  let logHTML = "";
-  state.log.slice(1).forEach((entry) => {
-    entry.lines.forEach((line, i) => {
-      let cls = "";
-      if(line.type==="divider") cls = "log-divider";
-      if(line.type==="loss")    cls = "log-loss";
-      let colored = colorizeLog(line.text, line.type);
+  // --- 履歴ログ：relic_pick・relic_swap中はログエリアを紋表示に使うためスキップ ---
+  if(state.mode !== "event_relic_pick" && state.mode !== "event_relic_swap"){
+    let logHTML = "";
+    state.log.slice(1).forEach((entry) => {
+      entry.lines.forEach((line, i) => {
+        let cls = "";
+        if(line.type==="divider") cls = "log-divider";
+        if(line.type==="loss")    cls = "log-loss";
+        let colored = colorizeLog(line.text, line.type);
 
-      if(line.type === "sub"){
-        logHTML += `<div style="padding-left:2em;color:#aaa;font-size:22px;">→ ${colored}</div>`;
-      } else if(line.type === "divider"){
-        colored = colored.split('\n').join(`<br><span style='font-size:20px;color:#aaa;'>`);
-        logHTML += `<div class="${cls}">${colored}</span></div>`;
-      } else {
-        // 先頭ラインには【X階】プレフィックス
-        let prefix = i === 0 ? `<span style="color:#888;">【${entry.floor}階】</span>` : "";
-        logHTML += `<div class="${cls}">${prefix}${line.emoji ? line.emoji+" " : ""}${colored}</div>`;
-      }
+        if(line.type === "sub"){
+          logHTML += `<div style="padding-left:2em;color:#aaa;font-size:22px;">→ ${colored}</div>`;
+        } else if(line.type === "divider"){
+          colored = colored.split('\n').join(`<br><span style='font-size:20px;color:#aaa;'>`);
+          logHTML += `<div class="${cls}">${colored}</span></div>`;
+        } else {
+          let prefix = i === 0 ? `<span style="color:#888;">【${entry.floor}階】</span>` : "";
+          logHTML += `<div class="${cls}">${prefix}${line.emoji ? line.emoji+" " : ""}${colored}</div>`;
+        }
+      });
     });
-  });
-  document.getElementById("log").innerHTML = logHTML;
+    document.getElementById("log").classList.remove("relic-scroll");
+    document.getElementById("log").innerHTML = logHTML;
+  }
 
   let a = document.getElementById("actions");
   a.innerHTML = "";
