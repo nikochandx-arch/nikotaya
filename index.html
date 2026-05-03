@@ -409,7 +409,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.19</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.20</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <!-- ステータスグリッド（デザインリニューアル v2） -->
     <div id="status-grid">
@@ -1089,7 +1089,7 @@ ${(() => {
 <div style="color:#888;margin:6px 0;">[ 貴重品 ]</div>
 ${state.upgrades.journal
   ? `<button disabled style="border-color:#666;color:#666;background:transparent;opacity:0.5;width:100%;height:auto;padding:12px 8px;">採掘日誌<br><span style="font-size:18px;">購入済み</span></button>`
-  : `<button onclick="buyJournal()" style="${shopStyle}height:auto;padding:12px 8px;">採掘日誌<br><span ${descStyle}>リザルトを記録</span><br>${priceSpan(15000)}</button>`
+  : `<button onclick="buyJournal()" style="${shopStyle}height:auto;padding:12px 8px;">採掘日誌<br><span ${descStyle}>リザルトを記録</span><br>${priceSpan((15000).toLocaleString())}</button>`
 }
 `;
 }
@@ -1505,10 +1505,16 @@ function render(){
   document.getElementById("buff-container").innerHTML = buffHTML;
 
   const journalIcon = state.upgrades.journal
-    ? `<span onclick="openJournal()" style="cursor:pointer;margin-left:12px;vertical-align:middle;">${SVG_ICONS.journal}</span>`
+    ? `<span onclick="openJournal()" style="cursor:pointer;margin-left:8px;vertical-align:middle;">${SVG_ICONS.journal.replace('width:1.4em;height:1.4em;', 'width:2.8em;height:2.8em;')}</span>`
+    : "";
+  const journalLabel = state.upgrades.journal
+    ? `<span style="color:#888;font-size:22px;">貴重品：${journalIcon}</span>`
     : "";
   document.getElementById("storage").innerHTML =
-    `倉庫：${SVG_ICONS.scrap} ${state.totalScrap.toLocaleString()} ／ ${SVG_ICONS.emerald} ${state.totalEmerald.toLocaleString()}${journalIcon}`;
+    `<div style="display:flex;justify-content:space-between;align-items:center;">` +
+    `<span>倉庫：${SVG_ICONS.scrap} ${state.totalScrap.toLocaleString()} <span style="color:rgba(0,180,60,0.6);">|</span> ${SVG_ICONS.emerald} ${state.totalEmerald.toLocaleString()}</span>` +
+    `${journalLabel}` +
+    `</div>`;
 
   document.getElementById("playerStatus").innerHTML =
 `<span onclick="changeName()" style="cursor:pointer;">名前：${state.name} ✏️</span>
