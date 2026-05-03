@@ -409,7 +409,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.18</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.19</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <!-- ステータスグリッド（デザインリニューアル v2） -->
     <div id="status-grid">
@@ -469,6 +469,7 @@ line-height: 1.4;
 let savedUpgrades  = JSON.parse(localStorage.getItem("upgrades") || '{"hp":0,"power":0,"potionHeal":0,"relicSlots":0}');
 if(savedUpgrades.potionHeal === undefined) savedUpgrades.potionHeal = 0;
 if(savedUpgrades.relicSlots === undefined) savedUpgrades.relicSlots = 0;
+if(savedUpgrades.journal    === undefined) savedUpgrades.journal    = false;
 let savedScrap     = parseInt(localStorage.getItem("totalScrap")) || 0;
 let savedName      = localStorage.getItem("playerName") || "プレイヤー";
 let savedBestFloor = parseInt(localStorage.getItem("bestFloor")) || 1;
@@ -1085,6 +1086,11 @@ ${(() => {
   }
   return `<button onclick="buyRelicSlot()" style="${shopStyle}height:auto;padding:12px 8px;">紋スロット拡張<br><span ${descStyle}>${cur}枠 → ${cur+1}枠</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">${cost}</span></button>`;
 })()}
+<div style="color:#888;margin:6px 0;">[ 貴重品 ]</div>
+${state.upgrades.journal
+  ? `<button disabled style="border-color:#666;color:#666;background:transparent;opacity:0.5;width:100%;height:auto;padding:12px 8px;">採掘日誌<br><span style="font-size:18px;">購入済み</span></button>`
+  : `<button onclick="buyJournal()" style="${shopStyle}height:auto;padding:12px 8px;">採掘日誌<br><span ${descStyle}>リザルトを記録</span><br>${priceSpan(15000)}</button>`
+}
 `;
 }
 
@@ -1163,6 +1169,20 @@ function colorizeLog(text, type){
 
 // --- カスタムSVGアイコン ---
 const SVG_ICONS = {
+  journal: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width:1.4em;height:1.4em;vertical-align:-0.3em;display:inline-block;">
+  <rect x="18" y="16" width="64" height="74" rx="4" fill="#000" opacity="0.5"/>
+  <rect x="22" y="12" width="56" height="74" rx="1" fill="#fef3c7" stroke="#000" stroke-width="2"/>
+  <line x1="78" y1="20" x2="80" y2="20" stroke="#000" stroke-width="2"/>
+  <line x1="78" y1="30" x2="82" y2="30" stroke="#000" stroke-width="2"/>
+  <path d="M 20 16 L 65 16 L 70 90 L 20 90 Z" fill="#065f46" stroke="#000" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M 24 20 L 61 20 L 66 86 L 24 86 Z" fill="none" stroke="#10b981" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.6"/>
+  <rect x="60" y="45" width="20" height="12" rx="1" fill="#78350f" stroke="#000" stroke-width="2" stroke-linejoin="round"/>
+  <rect x="74" y="44" width="8" height="14" rx="1" fill="#fcd34d" stroke="#000" stroke-width="1.5"/>
+  <circle cx="76" cy="51" r="1.5" fill="#000"/>
+  <circle cx="45" cy="50" r="8" fill="none" stroke="#047857" stroke-width="2"/>
+  <path d="M 45 42 L 48 50 L 45 58 L 42 50 Z" fill="#047857"/>
+  <circle cx="45" cy="50" r="1.5" fill="#000"/>
+</svg>`,
   goldenMole: `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
     <path d="M12 0L13 3L16 4L13 5L12 8L11 5L8 4L11 3Z" fill="#FFA500"/>
     <path d="M21 4L22 6L24 7L22 8L21 10L20 8L18 7L20 6Z" fill="#FFA500"/>
@@ -1484,8 +1504,11 @@ function render(){
   }
   document.getElementById("buff-container").innerHTML = buffHTML;
 
+  const journalIcon = state.upgrades.journal
+    ? `<span onclick="openJournal()" style="cursor:pointer;margin-left:12px;vertical-align:middle;">${SVG_ICONS.journal}</span>`
+    : "";
   document.getElementById("storage").innerHTML =
-    `倉庫：${SVG_ICONS.scrap} ${state.totalScrap.toLocaleString()} ／ ${SVG_ICONS.emerald} ${state.totalEmerald.toLocaleString()}`;
+    `倉庫：${SVG_ICONS.scrap} ${state.totalScrap.toLocaleString()} ／ ${SVG_ICONS.emerald} ${state.totalEmerald.toLocaleString()}${journalIcon}`;
 
   document.getElementById("playerStatus").innerHTML =
 `<span onclick="changeName()" style="cursor:pointer;">名前：${state.name} ✏️</span>
@@ -1517,6 +1540,18 @@ function render(){
     document.getElementById("log").style.maxHeight = "none";
     document.getElementById("log").style.flex = "1";
     renderRelicCollection();
+    document.getElementById("actions").innerHTML = "";
+    document.getElementById("shop").innerHTML = "";
+    return;
+  }
+
+  // 採掘日誌表示
+  if(state.mode === "journal"){
+    document.getElementById("current-event").style.display = "none";
+    document.getElementById("log").classList.add("relic-scroll");
+    document.getElementById("log").style.maxHeight = "none";
+    document.getElementById("log").style.flex = "1";
+    renderJournal();
     document.getElementById("actions").innerHTML = "";
     document.getElementById("shop").innerHTML = "";
     return;
@@ -1769,6 +1804,8 @@ ${friendHTML}
   switch(state.mode){
     case "relic_view":
       // ボタンなし（▲閉じるボタンはステータス欄に表示）
+      break;
+    case "journal":
       break;
     case "home":
       btn("採掘開始", startRun, "main");
@@ -2145,6 +2182,46 @@ function getRelicSlotCost(){
   let lv = state.upgrades.relicSlots;
   if(lv >= 4) return null;  // MAX
   return RELIC_SLOT_COSTS[lv];
+}
+
+function buyJournal(){
+  const cost = 15000;
+  if(state.totalScrap < cost){ showAlert("スクラップが足りない"); return; }
+  showConfirm(`スクラップ ${cost.toLocaleString()} で採掘日誌を購入しますか？`, () => {
+    state.totalScrap -= cost;
+    state.upgrades.journal = true;
+    playSE("coin");
+    saveAll();
+    render();
+  });
+}
+
+let prevModeJournal = "home";
+
+function openJournal(){
+  if(!state.upgrades.journal) return;
+  if(state.mode === "journal"){
+    closeJournal();
+  } else {
+    prevModeJournal = state.mode;
+    state.mode = "journal";
+    render();
+  }
+}
+
+function closeJournal(){
+  state.mode = prevModeJournal;
+  let el = document.getElementById("current-event");
+  if(el) el.style.display = "";
+  render();
+}
+
+function renderJournal(){
+  document.getElementById("log").innerHTML = `
+    <div style="padding:8px 16px;">
+      <div style="color:#fef3c7;font-size:28px;margin:16px 0 8px;border-bottom:1px solid rgba(255,255,255,0.15);padding-bottom:6px;font-weight:bold;">[ 採掘日誌 ]</div>
+      <div style="color:#888;font-size:24px;margin-top:24px;text-align:center;">準備中…</div>
+    </div>`;
 }
 
 function buyRelicSlot(){
