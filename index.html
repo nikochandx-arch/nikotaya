@@ -384,6 +384,14 @@ button:hover {
 box-shadow: 0 0 18px currentColor !important;
 }
 
+.precious-icon-btn {
+transition: transform 0.2s, filter 0.2s;
+}
+.precious-icon-btn:active {
+transform: translateY(-6px);
+filter: drop-shadow(0 0 10px rgba(254,243,199,0.7));
+}
+
 /* === フロアバッジ（デザイン変更） === */
 .floor-badge {
 display: inline-block;
@@ -409,7 +417,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.23</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.24</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <!-- ステータスグリッド（デザインリニューアル v2） -->
     <div id="status-grid">
@@ -2189,13 +2197,13 @@ function buyJournal(){
 function buildPreciousHTML(){
   if(!state.upgrades.journal) return "";
   let bigJournal = SVG_ICONS.journal
-    .replace('width:1.4em;height:1.4em;', 'width:4em;height:4em;')
+    .replace('width:1.4em;height:1.4em;', 'width:5.2em;height:5.2em;')
     .replace('vertical-align:-0.3em;', 'vertical-align:middle;');
   return `
 <div style="margin-top:16px;padding-top:10px;border-top:2px solid #fef3c7;color:#fef3c7;font-size:28px;">
   ▼貴重品
-  <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;align-items:center;">
-    <span onclick="openJournalModal()" style="cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;gap:6px;-webkit-tap-highlight-color:transparent;">
+  <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;align-items:center;padding-left:16px;">
+    <span onclick="openJournalModal()" class="precious-icon-btn" style="-webkit-tap-highlight-color:transparent;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;gap:6px;">
       ${bigJournal}
       <span style="font-size:18px;color:#fef3c7;opacity:0.7;">採掘日誌</span>
     </span>
