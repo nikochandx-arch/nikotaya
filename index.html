@@ -417,7 +417,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.24</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.25</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <!-- ステータスグリッド（デザインリニューアル v2） -->
     <div id="status-grid">
@@ -2849,7 +2849,7 @@ function digVein(){
     if(state.mode !== "dead") state.mode = "explore";
   } else {
     // 成功（前回獲得量以上を保証）
-    let g = Math.max(state.veinLastGain, Math.floor(calcScrap() * p.mult));
+    let g = Math.max(state.veinLastGain, Math.floor(calcScrap() * getMiningMultiplier() * p.mult));
     state.scrap += g;
     state.veinLastGain = g;
     // エメラルドドロップ判定（1回目=depth0は0%、2回目以降は倍率適用）
