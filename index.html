@@ -409,7 +409,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.22</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.23</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <!-- ステータスグリッド（デザインリニューアル v2） -->
     <div id="status-grid">
@@ -2188,14 +2188,17 @@ function buyJournal(){
 
 function buildPreciousHTML(){
   if(!state.upgrades.journal) return "";
+  let bigJournal = SVG_ICONS.journal
+    .replace('width:1.4em;height:1.4em;', 'width:4em;height:4em;')
+    .replace('vertical-align:-0.3em;', 'vertical-align:middle;');
   return `
 <div style="margin-top:16px;padding-top:10px;border-top:2px solid #fef3c7;color:#fef3c7;font-size:28px;">
   ▼貴重品
-  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
-    <button onclick="openJournalModal()" style="border-color:#fef3c7;color:#fef3c7;background:rgba(254,243,199,0.1);box-shadow:0 0 10px rgba(254,243,199,0.3);height:auto;padding:12px 16px;display:flex;align-items:center;gap:12px;min-width:unset;max-width:unset;">
-      ${SVG_ICONS.journal}
-      <span style="font-size:24px;">採掘日誌</span>
-    </button>
+  <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;align-items:center;">
+    <span onclick="openJournalModal()" style="cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;gap:6px;-webkit-tap-highlight-color:transparent;">
+      ${bigJournal}
+      <span style="font-size:18px;color:#fef3c7;opacity:0.7;">採掘日誌</span>
+    </span>
   </div>
 </div>`;
 }
