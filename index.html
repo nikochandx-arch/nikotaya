@@ -419,7 +419,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.38</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.39</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <!-- ステータスグリッド（デザインリニューアル v2） -->
     <div id="status-grid">
@@ -464,12 +464,12 @@ line-height: 1.4;
 <div id="crest-tooltip" style="display:none;position:fixed;bottom:180px;left:0;right:0;margin:0 auto;width:fit-content;max-width:90vw;z-index:100;pointer-events:none;"></div>
 
 <div id="bottom">
-  <div id="storage"></div>
   <div id="statusRow">
-    <div id="playerStatus"></div>
     <div id="itemBox"></div>
+    <div id="playerStatus"></div>
   </div>
   <div id="crest-container" style="display:none;"></div>
+  <div id="storage"></div>
   <div id="precious"></div>
   <div id="shop"></div>
   <div id="stats"></div>
@@ -1083,12 +1083,12 @@ function buildShopHTML(){
 <button onclick="buyPotion()" style="${shopStyle}height:auto;padding:12px 8px;${disabledStyle}">ポーション<br><span ${descStyle}>HP+${getPotionHealValue()}</span><br>${priceSpan(1)}</button>
 <button onclick="buyAntidote()" style="${shopStyle}height:auto;padding:12px 8px;${disabledStyle}">毒消し草<br><span ${descStyle}>毒を治す</span><br>${priceSpan(10)}</button>
 <div style="color:#888;margin:6px 0;">[ 永続強化 ]</div>
+<button onclick="buyHp()" style="${shopStyle}height:auto;padding:12px 8px;">最大HP +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getHpCost().toLocaleString())}</button>
+<button onclick="buyPower()" style="${shopStyle}height:auto;padding:12px 8px;">採掘力 +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getPowerCost().toLocaleString())}</button>
 ${potionMax
   ? `<button disabled style="${maxStyle}height:auto;padding:12px 8px;">ポーション強化<br><span ${descStyle}>MAX（上限+${getPotionHealValue()}）</span></button>`
   : `<button onclick="buyPotionHeal()" style="${shopStyle}height:auto;padding:12px 8px;">ポーション強化<br><span ${descStyle}>回復量+1</span><br>${priceSpan(getPotionHealCost().toLocaleString())}</button>`
 }
-<button onclick="buyHp()" style="${shopStyle}height:auto;padding:12px 8px;">最大HP +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getHpCost().toLocaleString())}</button>
-<button onclick="buyPower()" style="${shopStyle}height:auto;padding:12px 8px;">採掘力 +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getPowerCost().toLocaleString())}</button>
 ${(() => {
   let cost = getRelicSlotCost();
   let cur = getRelicSlotCount();
