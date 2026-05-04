@@ -418,7 +418,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.35</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.36</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <!-- ステータスグリッド（デザインリニューアル v2） -->
     <div id="status-grid">
@@ -2689,17 +2689,28 @@ function toggleCrestTooltip(id){
 // --- 紋獲得イベント ---
 function renderRelicPickEvent(){
   let a = document.getElementById("actions");
+  a.style.flexWrap = "wrap";
+
+  let row = document.createElement("div");
+  row.style.cssText = "display:flex;justify-content:center;gap:8px;width:100%;";
+
   state.relicChoices.forEach(c => {
     let b = document.createElement("button");
     b.innerText = c.name;
-    b.style.borderColor = c.color;
-    b.style.color       = c.color;
-    b.style.background  = `rgba(${c.rgb},0.1)`;
-    b.style.boxShadow   = `0 0 10px ${c.color}66`;
+    b.style.cssText = `border-color:${c.color};color:${c.color};background:rgba(${c.rgb},0.1);box-shadow:0 0 10px ${c.color}66;flex:1;min-width:0;max-width:none;margin:0;`;
     b.onclick = () => pickRelic(c);
-    a.appendChild(b);
+    row.appendChild(b);
   });
-  btn("どれも選ばない", skipRelic, "skip");
+  a.appendChild(row);
+
+  let skipRow = document.createElement("div");
+  skipRow.style.cssText = "display:flex;justify-content:center;width:100%;margin-top:8px;";
+  let skipBtn = document.createElement("button");
+  skipBtn.innerText = "どれも選ばない";
+  skipBtn.style.cssText = "border-color:#888;color:#888;background:rgba(136,136,136,0.1);min-width:180px;max-width:260px;";
+  skipBtn.onclick = skipRelic;
+  skipRow.appendChild(skipBtn);
+  a.appendChild(skipRow);
 }
 
 function pickRelic(crest){
