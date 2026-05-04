@@ -22,17 +22,13 @@ h2 { font-size: 28px; }
 #log { margin-bottom: 16px; font-size: 28px; }
 
 #storage {
-margin-top: 16px;
-padding-top: 10px;
-border-top: 2px solid #0f0;
+margin-top: 8px;
 color: #ffcc66;
 font-size: 28px;
 }
 
 #shop {
-margin-top: 16px;
-padding-top: 10px;
-border-top: 2px solid #0f0;
+margin-top: 8px;
 color: #ff99ff;
 font-size: 28px;
 }
@@ -171,9 +167,7 @@ background: #111;
 #statusRow {
 display: flex;
 gap: 12px;
-margin-top: 16px;
-padding-top: 10px;
-border-top: 1px solid rgba(0,255,0,0.3);
+margin-top: 8px;
 }
 
 #playerStatus {
@@ -195,9 +189,7 @@ padding-left: 12px;
 display: flex;
 justify-content: center;
 gap: 8px;
-margin-top: 16px;
-padding-top: 16px;
-border-top: 1px solid rgba(0, 255, 0, 0.3);
+margin-top: 8px;
 width: 100%;
 box-sizing: border-box;
 }
@@ -394,6 +386,44 @@ transform: translateY(-6px);
 filter: drop-shadow(0 0 10px rgba(254,243,199,0.7));
 }
 
+/* === カスタムディバイダー === */
+:root {
+–node-color: #00ff00;
+–line-color: rgba(0, 255, 0, 0.5);
+}
+.custom-divider-container {
+display: flex;
+align-items: center;
+width: 100%;
+height: 20px;
+margin: 8px 0;
+background: transparent;
+}
+.divider-node {
+width: 6px;
+height: 6px;
+background: var(–node-color);
+box-shadow: 0 0 8px var(–node-color), 0 0 16px var(–node-color);
+transform: rotate(45deg);
+flex-shrink: 0;
+margin-right: 12px;
+opacity: 0.9;
+}
+.divider-double-line {
+flex-grow: 1;
+height: 6px;
+background: linear-gradient(to right,
+var(–line-color) 0%,
+rgba(0, 255, 0, 0.05) 85%,
+transparent 100%
+);
+-webkit-mask-image: linear-gradient(to bottom, black 1px, transparent 1px, transparent 5px, black 5px);
+mask-image: linear-gradient(to bottom, black 1px, transparent 1px, transparent 5px, black 5px);
+}
+.node-blue   { –node-color: #00ffff; –line-color: rgba(0,255,255,0.5); }
+.node-orange { –node-color: #ffaa00; –line-color: rgba(255,170,0,0.5); }
+.node-red    { –node-color: #ff4444; –line-color: rgba(255,68,68,0.5); }
+
 /* === フロアバッジ（デザイン変更） === */
 .floor-badge {
 display: inline-block;
@@ -419,7 +449,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.39</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.41</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <!-- ステータスグリッド（デザインリニューアル v2） -->
     <div id="status-grid">
@@ -464,13 +494,16 @@ line-height: 1.4;
 <div id="crest-tooltip" style="display:none;position:fixed;bottom:180px;left:0;right:0;margin:0 auto;width:fit-content;max-width:90vw;z-index:100;pointer-events:none;"></div>
 
 <div id="bottom">
+  <div class="custom-divider-container"><div class="divider-node"></div><div class="divider-double-line"></div></div>
   <div id="statusRow">
-    <div id="itemBox"></div>
     <div id="playerStatus"></div>
+    <div id="itemBox"></div>
   </div>
   <div id="crest-container" style="display:none;"></div>
+  <div class="custom-divider-container"><div class="divider-node"></div><div class="divider-double-line"></div></div>
   <div id="storage"></div>
   <div id="precious"></div>
+  <div class="custom-divider-container"><div class="divider-node"></div><div class="divider-double-line"></div></div>
   <div id="shop"></div>
   <div id="stats"></div>
 </div>
@@ -1904,7 +1937,8 @@ ${friendHTML}
     if(state.mode === "home"){
       let s = state.stats;
       statsEl.innerHTML = `
-<div style="margin-top:16px;padding-top:10px;border-top:1px solid rgba(0,255,0,0.3);color:#888;font-size:22px;">
+<div class="custom-divider-container"><div class="divider-node"></div><div class="divider-double-line"></div></div>
+<div style="color:#888;font-size:22px;">
   <div style="color:#0f0;font-size:26px;margin-bottom:8px;">▼ 統計</div>
   <div>最高到達階：<span style="color:#fff;">${state.bestFloor.toLocaleString()} 階</span></div>
   <div>採掘完了回数：<span style="color:#fff;">${s.runs.toLocaleString()} 回</span></div>
@@ -1928,8 +1962,7 @@ ${friendHTML}
   <div style="display:flex;justify-content:flex-end;">
     <button onclick="deleteAllData()" style="border-color:#f55;color:#f55;background:rgba(245,85,85,0.1);min-width:120px;max-width:160px;font-size:22px;padding:12px 0;">データ削除</button>
   </div>
-</div>`;
-    } else {
+</div>`;    } else {
       statsEl.innerHTML = "";
     }
   }
@@ -2202,7 +2235,8 @@ function buildPreciousHTML(){
     .replace('width:1.4em;height:1.4em;', 'width:5.2em;height:5.2em;')
     .replace('vertical-align:-0.3em;', 'vertical-align:middle;');
   return `
-<div style="margin-top:16px;padding-top:10px;border-top:2px solid #fef3c7;color:#fef3c7;font-size:28px;">
+<div class="custom-divider-container"><div class="divider-node node-orange"></div><div class="divider-double-line"></div></div>
+<div style="color:#fef3c7;font-size:28px;">
   ▼貴重品
   <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;align-items:center;padding-left:16px;">
     <span onclick="openJournalModal()" class="precious-icon-btn" style="-webkit-tap-highlight-color:transparent;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;gap:6px;">
