@@ -454,7 +454,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.44</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.45</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <!-- ステータスグリッド（デザインリニューアル v2） -->
     <div id="status-grid">
@@ -514,62 +514,90 @@ line-height: 1.4;
 </div>
 
 <script>
+// --- セーブデータバージョン管理 ---
+const SAVE_VERSION = 1;
+
+function migrateSaveData(data, fromVersion){
+  if(fromVersion < 1){
+    if(data.upgrades.potionHeal === undefined) data.upgrades.potionHeal = 0;
+    if(data.upgrades.relicSlots === undefined) data.upgrades.relicSlots = 0;
+    if(data.upgrades.journal    === undefined) data.upgrades.journal    = false;
+    if(data.stats.poisonTurns   === undefined) data.stats.poisonTurns   = 0;
+    if(data.stats.chests        === undefined) data.stats.chests        = 0;
+    if(data.stats.mushrooms     === undefined) data.stats.mushrooms     = 0;
+    if(data.stats.veinClears    === undefined) data.stats.veinClears    = 0;
+    ["runs","deaths","floors","scrap","damage","potions","goddess",
+     "goldenMole","thiefMole","daigo","emerald",
+     "maxScrapCarry","maxEmeraldCarry"].forEach(k => {
+      if(data.stats[k] === undefined) data.stats[k] = 0;
+    });
+  }
+  // 将来フィールドを追加する時はここに追記する
+  // if(fromVersion < 2){
+  //   if(data.upgrades.newField === undefined) data.upgrades.newField = 0;
+  // }
+  return data;
+}
+
+function loadSaveData(){
+  let version = parseInt(localStorage.getItem("saveVersion")) || 0;
+
+  let data = {
+    upgrades:     JSON.parse(localStorage.getItem("upgrades") || '{"hp":0,"power":0,"potionHeal":0,"relicSlots":0,"journal":false}'),
+    totalScrap:   parseInt(localStorage.getItem("totalScrap"))   || 0,
+    totalEmerald: parseInt(localStorage.getItem("totalEmerald")) || 0,
+    bestFloor:    parseInt(localStorage.getItem("bestFloor"))    || 1,
+    items:        JSON.parse(localStorage.getItem("items")       || "[]"),
+    stats:        JSON.parse(localStorage.getItem("stats")       || "{}"),
+    playerName:   localStorage.getItem("playerName")             || "プレイヤー",
+    seOn:         localStorage.getItem("seOn") !== "false",
+  };
+
+  if(version < SAVE_VERSION){
+    data = migrateSaveData(data, version);
+    localStorage.setItem("saveVersion", SAVE_VERSION);
+  }
+
+  return data;
+}
+
 // --- 永続データ読み込み ---
-let savedUpgrades  = JSON.parse(localStorage.getItem("upgrades") || '{"hp":0,"power":0,"potionHeal":0,"relicSlots":0}');
-if(savedUpgrades.potionHeal === undefined) savedUpgrades.potionHeal = 0;
-if(savedUpgrades.relicSlots === undefined) savedUpgrades.relicSlots = 0;
-if(savedUpgrades.journal    === undefined) savedUpgrades.journal    = false;
-let savedScrap     = parseInt(localStorage.getItem("totalScrap")) || 0;
-let savedName      = localStorage.getItem("playerName") || "プレイヤー";
-let savedBestFloor = parseInt(localStorage.getItem("bestFloor")) || 1;
-let savedEmerald   = parseInt(localStorage.getItem("totalEmerald")) || 0;
-let savedItems     = JSON.parse(localStorage.getItem("items") || "[]");
-let savedSeOn      = localStorage.getItem("seOn") !== "false"; // デフォルトON
-let savedStats     = JSON.parse(localStorage.getItem("stats") || JSON.stringify({
-  runs: 0, deaths: 0, floors: 0, scrap: 0, damage: 0,
-  potions: 0, goddess: 0, goldenMole: 0, thiefMole: 0, daigo: 0, emerald: 0,
-  maxScrapCarry: 0, maxEmeraldCarry: 0, poisonTurns: 0, chests: 0,
-  mushrooms: 0, veinClears: 0
-}));
-// 旧データに項目がない場合の補完
-["runs","deaths","floors","scrap","damage","potions","goddess","goldenMole","thiefMole","daigo","emerald","maxScrapCarry","maxEmeraldCarry","poisonTurns","chests","mushrooms","veinClears"].forEach(k => {
-  if(savedStats[k] === undefined) savedStats[k] = 0;
-});
+const saved = loadSaveData();
 
 let state = {
-  name:       savedName,
-  hp:         10 + savedUpgrades.hp,
-  maxHp:      10 + savedUpgrades.hp,
-  power:      1  + savedUpgrades.power,
-  items:      savedItems,   // 消耗品アイテム（最大5個）
-  scrap:      0,
-  totalScrap: savedScrap,
-  floor:      1,
-  bestFloor:  savedBestFloor,
-  log:        [],
-  mode:       "home",
-  upgrades:   savedUpgrades,
-  lastResult: null,
-  buffs: [],  // { id, name, turns, isBad, onTurn: fn }
-  moleBlock: -1,  // モグラが発生した30階ブロック番号
+  name:         saved.playerName,
+  hp:           10 + saved.upgrades.hp,
+  maxHp:        10 + saved.upgrades.hp,
+  power:        1  + saved.upgrades.power,
+  items:        saved.items,
+  scrap:        0,
+  totalScrap:   saved.totalScrap,
+  floor:        1,
+  bestFloor:    saved.bestFloor,
+  log:          [],
+  mode:         "home",
+  upgrades:     saved.upgrades,
+  lastResult:   null,
+  buffs:        [],
+  moleBlock:    -1,
   relicViewOpen: false,
-  daigoLastFloor: -999,  // DAIGOの最終遭遇階
-  merchantLastFloor: -999,  // 商人の最終遭遇階
-  relics: [],  // 装備中の紋（最大5つ、ラン中のみ有効）
-  pendingItem: null,  // 手持ちいっぱい時の入手待ちアイテム
-  relicEventFloors: new Set(),  // この採掘中に紋イベント発生済みの階層
-  relicChoices: [],  // 選択中の紋候補
-  pendingRelic: null,  // スロット満タン時の入れ替え待ち紋
-  activeCrestId: null,  // フキダシ表示中の紋ID
-  veinDepth: 0,  // 鉱脈を掘った回数
-  veinLastGain: 0,  // 鉱脈で最後に得たスクラップ数
-  veinLastEmerald: false,  // 鉱脈で直前にエメラルドを得たか
-  mushroomBad: false,  // キノコでマイナス効果を引いたか
-  emerald: 0,  // 採掘中のエメラルド所持数
-  totalEmerald: savedEmerald,  // 倉庫エメラルド（永続）
-  seOn: savedSeOn,
-  stats: savedStats,  // 永続累計統計
-  runStats: {         // ラン中の一時記録
+  daigoLastFloor:    -999,
+  merchantLastFloor: -999,
+  relics:           [],
+  pendingItem:      null,
+  relicEventFloors: new Set(),
+  relicChoices:     [],
+  pendingRelic:     null,
+  activeCrestId:    null,
+  veinDepth:        0,
+  veinLastGain:     0,
+  veinLastEmerald:  false,
+  mushroomBad:      false,
+  emerald:          0,
+  totalEmerald:     saved.totalEmerald,
+  seOn:             saved.seOn,
+  stats:            saved.stats,
+  runStats: {
     floors: 0, scrap: 0, damage: 0,
     potions: 0, goddess: 0, goldenMole: 0, thiefMole: 0, daigo: 0,
     chests: 0, poisonTurns: 0, mushrooms: 0, veinClears: 0
