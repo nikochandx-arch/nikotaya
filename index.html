@@ -454,7 +454,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.51</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.52</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -1858,9 +1858,17 @@ ${friendHTML}
     document.getElementById("log").innerHTML = buffRow + logHTML;
   }
 
-  // current-eventのスクロール位置を常に末尾に固定
+  // テキストがボックスより高い場合は上詰め＋スクロール末尾、そうでなければセンター
   let ceEl = document.getElementById("current-event");
-  if(ceEl) ceEl.scrollTop = ceEl.scrollHeight;
+  if(ceEl){
+    if(ceEl.scrollHeight > ceEl.clientHeight){
+      ceEl.style.alignItems = "flex-start";
+      ceEl.scrollTop = ceEl.scrollHeight;
+    } else {
+      ceEl.style.alignItems = "center";
+      ceEl.scrollTop = 0;
+    }
+  }
 
   let a = document.getElementById("actions");
   a.innerHTML = "";
