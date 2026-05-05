@@ -99,7 +99,7 @@ background: rgba(255, 85, 85, 0.1);
 #top {
 display: flex;
 flex-direction: column;
-max-height: 560px;
+max-height: 820px;
 }
 
 #header {
@@ -453,7 +453,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.48</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.49</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -461,21 +461,6 @@ line-height: 1.4;
     <div id="current-event-text">採掘を開始しよう！</div>
   </div>
   <div id="log"></div>
-</div>
-
-<div id="actions"></div>
-<div id="modal-overlay">
-  <div id="modal-box">
-    <div id="modal-message"></div>
-    <div id="modal-buttons">
-      <button class="modal-yes" id="modal-yes">はい</button>
-      <button class="modal-no" id="modal-no">いいえ</button>
-    </div>
-  </div>
-</div>
-<div id="crest-tooltip" style="display:none;position:fixed;bottom:180px;left:0;right:0;margin:0 auto;width:fit-content;max-width:90vw;z-index:100;pointer-events:none;"></div>
-
-<div id="bottom">
   <div id="status-grid">
     <div class="stat-cell">
       <div class="stat-value" id="sg-hp">—</div>
@@ -496,6 +481,21 @@ line-height: 1.4;
       <div class="stat-value val-floor" id="sg-floor">—</div>
     </div>
   </div>
+</div>
+
+<div id="actions"></div>
+<div id="modal-overlay">
+  <div id="modal-box">
+    <div id="modal-message"></div>
+    <div id="modal-buttons">
+      <button class="modal-yes" id="modal-yes">はい</button>
+      <button class="modal-no" id="modal-no">いいえ</button>
+    </div>
+  </div>
+</div>
+<div id="crest-tooltip" style="display:none;position:fixed;bottom:180px;left:0;right:0;margin:0 auto;width:fit-content;max-width:90vw;z-index:100;pointer-events:none;"></div>
+
+<div id="bottom">
   <div id="buff-container"></div>
   <div class="custom-divider-container"><div class="divider-node">■</div><div class="divider-double-line"></div></div>
   <div id="statusRow">
@@ -1569,15 +1569,8 @@ function render(){
   })();
   // --- ここまで追記 ---
 
-  // バフ・デバフ表示
-  let buffHTML = "";
-  if(state.buffs.length > 0){
-    state.buffs.forEach(b => {
-      let cls = b.isBad ? "buff-bad" : "buff-good";
-      buffHTML += `<div class="buff-badge ${cls}">${b.name} : ${b.turns}T</div>`;
-    });
-  }
-  document.getElementById("buff-container").innerHTML = buffHTML;
+  // バフ・デバフ表示（ログ内に描画するためここはクリアのみ）
+  document.getElementById("buff-container").innerHTML = "";
 
   document.getElementById("storage").innerHTML =
     `倉庫：${SVG_ICONS.scrap} ${state.totalScrap.toLocaleString()} <span style="color:rgba(0,180,60,0.6);">|</span> ${SVG_ICONS.emerald} ${state.totalEmerald.toLocaleString()}`;
@@ -1828,6 +1821,18 @@ ${friendHTML}
 
   // --- 履歴ログ：relic_pick・relic_swap中はログエリアを紋表示に使うためスキップ ---
   if(state.mode !== "event_relic_pick" && state.mode !== "event_relic_swap"){
+    // バフデバフ行を生成
+    let buffRow = "";
+    if(state.buffs.length > 0){
+      let badges = state.buffs.map(b => {
+        let cls = b.isBad ? "buff-bad" : "buff-good";
+        return `<span class="buff-badge ${cls}">${b.name} : ${b.turns}T</span>`;
+      }).join("");
+      buffRow = `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px 0 8px;border-bottom:1px solid rgba(0,255,80,0.15);margin-bottom:6px;font-size:22px;color:rgba(0,255,80,0.5);">状態：${badges}</div>`;
+    } else {
+      buffRow = `<div style="padding:6px 0 8px;border-bottom:1px solid rgba(0,255,80,0.15);margin-bottom:6px;font-size:22px;color:rgba(0,255,80,0.5);">状態：正常</div>`;
+    }
+
     let logHTML = "";
     state.log.slice(1).forEach((entry) => {
       entry.lines.forEach((line, i) => {
@@ -1849,7 +1854,7 @@ ${friendHTML}
     });
     document.getElementById("log").classList.remove("relic-scroll");
     document.getElementById("log").classList.remove("relic-pick-mode");
-    document.getElementById("log").innerHTML = logHTML;
+    document.getElementById("log").innerHTML = buffRow + logHTML;
   }
 
   let a = document.getElementById("actions");
