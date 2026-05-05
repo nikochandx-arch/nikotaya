@@ -99,7 +99,7 @@ background: rgba(255, 85, 85, 0.1);
 #top {
 display: flex;
 flex-direction: column;
-height: 820px;
+max-height: 820px;
 }
 
 #header {
@@ -136,7 +136,8 @@ padding-left: 28px;
 }
 
 #log {
-flex: 0 0 250px;
+flex: 0 1 250px;
+min-height: 60px;
 max-height: 250px;
 overflow-y: auto;
 overflow-x: hidden;
@@ -454,7 +455,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.46</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.47</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <!-- ステータスグリッド（デザインリニューアル v2） -->
     <div id="status-grid">
