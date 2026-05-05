@@ -454,7 +454,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.43</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.44</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <!-- ステータスグリッド（デザインリニューアル v2） -->
     <div id="status-grid">
@@ -1927,6 +1927,7 @@ ${friendHTML}
       let s = state.stats;
       statsEl.innerHTML = `
 <div class="custom-divider-container"><div class="divider-node">■</div><div class="divider-double-line"></div></div>
+<div style="color:#bbb;font-size:22px;">
   <div style="color:#0f0;font-size:26px;margin-bottom:8px;">▼ 統計</div>
   <div>最高到達階：<span style="color:#fff;">${state.bestFloor.toLocaleString()} 階</span></div>
   <div>採掘完了回数：<span style="color:#fff;">${s.runs.toLocaleString()} 回</span></div>
