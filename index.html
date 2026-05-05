@@ -351,7 +351,7 @@ color: rgba(0,255,80,0.5);
 
 .hp-bar-wrap {
 margin-top: 4px;
-height: 3px;
+height: 6px;
 background: rgba(0,255,80,0.08);
 border-radius: 2px;
 overflow: hidden;
@@ -400,14 +400,17 @@ margin: 8px 0;
 background: transparent;
 }
 .divider-node {
-width: 6px;
-height: 6px;
-background: var(–node-color);
-box-shadow: 0 0 8px var(–node-color), 0 0 16px var(–node-color);
-transform: rotate(45deg);
+width: auto;
+height: auto;
+background: none;
+box-shadow: none;
+transform: none;
 flex-shrink: 0;
-margin-right: 12px;
+margin-right: 8px;
 opacity: 0.9;
+color: rgba(0,255,0,0.5);
+font-size: 10px;
+line-height: 1;
 }
 .divider-double-line {
 flex-grow: 1;
@@ -451,7 +454,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.42</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.43</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
     <!-- ステータスグリッド（デザインリニューアル v2） -->
     <div id="status-grid">
@@ -496,16 +499,16 @@ line-height: 1.4;
 <div id="crest-tooltip" style="display:none;position:fixed;bottom:180px;left:0;right:0;margin:0 auto;width:fit-content;max-width:90vw;z-index:100;pointer-events:none;"></div>
 
 <div id="bottom">
-  <div class="custom-divider-container"><div class="divider-node"></div><div class="divider-double-line"></div></div>
+  <div class="custom-divider-container"><div class="divider-node">■</div><div class="divider-double-line"></div></div>
   <div id="statusRow">
     <div id="playerStatus"></div>
     <div id="itemBox"></div>
   </div>
   <div id="crest-container" style="display:none;"></div>
-  <div class="custom-divider-container"><div class="divider-node"></div><div class="divider-double-line"></div></div>
+  <div class="custom-divider-container"><div class="divider-node">■</div><div class="divider-double-line"></div></div>
   <div id="storage"></div>
   <div id="precious"></div>
-  <div class="custom-divider-container"><div class="divider-node"></div><div class="divider-double-line"></div></div>
+  <div class="custom-divider-container"><div class="divider-node">■</div><div class="divider-double-line"></div></div>
   <div id="shop"></div>
   <div id="stats"></div>
 </div>
@@ -1575,19 +1578,6 @@ function render(){
   }
   document.getElementById("itemBox").innerHTML = itemHTML;
 
-  // 紋一覧表示
-  if(state.mode === "relic_view"){
-    document.getElementById("current-event").style.display = "none";
-    document.getElementById("current-event").style.flexGrow = "1";
-    document.getElementById("log").classList.add("relic-scroll");
-    document.getElementById("log").style.maxHeight = "none";
-    document.getElementById("log").style.flex = "1";
-    renderRelicCollection();
-    document.getElementById("actions").innerHTML = "";
-    document.getElementById("shop").innerHTML = "";
-    return;
-  }
-
   // 採掘日誌表示
   if(state.mode === "home"){
     document.getElementById("current-event").style.display = "";
@@ -1674,13 +1664,13 @@ ${unlockHTML}
         document.getElementById("current-event-text").innerHTML =
           floorBadgeHTML(state.floor) +
 `<div style="font-size:28px;">鉱脈だ！だけど地盤が脆そうだ…</div>
-<div style="color:#ffcc66;font-size:22px;margin-top:6px;">崩落確率：<span style="color:#f55;">${displayCollapse*100}%</span> ${skilldigNote}　獲得倍率：×${p.mult}　想定ダメージ：<span style="color:#f55;">${dmg}</span></div>`;
+<div style="color:#ffcc66;font-size:22px;margin-top:6px;">崩落確率：<span style="color:#f55;">${displayCollapse*100}%</span> ${skilldigNote}　<span style="color:#58d68d;">獲得倍率：×${p.mult}</span>　想定ダメージ：<span style="color:#f55;">${dmg}</span></div>`;
       } else {
         document.getElementById("current-event-text").innerHTML =
           floorBadgeHTML(state.floor) +
 `<div style="font-size:26px;">${depth}回掘った <span style="color:#ffcc66;">スクラップ+${state.veinLastGain.toLocaleString()}</span>${emeraldNote}　やめるなら今のうち…</div>
 <div style="color:#ffcc66;font-size:24px;font-weight:bold;margin-top:6px;">次の崩落確率：<span style="color:#f55;">${displayCollapse*100}%</span> ${skilldigNote}　想定ダメージ：<span style="color:#f55;">${dmg}</span></div>
-<div style="color:#ffcc66;font-size:22px;">成功時獲得倍率：×${p.mult}</div>`;
+<div style="color:#58d68d;font-size:22px;">成功時獲得倍率：×${p.mult}</div>`;
       }
     } else
     // 紋選択イベント専用表示
@@ -1836,9 +1826,6 @@ ${friendHTML}
   a.innerHTML = "";
 
   switch(state.mode){
-    case "relic_view":
-      // ボタンなし（▲閉じるボタンはステータス欄に表示）
-      break;
     case "home":
       btn("採掘開始", startRun, "main");
       break;
@@ -1939,8 +1926,7 @@ ${friendHTML}
     if(state.mode === "home"){
       let s = state.stats;
       statsEl.innerHTML = `
-<div class="custom-divider-container"><div class="divider-node"></div><div class="divider-double-line"></div></div>
-<div style="color:#888;font-size:22px;">
+<div class="custom-divider-container"><div class="divider-node">■</div><div class="divider-double-line"></div></div>
   <div style="color:#0f0;font-size:26px;margin-bottom:8px;">▼ 統計</div>
   <div>最高到達階：<span style="color:#fff;">${state.bestFloor.toLocaleString()} 階</span></div>
   <div>採掘完了回数：<span style="color:#fff;">${s.runs.toLocaleString()} 回</span></div>
@@ -1995,19 +1981,13 @@ function btn(t, f, style="main", seName="select"){
 let relicPrevMode = "home";
 
 function toggleRelicView(){
+  let overlay = document.getElementById("relic-overlay");
+  state.relicViewOpen = !state.relicViewOpen;
   if(state.relicViewOpen){
-    // 閉じる
-    state.relicViewOpen = false;
-    let el = document.getElementById("current-event");
-    if(el) el.style.display = "";
-    state.mode = relicPrevMode;
+    renderRelicCollection();
+    overlay.style.display = "block";
   } else {
-    // 開く
-    relicPrevMode = state.mode;
-    state.relicViewOpen = true;
-    let el = document.getElementById("current-event");
-    if(el) el.style.display = "none";
-    state.mode = "relic_view";
+    overlay.style.display = "none";
   }
   render();
 }
@@ -2039,7 +2019,7 @@ function renderRelicCollection(){
     });
   });
   html += `</div>`;
-  document.getElementById("log").innerHTML = html;
+  document.getElementById("relic-overlay-content").innerHTML = html;
 }
 
 // --- アイテムメニュー ---
@@ -2237,7 +2217,7 @@ function buildPreciousHTML(){
     .replace('width:1.4em;height:1.4em;', 'width:5.2em;height:5.2em;')
     .replace('vertical-align:-0.3em;', 'vertical-align:middle;');
   return `
-<div class="custom-divider-container"><div class="divider-node node-orange"></div><div class="divider-double-line"></div></div>
+<div class="custom-divider-container"><div class="divider-node node-orange">■</div><div class="divider-double-line"></div></div>
 <div style="color:#fef3c7;font-size:28px;">
   ▼貴重品
   <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;align-items:center;padding-left:16px;">
@@ -3150,6 +3130,15 @@ function buyPower(){
 
 render();
 </script>
+
+<div id="relic-overlay" style="display:none; position:fixed; inset:0;
+  background:#111; z-index:500; overflow-y:auto; padding:16px; padding-top:64px;">
+  <button onclick="toggleRelicView()" style="position:fixed; top:12px; right:12px;
+    z-index:501; min-width:unset; max-width:unset; width:56px; height:56px;
+    border-color:#0ff; color:#0ff; background:rgba(17,17,17,0.95);
+    border-radius:50%; font-size:24px; padding:0;">✕</button>
+  <div id="relic-overlay-content"></div>
+</div>
 
 </body>
 </html>
