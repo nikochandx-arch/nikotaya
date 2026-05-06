@@ -457,7 +457,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.58</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.59</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -1650,23 +1650,23 @@ function render(){
     let carryNote = r.survived ? "（半分）" : "";
     if(r.goddess) carryNote = "";
     let emeraldLine = r.survived
-      ? `<div style="color:#58d68d;">持ち帰ったエメラルド：${SVG_ICONS.emerald} ${r.emeraldCarry || 0}</div>`
-      : `<div style="color:#666;">エメラルド：0</div>`;
+      ? `<div style="color:#58d68d;font-size:26px;">持ち帰ったエメラルド：${SVG_ICONS.emerald} ${r.emeraldCarry || 0}</div>`
+      : `<div style="color:#666;font-size:26px;">エメラルド：0</div>`;
     let bestFloorLine = r.newBest
-      ? `<div>最高到達階：${state.bestFloor} 階　<span style="color:#ff0;font-weight:bold;text-shadow:0 0 8px #ff0;">最高到達階更新！</span></div>`
-      : `<div style="color:#aaa;">最高到達階：${state.bestFloor} 階</div>`;
+      ? `<div style="font-size:26px;">最高到達階：${state.bestFloor} 階　<span style="color:#ff0;font-weight:bold;text-shadow:0 0 8px #ff0;">最高到達階更新！</span></div>`
+      : `<div style="color:#aaa;font-size:26px;">最高到達階：${state.bestFloor} 階</div>`;
     let unlockHTML = "";
     if(r.unlocks && r.unlocks.length > 0){
       unlockHTML = r.unlocks.map(id => {
         let crest = CREST_MASTER.find(c => c.id === id);
-        return `<div style="color:${crest.color};font-size:30px;font-weight:bold;text-shadow:0 0 8px ${crest.color};margin:4px 0;">✨ ${crest.name} が解放されました！</div>`;
+        return `<div style="color:${crest.color};font-size:26px;font-weight:bold;text-shadow:0 0 8px ${crest.color};margin:4px 0;">✨ ${crest.name} が解放されました！</div>`;
       }).join("");
     }
     document.getElementById("current-event-text").innerHTML = `
 <div style="color:#ff0;font-size:28px;margin-bottom:6px;">── リザルト ──</div>
-<div>${survived}</div>
-<div>到達階層：${r.floor} 階</div>
-<div style="color:#ffcc66;">持ち帰ったスクラップ：${r.carry.toLocaleString()} ${carryNote}</div>
+<div style="font-size:26px;">${survived}</div>
+<div style="font-size:26px;">到達階層：${r.floor} 階</div>
+<div style="color:#ffcc66;font-size:26px;">持ち帰ったスクラップ：${SVG_ICONS.scrap} ${r.carry.toLocaleString()} ${carryNote}</div>
 ${emeraldLine}
 ${bestFloorLine}
 ${unlockHTML}
