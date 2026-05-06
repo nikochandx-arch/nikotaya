@@ -6,6 +6,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=0.6">
 <title>Nikotaya Mining Roguelike</title>
 <style>
+* {
+  touch-action: manipulation;
+}
 body {
   background-color: #111;
   color: #0f0;
@@ -454,7 +457,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.53</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.55</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -1496,6 +1499,7 @@ function getEmoji(text, type){
   if(type==="divider")     return text.includes("女神") ? SVG_ICONS.goddess : SVG_ICONS.door;
   if(type==="damage")      return text.includes("毒") ? "🩸" : "💥";
   if(type==="scrap")       return "⛏️";
+  if(text.includes("一休み"))       return SVG_ICONS.campfire;
   if(type==="heal")        return "💤";
   if(type==="loss")        return "🕳️";
   if(type==="sub")         return "";
@@ -1505,7 +1509,6 @@ function getEmoji(text, type){
   if(text.includes("キノコ"))       return SVG_ICONS.mushroom;
   if(text.includes("帰還"))         return "🏠";
   if(text.includes("HPが0"))        return "💀";
-  if(text.includes("一休み"))       return SVG_ICONS.campfire;
   if(text.includes("亀裂"))         return "🕳️";
   if(text.includes("有毒ガス"))      return "🌫️";
   if(text.includes("暗闇で岩"))      return "🪨";
