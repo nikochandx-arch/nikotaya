@@ -457,7 +457,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.55</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.56</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -2703,7 +2703,9 @@ function dropAndKeep(dropIndex, allItems){
 
 // --- コウモリイベント ---
 function calcBatLost(){
-  return state.scrap > 0 ? Math.max(1, Math.floor(state.scrap * 0.1)) : 0;
+  if(state.scrap <= 0) return 0;
+  let cap = calcScrap() * 3;
+  return Math.min(cap, Math.max(1, Math.floor(state.scrap * 0.1)));
 }
 
 function renderBatEvent(){
