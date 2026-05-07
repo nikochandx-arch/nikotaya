@@ -457,7 +457,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.60</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.61</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -2359,6 +2359,218 @@ function EVENT_COND(){
   };
 }
 
+// --- イベント抽選用コンテキスト ---
+// 各イベントの condition 関数に渡される。state直アクセスより読みやすく、
+// 将来テストや特殊ロジック追加時にも扱いやすい。
+function buildEventCtx(){
+  return {
+    state,                                                  // state全体への参照
+    floor:    state.floor,                                  // 現在階層
+    cond:     EVENT_COND(),                                 // 派生条件まとめ
+    hasRelic: id => state.relics.some(r => r.id === id),    // 紋装備中か
+    hasItem:  effect => state.items.some(i => i.effect === effect), // 特定効果アイテム所持中か
+  };
+}
+
+// --- 重み付きイベント抽選 ---
+// condition を満たすイベントだけを対象に重み付き抽選する。
+// 全件 condition 不一致なら、condition 無しのイベントだけで抽選（fallback）。
+function pickWeightedEvent(events, ctx){
+  let avail = events.filter(e => !e.condition || e.condition(ctx));
+  if(avail.length === 0) avail = events.filter(e => !e.condition);
+  let total = avail.reduce((s, e) => s + e.weight, 0);
+  let r = Math.random() * total;
+  for(let e of avail){
+    r -= e.weight;
+    if(r <= 0) return e;
+  }
+  return avail[avail.length - 1];
+}
+
+// --- 軽イベント定義 ---
+const LIGHT_EVENTS = [
+  {
+    id: "rockfall", name: "落石", weight: 19,
+    condition: null,
+    fn: () => {
+      playSE("damage");
+      let d = Math.floor(Math.random()*3) + 1 + floorDmgBonus();
+      damage(d);
+      addLog(`落石！ ${d} ダメージ`, "damage");
+    }
+  },
+  {
+    id: "rest", name: "一休み", weight: 9,
+    condition: null,
+    fn: () => {
+      let h = Math.floor(Math.random()*2) + 1 + floorHealBonus();
+      heal(h);
+      playSE("heal");
+      addLog(`一休みした HP+${h}`, "heal");
+    }
+  },
+  {
+    id: "crack", name: "亀裂", weight: 10,
+    condition: null,
+    fn: () => {
+      playSE("select");
+      let lost = Math.min(calcScrap(), state.scrap);
+      state.scrap = Math.max(0, state.scrap - lost);
+      addLog(`亀裂の隙間にスクラップを落としてしまった スクラップ -${lost.toLocaleString()}`, "loss");
+    }
+  },
+  {
+    id: "gas", name: "有毒ガス", weight: 3,
+    condition: null,
+    fn: () => {
+      playSE("select");
+      applyPoison(2);
+      addLog("有毒ガスが充満している！ 毒2ターン", "damage");
+    }
+  },
+  {
+    id: "darkRock", name: "暗闇で岩", weight: 9,
+    condition: null,
+    fn: () => {
+      playSE("damage");
+      let base = Math.floor(Math.random()*3) + 1 + floorDmgBonus();
+      let d = Math.max(1, Math.floor(base / 2));
+      damage(d);
+      addLog(`暗闇で岩にぶつかった！ ${d} ダメージ`, "damage");
+    }
+  },
+  {
+    id: "slip", name: "足を滑らせた", weight: 8,
+    condition: null,
+    fn: () => {
+      playSE("damage");
+      let lost = Math.max(0, Math.floor(Math.floor(calcScrap() * 0.1) / 2));
+      state.scrap = Math.max(0, state.scrap - lost);
+      let d = Math.max(1, Math.ceil(state.maxHp * 0.05));
+      damage(d);
+      addLog(`足を滑らせた！`, "damage");
+      addLog(`スクラップを ${lost.toLocaleString()} 落とした / ${d} ダメージを受けた`, "sub");
+    }
+  },
+  {
+    id: "wristPain", name: "手首を痛めた", weight: 7,
+    condition: null,
+    fn: () => {
+      playSE("select");
+      applyMiningDown(3);
+      addLog("採掘中に手首を痛めた… 採掘量低下（3ターン）", "damage");
+    }
+  },
+  {
+    id: "daigo", name: "DAIGO", weight: 5,
+    condition: ctx => ctx.floor - ctx.state.daigoLastFloor >= 20,
+    fn: () => {
+      const DAIGO_TIPS = [
+        "キノコは食べると毒になることがあるから気をつけて",
+        "コンテナみつけるとつい開けちゃうよねぇ",
+        "毒って苦しいけど毒ダメージで死ぬことはないらしいよ",
+        "女神像に祈れば無事に帰れるみたいだよ",
+        "階層が深くなるほど取れるスクラップも多くなるみたいだよ",
+        "こないだコンテナからポーション拾っちゃった",
+        "キノコ食べると稀にパワーアップするとか…ホントかな？",
+        "30階以降はエメラルドも掘れるらしいよ。まぁ滅多にみつからないんだけどね",
+        "採掘中に授かった紋は1度帰還すると消えてしまうらしいよ。次また新しく授けてもらわないとね",
+        "鉱脈からもエメラルドは掘れるみたいだね",
+      ];
+      playSE("select");
+      let tip = DAIGO_TIPS[Math.floor(Math.random() * DAIGO_TIPS.length)];
+      state.daigoLastFloor = state.floor;
+      state.runStats.daigo++;
+      state.mode = "event_daigo";
+      addLog(`採掘者DAIGOに出会った！`);
+      state.log[0].tip = tip;
+      // 友誼の紋：HP20%回復
+      if(state.relics.some(r => r.id === "friend")){
+        let h = Math.ceil(state.maxHp * 0.2);
+        heal(h);
+        playSE("heal");
+        state.log[0].friendHeal = h;
+        addLog(`友誼の紋が輝いた！ HP +${h} 回復`, "sub");
+      }
+    }
+  },
+  {
+    id: "mole", name: "モグラ", weight: 1,
+    condition: ctx => {
+      let block = Math.floor((ctx.floor - 1) / 30);
+      return ctx.state.moleBlock !== block;
+    },
+    fn: () => {
+      playSE("select");
+      let block = Math.floor((state.floor - 1) / 30);
+      state.moleBlock = block;
+      if(Math.random() < 0.5){
+        // 金モグラ
+        let gain = Math.floor(state.scrap / 2);
+        state.scrap += gain;
+        state.runStats.goldenMole++;
+        addLog(`金モグラだ！ スクラップ +${gain.toLocaleString()}`, "scrap");
+      } else {
+        // 泥棒モグラ
+        let lost = Math.floor(state.scrap / 2);
+        state.scrap = Math.max(0, state.scrap - lost);
+        state.runStats.thiefMole++;
+        addLog(`泥棒モグラだ！ スクラップ -${lost.toLocaleString()}`, "loss");
+      }
+    }
+  },
+];
+
+// --- 重イベント定義 ---
+const HEAVY_EVENTS = [
+  {
+    id: "container", name: "コンテナ", weight: 15,
+    condition: null,
+    fn: () => { state.mode = "event"; addLog("コンテナを発見した！"); }
+  },
+  {
+    id: "vein", name: "鉱脈", weight: 40,
+    condition: null,
+    fn: () => {
+      state.veinDepth = 0;
+      state.mode = "event_vein";
+      addLog("鉱脈だ！だけど地盤が脆そうだ…");
+    }
+  },
+  {
+    id: "mushroom", name: "キノコ", weight: 40,
+    condition: null,
+    fn: () => {
+      playSE("select");
+      state.mushroomBad = false;
+      state.mode = "event_mushroom";
+      addLog("謎のキノコだ！");
+    }
+  },
+  {
+    id: "bat", name: "コウモリ", weight: 30,
+    condition: null,
+    fn: () => {
+      playSE("select");
+      state.mode = "event_bat";
+      addLog("コウモリの群れだ！");
+    }
+  },
+  {
+    id: "merchant", name: "商人", weight: 10,
+    condition: ctx =>
+      ctx.state.items.length <= 4 &&
+      ctx.state.scrap >= 10 &&
+      ctx.floor - ctx.state.merchantLastFloor >= 15,
+    fn: () => {
+      playSE("select");
+      state.merchantLastFloor = state.floor;
+      state.mode = "event_merchant";
+      addLog("謎の商人が現れた！");
+    }
+  },
+];
+
 // --- 探索 ---
 function next(){
   state.floor++;
@@ -2404,141 +2616,6 @@ function next(){
   }
 
   // --- 軽(70%) / 重(30%) の2段階抽選 ---
-  const LIGHT_EVENTS = [
-    // 落石 19
-    { w: 19, fn: () => {
-      playSE("damage");
-      let d = Math.floor(Math.random()*3) + 1 + floorDmgBonus();
-      damage(d);
-      addLog(`落石！ ${d} ダメージ`, "damage");
-    }},
-    // 一休み 9
-    { w: 9, fn: () => {
-      let h = Math.floor(Math.random()*2) + 1 + floorHealBonus();
-      heal(h);
-      playSE("heal");
-      addLog(`一休みした HP+${h}`, "heal");
-    }},
-    // 亀裂 10
-    { w: 10, fn: () => {
-      playSE("select");
-      let lost = Math.min(calcScrap(), state.scrap);
-      state.scrap = Math.max(0, state.scrap - lost);
-      addLog(`亀裂の隙間にスクラップを落としてしまった スクラップ -${lost.toLocaleString()}`, "loss");
-    }},
-    // 有毒ガス 3
-    { w: 3, fn: () => {
-      playSE("select");
-      applyPoison(2);
-      addLog("有毒ガスが充満している！ 毒2ターン", "damage");
-    }},
-    // 暗闇で岩 9
-    { w: 9, fn: () => {
-      playSE("damage");
-      let base = Math.floor(Math.random()*3) + 1 + floorDmgBonus();
-      let d = Math.max(1, Math.floor(base / 2));
-      damage(d);
-      addLog(`暗闇で岩にぶつかった！ ${d} ダメージ`, "damage");
-    }},
-    // 足を滑らせた 8
-    { w: 8, fn: () => {
-      playSE("damage");
-      let lost = Math.max(0, Math.floor(Math.floor(calcScrap() * 0.1) / 2));
-      state.scrap = Math.max(0, state.scrap - lost);
-      let d = Math.max(1, Math.ceil(state.maxHp * 0.05));
-      damage(d);
-      addLog(`足を滑らせた！`, "damage");
-      addLog(`スクラップを ${lost.toLocaleString()} 落とした / ${d} ダメージを受けた`, "sub");
-    }},
-    // 手首を痛めた 7
-    { w: 7, fn: () => {
-      playSE("select");
-      applyMiningDown(3);
-      addLog("採掘中に手首を痛めた… 採掘量低下（3ターン）", "damage");
-    }},
-    // DAIGO 5（遭遇から+20階は再遭遇しない）
-    { w: 5,
-      condition: () => state.floor - state.daigoLastFloor >= 20,
-      fn: () => {
-        const DAIGO_TIPS = [
-          "キノコは食べると毒になることがあるから気をつけて",
-          "コンテナみつけるとつい開けちゃうよねぇ",
-          "毒って苦しいけど毒ダメージで死ぬことはないらしいよ",
-          "女神像に祈れば無事に帰れるみたいだよ",
-          "階層が深くなるほど取れるスクラップも多くなるみたいだよ",
-          "こないだコンテナからポーション拾っちゃった",
-          "キノコ食べると稀にパワーアップするとか…ホントかな？",
-          "30階以降はエメラルドも掘れるらしいよ。まぁ滅多にみつからないんだけどね",
-          "採掘中に授かった紋は1度帰還すると消えてしまうらしいよ。次また新しく授けてもらわないとね",
-          "鉱脈からもエメラルドは掘れるみたいだね",
-        ];
-        playSE("select");
-        let tip = DAIGO_TIPS[Math.floor(Math.random() * DAIGO_TIPS.length)];
-        state.daigoLastFloor = state.floor;
-        state.runStats.daigo++;
-        state.mode = "event_daigo";
-        addLog(`採掘者DAIGOに出会った！`);
-        state.log[0].tip = tip;
-        // 友誼の紋：HP20%回復
-        if(state.relics.some(r => r.id === "friend")){
-          let h = Math.ceil(state.maxHp * 0.2);
-          heal(h);
-          playSE("heal");
-          state.log[0].friendHeal = h;
-          addLog(`友誼の紋が輝いた！ HP +${h} 回復`, "sub");
-        }
-      }
-    },
-    // モグラ 1%（30階ブロック内で1回まで）
-    { w: 1,
-      condition: () => {
-        let block = Math.floor((state.floor - 1) / 30);
-        return state.moleBlock !== block;
-      },
-      fn: () => {
-        playSE("select");
-        let block = Math.floor((state.floor - 1) / 30);
-        state.moleBlock = block;
-        if(Math.random() < 0.5){
-          // 金モグラ
-          let gain = Math.floor(state.scrap / 2);
-          state.scrap += gain;
-          state.runStats.goldenMole++;
-          addLog(`金モグラだ！ スクラップ +${gain.toLocaleString()}`, "scrap");
-        } else {
-          // 泥棒モグラ
-          let lost = Math.floor(state.scrap / 2);
-          state.scrap = Math.max(0, state.scrap - lost);
-          state.runStats.thiefMole++;
-          addLog(`泥棒モグラだ！ スクラップ -${lost.toLocaleString()}`, "loss");
-        }
-      }
-    },
-  ];
-
-  const HEAVY_EVENTS = [
-    { w: 15, fn: () => { state.mode = "event";          addLog("コンテナを発見した！"); }},
-    { w: 40, fn: () => {
-      state.veinDepth = 0;
-      state.mode = "event_vein";
-      addLog("鉱脈だ！だけど地盤が脆そうだ…");
-    }},
-    { w: 40, fn: () => { playSE("select"); state.mushroomBad = false; state.mode = "event_mushroom"; addLog("謎のキノコだ！"); }},
-    { w: 30, fn: () => { playSE("select"); state.mode = "event_bat";      addLog("コウモリの群れだ！"); }},
-    { w: 10,
-      condition: () =>
-        state.items.length <= 4 &&
-        state.scrap >= 10 &&
-        state.floor - state.merchantLastFloor >= 15,
-      fn: () => {
-        playSE("select");
-        state.merchantLastFloor = state.floor;
-        state.mode = "event_merchant";
-        addLog("謎の商人が現れた！");
-      }
-    },
-  ];
-
   // イベント比率定数（紋や仕様変更で調整可能）
   const hasDetect = state.relics.some(r => r.id === "detect");
   const RATE_MINING = hasDetect ? 0.30 : 0.40;
@@ -2546,6 +2623,7 @@ function next(){
   const RATE_HEAVY  = hasDetect ? 0.50 : 0.30;
 
   const roll = Math.random();
+  const ctx  = buildEventCtx();
 
   if(roll < RATE_MINING){
     // 採掘イベント（固定）
@@ -2588,24 +2666,14 @@ function next(){
     checkDeath();
     render();
   } else if(roll < RATE_MINING + RATE_LIGHT){
-    // 軽イベント：condition対応重み付き抽選
-    let avail = LIGHT_EVENTS.filter(e => !e.condition || e.condition());
-    if(avail.length === 0) avail = LIGHT_EVENTS.filter(e => !e.condition);
-    let totalW = avail.reduce((s, e) => s + e.w, 0);
-    let pick = Math.random() * totalW;
-    let ev = avail[avail.length - 1];
-    for(let e of avail){ pick -= e.w; if(pick <= 0){ ev = e; break; } }
+    // 軽イベント抽選
+    let ev = pickWeightedEvent(LIGHT_EVENTS, ctx);
     ev.fn();
     checkDeath();
     render();
   } else {
-    // 重イベント：condition対応重み付き抽選
-    let availH = HEAVY_EVENTS.filter(e => !e.condition || e.condition());
-    if(availH.length === 0) availH = HEAVY_EVENTS.filter(e => !e.condition);
-    let totalHW = availH.reduce((s, e) => s + e.w, 0);
-    let pickH = Math.random() * totalHW;
-    let ev = availH[availH.length - 1];
-    for(let e of availH){ pickH -= e.w; if(pickH <= 0){ ev = e; break; } }
+    // 重イベント抽選
+    let ev = pickWeightedEvent(HEAVY_EVENTS, ctx);
     ev.fn();
     if(state.mode !== "explore"){ render(); return; }
     checkDeath();
