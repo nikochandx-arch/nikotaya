@@ -457,7 +457,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.68</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.69</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -1685,7 +1685,7 @@ function render(){
         let relId = rel.id || rel;
         let c = CREST_MASTER.find(m => m.id === relId);
         if(!c) return "";
-        return `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" style="width:4em;height:auto;filter:drop-shadow(0 0 6px rgba(${c.rgb},0.7));" title="${c.name}">
+        return `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" style="width:2em;height:auto;filter:drop-shadow(0 0 6px rgba(${c.rgb},0.7));" title="${c.name}">
           <rect x="2" y="2" width="96" height="136" rx="6" fill="#222" stroke="${c.color}" stroke-width="2"/>
           <g style="color:${c.color};">${c.svg}</g>
         </svg>`;
