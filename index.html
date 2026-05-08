@@ -457,7 +457,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.69</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.70</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -1703,7 +1703,13 @@ ${unlockHTML}
 <div style="font-size:26px;margin-top:8px;">使用した紋</div>
 ${relicsHTML}
 `;
-    document.getElementById("log").innerHTML = "";
+    let logEl = document.getElementById("log");
+    logEl.innerHTML = "";
+    logEl.style.display = "none";
+    let ceEl2 = document.getElementById("current-event");
+    ceEl2.style.height = "auto";
+    ceEl2.style.maxHeight = "560px";
+    ceEl2.style.overflowY = "auto";
     document.getElementById("actions").innerHTML = "";
     btn("ホームへ戻る", goHome, "main");
     document.getElementById("shop").innerHTML = "";
@@ -3214,6 +3220,13 @@ function goHome(){
   state.activeCrestId = null;
   state.relicViewOpen = false;
   relicPrevMode = "home";
+  // リザルト時に変更したスタイルを元に戻す
+  let logEl = document.getElementById("log");
+  logEl.style.display = "";
+  let ceEl = document.getElementById("current-event");
+  ceEl.style.height = "300px";
+  ceEl.style.maxHeight = "";
+  ceEl.style.overflowY = "auto";
   let tooltipEl = document.getElementById("crest-tooltip");
   if(tooltipEl) tooltipEl.style.display = "none";
   let eventEl = document.getElementById("current-event");
