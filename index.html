@@ -457,7 +457,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.65</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.66</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -1648,13 +1648,28 @@ function render(){
   // リザルト画面（完全独立描画）
   if(state.mode === "result" && state.lastResult){
     let r = state.lastResult;
-    let survived = r.survived ? "帰還成功 🎉" : "力尽きた… 💀";
-    document.getElementById("current-event-icon").innerText = r.survived ? "🎉" : "💀";
-    let carryNote = r.survived ? "（半分）" : "";
-    if(r.goddess) carryNote = "";
+
+    // 帰還種別ごとの見出し文・アイコン設定
+    let resultLabel, resultIcon;
+    if(r.returnType === "goddess"){
+      resultLabel = "女神像で帰還";
+      resultIcon  = SVG_ICONS.goddess.replace("width:1em;height:1em;", "width:2em;height:2em;");
+    } else if(r.returnType === "door"){
+      resultLabel = "鉄扉で帰還";
+      resultIcon  = SVG_ICONS.door.replace("width:1em;height:1em;", "width:2em;height:2em;");
+    } else {
+      resultLabel = "力尽きた…";
+      resultIcon  = "💀";
+    }
+    document.getElementById("current-event-icon").innerHTML = resultIcon;
+
+    let carryNote = r.returnType === "door" ? "（半分）" : "";
+    let scrapLine = r.survived
+      ? `<div style="color:#ffcc66;font-size:26px;">${SVG_ICONS.scrap} ${r.carry.toLocaleString()} ${carryNote}</div>`
+      : `<div style="color:#666;font-size:26px;">${SVG_ICONS.scrap} 0</div>`;
     let emeraldLine = r.survived
-      ? `<div style="color:#58d68d;font-size:26px;">持ち帰ったエメラルド：${SVG_ICONS.emerald} ${r.emeraldCarry || 0}</div>`
-      : `<div style="color:#666;font-size:26px;">エメラルド：0</div>`;
+      ? `<div style="color:#58d68d;font-size:26px;">${SVG_ICONS.emerald} ${r.emeraldCarry || 0}</div>`
+      : `<div style="color:#666;font-size:26px;">${SVG_ICONS.emerald} 0</div>`;
     let bestFloorLine = r.newBest
       ? `<div style="font-size:26px;">最高到達階：${state.bestFloor} 階　<span style="color:#ff0;font-weight:bold;text-shadow:0 0 8px #ff0;">最高到達階更新！</span></div>`
       : `<div style="color:#aaa;font-size:26px;">最高到達階：${state.bestFloor} 階</div>`;
@@ -1667,9 +1682,10 @@ function render(){
     }
     document.getElementById("current-event-text").innerHTML = `
 <div style="color:#ff0;font-size:28px;margin-bottom:6px;">── リザルト ──</div>
-<div style="font-size:26px;">${survived}</div>
+<div style="font-size:26px;">${resultLabel}</div>
 <div style="font-size:26px;">到達階層：${r.floor} 階</div>
-<div style="color:#ffcc66;font-size:26px;">持ち帰ったスクラップ：${SVG_ICONS.scrap} ${r.carry.toLocaleString()} ${carryNote}</div>
+<div style="font-size:26px;margin-top:4px;">持ち帰った物</div>
+${scrapLine}
 ${emeraldLine}
 ${bestFloorLine}
 ${unlockHTML}
@@ -3145,7 +3161,8 @@ function doReturn(){
   if(emeraldCarry > state.stats.maxEmeraldCarry) state.stats.maxEmeraldCarry = emeraldCarry;
   saveAll();
   let unlocks = checkUnlocks();
-  state.lastResult = { survived: true, floor: state.floor, carry, emeraldCarry, newBest, unlocks };
+  // 鉄扉：10階ごとに現れる帰還扉。スクラップ半分を支払って帰還する
+  state.lastResult = { survived: true, returnType: "door", floor: state.floor, carry, emeraldCarry, newBest, unlocks };
   state.mode = "result";
   render();
 }
@@ -3156,7 +3173,7 @@ function forceReturn(){
   commitStats(true);
   saveAll();
   let unlocks = checkUnlocks();
-  state.lastResult = { survived: false, floor: state.floor, carry: 0, emeraldCarry: 0, newBest, unlocks };
+  state.lastResult = { survived: false, returnType: "death", floor: state.floor, carry: 0, emeraldCarry: 0, newBest, unlocks };
   state.mode = "result";
   render();
 }
@@ -3212,7 +3229,7 @@ function goddessReturn(){
   if(emeraldCarry > state.stats.maxEmeraldCarry) state.stats.maxEmeraldCarry = emeraldCarry;
   saveAll();
   let unlocks = checkUnlocks();
-  state.lastResult = { survived: true, floor: state.floor, carry, emeraldCarry, goddess: true, newBest, unlocks };
+  state.lastResult = { survived: true, returnType: "goddess", floor: state.floor, carry, emeraldCarry, goddess: true, newBest, unlocks };
   state.mode = "result";
   render();
 }
