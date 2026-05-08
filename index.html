@@ -457,7 +457,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.66</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.68</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -1665,20 +1665,32 @@ function render(){
 
     let carryNote = r.returnType === "door" ? "（半分）" : "";
     let scrapLine = r.survived
-      ? `<div style="color:#ffcc66;font-size:26px;">${SVG_ICONS.scrap} ${r.carry.toLocaleString()} ${carryNote}</div>`
-      : `<div style="color:#666;font-size:26px;">${SVG_ICONS.scrap} 0</div>`;
+      ? `<div style="color:#ffcc66;font-size:26px;">&emsp;${SVG_ICONS.scrap} ${r.carry.toLocaleString()} ${carryNote}</div>`
+      : `<div style="color:#666;font-size:26px;">&emsp;${SVG_ICONS.scrap} 0</div>`;
     let emeraldLine = r.survived
-      ? `<div style="color:#58d68d;font-size:26px;">${SVG_ICONS.emerald} ${r.emeraldCarry || 0}</div>`
-      : `<div style="color:#666;font-size:26px;">${SVG_ICONS.emerald} 0</div>`;
-    let bestFloorLine = r.newBest
-      ? `<div style="font-size:26px;">最高到達階：${state.bestFloor} 階　<span style="color:#ff0;font-weight:bold;text-shadow:0 0 8px #ff0;">最高到達階更新！</span></div>`
-      : `<div style="color:#aaa;font-size:26px;">最高到達階：${state.bestFloor} 階</div>`;
+      ? `<div style="color:#58d68d;font-size:26px;">&emsp;${SVG_ICONS.emerald} ${r.emeraldCarry || 0}</div>`
+      : `<div style="color:#666;font-size:26px;">&emsp;${SVG_ICONS.emerald} 0</div>`;
     let unlockHTML = "";
     if(r.unlocks && r.unlocks.length > 0){
       unlockHTML = r.unlocks.map(id => {
         let crest = CREST_MASTER.find(c => c.id === id);
         return `<div style="color:${crest.color};font-size:26px;font-weight:bold;text-shadow:0 0 8px ${crest.color};margin:4px 0;">✨ ${crest.name} が解放されました！</div>`;
       }).join("");
+    }
+    let relicsHTML;
+    if(!r.relics || r.relics.length === 0){
+      relicsHTML = `<div style="color:#aaa;font-size:26px;">なし</div>`;
+    } else {
+      let icons = r.relics.map(rel => {
+        let relId = rel.id || rel;
+        let c = CREST_MASTER.find(m => m.id === relId);
+        if(!c) return "";
+        return `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" style="width:4em;height:auto;filter:drop-shadow(0 0 6px rgba(${c.rgb},0.7));" title="${c.name}">
+          <rect x="2" y="2" width="96" height="136" rx="6" fill="#222" stroke="${c.color}" stroke-width="2"/>
+          <g style="color:${c.color};">${c.svg}</g>
+        </svg>`;
+      }).join("");
+      relicsHTML = `<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:4px;">${icons}</div>`;
     }
     document.getElementById("current-event-text").innerHTML = `
 <div style="color:#ff0;font-size:28px;margin-bottom:6px;">── リザルト ──</div>
@@ -1687,8 +1699,9 @@ function render(){
 <div style="font-size:26px;margin-top:4px;">持ち帰った物</div>
 ${scrapLine}
 ${emeraldLine}
-${bestFloorLine}
 ${unlockHTML}
+<div style="font-size:26px;margin-top:8px;">使用した紋</div>
+${relicsHTML}
 `;
     document.getElementById("log").innerHTML = "";
     document.getElementById("actions").innerHTML = "";
@@ -3162,7 +3175,8 @@ function doReturn(){
   saveAll();
   let unlocks = checkUnlocks();
   // 鉄扉：10階ごとに現れる帰還扉。スクラップ半分を支払って帰還する
-  state.lastResult = { survived: true, returnType: "door", floor: state.floor, carry, emeraldCarry, newBest, unlocks };
+  state.lastResult = { survived: true, returnType: "door", floor: state.floor, carry, emeraldCarry, newBest, unlocks, relics: [...state.relics] };
+  saveLastResult(state.lastResult);
   state.mode = "result";
   render();
 }
@@ -3173,9 +3187,21 @@ function forceReturn(){
   commitStats(true);
   saveAll();
   let unlocks = checkUnlocks();
-  state.lastResult = { survived: false, returnType: "death", floor: state.floor, carry: 0, emeraldCarry: 0, newBest, unlocks };
+  state.lastResult = { survived: false, returnType: "death", floor: state.floor, carry: 0, emeraldCarry: 0, newBest, unlocks, relics: [...state.relics] };
+  saveLastResult(state.lastResult);
   state.mode = "result";
   render();
+}
+
+// --- 最新リザルトをlocalStorageに保存 ---
+function saveLastResult(r){
+  localStorage.setItem("lastResult", JSON.stringify({
+    returnType:   r.returnType,
+    floor:        r.floor,
+    carry:        r.carry,
+    emeraldCarry: r.emeraldCarry || 0,
+    relics:       (r.relics || []).map(rel => rel.id),
+  }));
 }
 
 function goHome(){
@@ -3229,7 +3255,8 @@ function goddessReturn(){
   if(emeraldCarry > state.stats.maxEmeraldCarry) state.stats.maxEmeraldCarry = emeraldCarry;
   saveAll();
   let unlocks = checkUnlocks();
-  state.lastResult = { survived: true, returnType: "goddess", floor: state.floor, carry, emeraldCarry, goddess: true, newBest, unlocks };
+  state.lastResult = { survived: true, returnType: "goddess", floor: state.floor, carry, emeraldCarry, goddess: true, newBest, unlocks, relics: [...state.relics] };
+  saveLastResult(state.lastResult);
   state.mode = "result";
   render();
 }
