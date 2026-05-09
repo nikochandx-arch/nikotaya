@@ -562,7 +562,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.06</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.07</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -1106,7 +1106,7 @@ const CREST_MASTER = [
       <line x1="-15" y1="20" x2="15" y2="20" stroke-width="4"/>
     </g>` },
   { id:"mining",   name:"採掘の紋",  category:"採取系", color:"#f55", rgb:"255,85,85",
-    desc:"「採掘」で得るスクラップ増加", // システム: floor(採掘力/2)+floor(階数/20)を加算
+    desc:"「採掘」で得るスクラップが1.1倍になる", // システム: ceil(g*1.1)
     unlockCond:"50階達成",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <path d="M -15 -15 Q 0 -28 15 -15 L 12 -12 Q 0 -22 -12 -12 Z" fill="currentColor"/>
@@ -3047,9 +3047,9 @@ function next(){
       let g = Math.floor(calcScrap() * getMiningMultiplier());
       // 初心の紋：+1固定加算
       if(state.relics.some(r => r.id === "beginner")) g += 1;
-      // 採掘の紋：floor(採掘力/2) + floor(階数/20) を加算
+      // 採掘の紋：1.1倍（切り上げ）
       if(state.relics.some(r => r.id === "mining")){
-        g += Math.floor(state.power / 2) + Math.floor(state.floor / 20);
+        g = Math.ceil(g * 1.1);
       }
       // 低HP（25%以下）時：15%の確率で採掘ペナルティ（スクラップ30%減）
       let lowHpPenalty = EVENT_COND().lowHp && Math.random() < 0.15;
