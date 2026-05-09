@@ -562,7 +562,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.01</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.02</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -1681,16 +1681,24 @@ function floorBadgeHTML(floor){
 
 // --- 描画 ---
 function render(){
+  // --- DOM参照キャッシュ（render内で頻出するもの） ---
+  const ce      = document.getElementById("current-event");
+  const ceText  = document.getElementById("current-event-text");
+  const ceIcon  = document.getElementById("current-event-icon");
+  const logEl   = document.getElementById("log");
+  const actEl   = document.getElementById("actions");
+  const shopEl  = document.getElementById("shop");
+
   // HP色：満タン=緑、50%以下=黄、25%以下=赤
   let hpRatio = state.maxHp > 0 ? state.hp / state.maxHp : 1;
   let hpColor = hpRatio > 0.5 ? "#0f0" : hpRatio > 0.25 ? "#ff0" : "#f55";
   document.getElementById("se-toggle").innerText = state.seOn ? "🔔" : "🔕";
   if(state.mode !== "home" && state.mode !== "result") {
-    document.getElementById("current-event").style.flexGrow = "";
-    document.getElementById("current-event").style.height = "300px";
-    document.getElementById("current-event").style.maxHeight = "";
-    document.getElementById("log").style.maxHeight = "";
-    document.getElementById("log").style.display = "";
+    ce.style.flexGrow = "";
+    ce.style.height = "300px";
+    ce.style.maxHeight = "";
+    logEl.style.maxHeight = "";
+    logEl.style.display = "";
   }
   document.getElementById("status").innerHTML =
     `<span style="color:${hpColor}">HP:${state.hp}/${state.maxHp}</span> | ${SVG_ICONS.scrap}:<span style="color:#ffcc66;">${state.scrap.toLocaleString()}</span> | ${SVG_ICONS.emerald}:<span style="color:#58d68d;">${(state.emerald || 0).toLocaleString()}</span> | 現在地:${state.floor}階`;
@@ -1757,18 +1765,17 @@ function render(){
 
   // 採掘日誌表示
   if(state.mode === "home"){
-    document.getElementById("current-event").style.display = "";
-    document.getElementById("current-event").style.flexGrow = "1";
-    document.getElementById("current-event").style.height = "560px";
-    document.getElementById("current-event").style.maxHeight = "";
-    document.getElementById("current-event-icon").innerText = "";
-    document.getElementById("current-event-text").innerHTML = buildLastResultHTML();
-    let homeLog = document.getElementById("log");
-    homeLog.style.display = "none";
-    homeLog.style.maxHeight = "0";
-    homeLog.style.flex = "";
-    homeLog.classList.remove("relic-scroll");
-    homeLog.innerHTML = "";
+    ce.style.display = "";
+    ce.style.flexGrow = "1";
+    ce.style.height = "560px";
+    ce.style.maxHeight = "";
+    ceIcon.innerText = "";
+    ceText.innerHTML = buildLastResultHTML();
+    logEl.style.display = "none";
+    logEl.style.maxHeight = "0";
+    logEl.style.flex = "";
+    logEl.classList.remove("relic-scroll");
+    logEl.innerHTML = "";
   }
 
   // リザルト画面（完全独立描画）
@@ -1787,7 +1794,7 @@ function render(){
       resultLabel = "力尽きた…";
       resultIcon  = "💀";
     }
-    document.getElementById("current-event-icon").innerHTML = resultIcon;
+    ceIcon.innerHTML = resultIcon;
 
     let carryNote = r.returnType === "door" ? "（半分）" : "";
     let scrapLine = r.survived
@@ -1818,7 +1825,7 @@ function render(){
       }).join("");
       relicsHTML = `<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:4px;">${icons}</div>`;
     }
-    document.getElementById("current-event-text").innerHTML = `
+    ceText.innerHTML = `
 <div style="color:#ff0;font-size:28px;margin-bottom:6px;">── リザルト ──</div>
 <div style="font-size:26px;">${resultLabel}</div>
 <div style="font-size:26px;">到達階層：${r.floor} 階</div>
@@ -1829,16 +1836,14 @@ ${unlockHTML}
 <div style="font-size:26px;margin-top:8px;">使用した紋</div>
 ${relicsHTML}
 `;
-    let logEl = document.getElementById("log");
     logEl.innerHTML = "";
     logEl.style.display = "none";
-    let ceEl2 = document.getElementById("current-event");
-    ceEl2.style.height = "auto";
-    ceEl2.style.maxHeight = "560px";
-    ceEl2.style.overflowY = "auto";
-    document.getElementById("actions").innerHTML = "";
+    ce.style.height = "auto";
+    ce.style.maxHeight = "560px";
+    ce.style.overflowY = "auto";
+    actEl.innerHTML = "";
     btn("ホームへ戻る", goHome, "main");
-    document.getElementById("shop").innerHTML = "";
+    shopEl.innerHTML = "";
     return;
   }
 
@@ -1846,7 +1851,7 @@ ${relicsHTML}
   if(state.log.length > 0){
     let entry = state.log[0];
     let firstLine = entry.lines[0];
-    let iconEl = document.getElementById("current-event-icon");
+    let iconEl = ceIcon;
     let emoji = firstLine.emoji || "📋";
     // キノコでマイナス効果の場合は悪キノコアイコンに切り替え
     if(state.mushroomBad && typeof emoji === "string" && emoji === SVG_ICONS.mushroom){
@@ -1882,12 +1887,12 @@ ${relicsHTML}
         `<div><span style="color:#ffcc66;">獲得倍率：</span><span style="color:#58d68d;font-weight:bold;">×${p.mult}</span></div>` +
         `</div>`;
       if(depth === 0){
-        document.getElementById("current-event-text").innerHTML =
+        ceText.innerHTML =
           floorBadgeHTML(state.floor) +
           `<div style="font-size:28px;">鉱脈だ！だけど地盤が脆そうだ…</div>` +
           veinStatusHTML;
       } else {
-        document.getElementById("current-event-text").innerHTML =
+        ceText.innerHTML =
           floorBadgeHTML(state.floor) +
           `<div style="font-size:26px;">${depth}回掘った <span style="color:#ffcc66;">スクラップ+${state.veinLastGain.toLocaleString()}</span>${emeraldNote}　やめるなら今のうち…</div>` +
           veinStatusHTML;
@@ -1895,11 +1900,11 @@ ${relicsHTML}
     } else
     // 紋選択イベント専用表示
     if(state.mode === "event_relic_pick"){
-      document.getElementById("current-event-icon").innerText = "💎";
+      ceIcon.innerText = "💎";
       let pickTitle = state.floor === 15
         ? '<div style="font-size:22px;color:#ffcc66;line-height:1.5;">深淵に挑みし者よ…<br>紋をその身に纏い、奈落を目指せ</div>'
         : '<div style="font-size:24px;color:#0ff;">紋を選べ！</div>';
-      document.getElementById("current-event-text").innerHTML =
+      ceText.innerHTML =
         floorBadgeHTML(state.floor) + pickTitle;
 
       // ログエリアに紋カード＋効果説明を表示
@@ -1914,15 +1919,15 @@ ${relicsHTML}
           <div style="color:#ccc;font-size:16px;text-align:center;line-height:1.6;word-break:break-word;overflow-wrap:break-word;">${c.desc}</div>
         </div>`).join("") +
         `</div>`;
-      document.getElementById("log").classList.add("relic-scroll");
-      document.getElementById("log").classList.add("relic-pick-mode");
-      document.getElementById("log").innerHTML = relicHTML;
+      logEl.classList.add("relic-scroll");
+      logEl.classList.add("relic-pick-mode");
+      logEl.innerHTML = relicHTML;
     } else
     // 紋入れ替え選択
     if(state.mode === "event_relic_swap"){
-      document.getElementById("current-event-icon").innerText = "🔄";
+      ceIcon.innerText = "🔄";
       let pr = state.pendingRelic;
-      document.getElementById("current-event-text").innerHTML =
+      ceText.innerHTML =
         floorBadgeHTML(state.floor) +
         `<div style="font-size:22px;color:#0ff;margin-bottom:4px;">新たな紋を発見！</div>
         <div style="font-size:20px;color:#fff;">スロットが埋まっている。どれと入れ替える？</div>`;
@@ -1958,17 +1963,17 @@ ${relicsHTML}
         </div>`;
       }).join("");
 
-      document.getElementById("log").classList.add("relic-scroll");
-      document.getElementById("log").innerHTML = newCard + equippedCards;
+      logEl.classList.add("relic-scroll");
+      logEl.innerHTML = newCard + equippedCards;
     } else
     // DAIGOイベントは専用表示
     if(state.mode === "event_daigo"){
-      document.getElementById("current-event-icon").innerText = "👤";
+      ceIcon.innerText = "👤";
       let tipText = entry.tip || "…";
       let friendHTML = entry.friendHeal
         ? `<div style="font-size:22px;color:#aaff66;margin-top:8px;">💚 友誼の紋が輝いた！ HP +${entry.friendHeal} 回復</div>`
         : "";
-      document.getElementById("current-event-text").innerHTML =
+      ceText.innerHTML =
         floorBadgeHTML(state.floor) +
 `<div style="font-size:26px;color:#0ff;">採掘者DAIGO</div>
 <div style="font-size:22px;color:#fff;margin-top:6px;">『${tipText}』</div>
@@ -1978,9 +1983,9 @@ ${friendHTML}
     } else
     // 商人イベントは専用表示
     if(state.mode === "event_merchant"){
-      document.getElementById("current-event-icon").innerHTML = SVG_ICONS.merchant.replace("width:1em;height:1em;","width:2em;height:2em;");
+      ceIcon.innerHTML = SVG_ICONS.merchant.replace("width:1em;height:1em;","width:2em;height:2em;");
       let price = Math.max(1, Math.floor(state.scrap * 0.2));
-      document.getElementById("current-event-text").innerHTML =
+      ceText.innerHTML =
         floorBadgeHTML(state.floor) +
 `<div style="font-size:26px;color:#a855f7;">謎の商人</div>
 <div style="font-size:22px;color:#fff;margin-top:6px;">『やあ、${state.name}さん。何か入り用かい？』</div>
@@ -2012,7 +2017,7 @@ ${friendHTML}
         eventHTML += `<div style="${color}font-size:${fs};">${colored}</div>`;
       }
     });
-    document.getElementById("current-event-text").innerHTML = eventHTML;
+    ceText.innerHTML = eventHTML;
     } // end DAIGOチェック
   }
 
@@ -2049,13 +2054,13 @@ ${friendHTML}
         }
       });
     });
-    document.getElementById("log").classList.remove("relic-scroll");
-    document.getElementById("log").classList.remove("relic-pick-mode");
-    document.getElementById("log").innerHTML = buffRow + logHTML;
+    logEl.classList.remove("relic-scroll");
+    logEl.classList.remove("relic-pick-mode");
+    logEl.innerHTML = buffRow + logHTML;
   }
 
   // テキストがボックスより高い場合は上詰め＋スクロール末尾、そうでなければセンター
-  let ceEl = document.getElementById("current-event");
+  let ceEl = ce;
   if(ceEl){
     if(ceEl.scrollHeight > ceEl.clientHeight){
       ceEl.style.alignItems = "flex-start";
@@ -2066,7 +2071,7 @@ ${friendHTML}
     }
   }
 
-  let a = document.getElementById("actions");
+  let a = actEl;
   a.innerHTML = "";
 
   switch(state.mode){
@@ -2162,7 +2167,7 @@ ${friendHTML}
   let preciousEl = document.getElementById("precious");
   if(preciousEl) preciousEl.innerHTML = state.mode === "home" ? buildPreciousHTML() : "";
 
-  document.getElementById("shop").innerHTML = state.mode === "home" ? buildShopHTML() : "";
+  shopEl.innerHTML = state.mode === "home" ? buildShopHTML() : "";
 
   // 統計表示（ホームのみ）
   let statsEl = document.getElementById("stats");
