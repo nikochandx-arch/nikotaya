@@ -449,6 +449,88 @@ line-height: 1.4;
 .floor-badge.floor-goddess  { color: #aef; border-color: rgba(170,238,255,0.5); text-shadow: 0 0 10px rgba(170,238,255,0.6); }
 .floor-badge.floor-return   { color: #ff9; border-color: rgba(255,255,153,0.5); text-shadow: 0 0 10px rgba(255,255,153,0.6); }
 .floor-badge.floor-relic    { color: #f9f; border-color: rgba(255,153,255,0.5); text-shadow: 0 0 10px rgba(255,153,255,0.6); }
+
+/* ── 前回採掘ログ（羊皮紙） ── */
+.parchment {
+width: 100%;
+box-sizing: border-box;
+background:
+radial-gradient(ellipse at center, rgba(205,180,120,0) 55%, rgba(120,90,40,0.25) 100%),
+linear-gradient(160deg, #e8d9a8 0%, #dece96 30%, #e4d4a0 55%, #d5c07a 80%, #c8b466 100%);
+border: 1.5px solid #9b7c3a;
+border-radius: 6px;
+padding: 10px 12px;
+box-shadow:
+0 0 18px rgba(0,200,80,0.08),
+inset 0 1px 3px rgba(255,255,220,0.6),
+inset 0 -2px 6px rgba(100,70,20,0.2),
+inset 2px 0 6px rgba(100,70,20,0.12),
+inset -2px 0 6px rgba(100,70,20,0.12);
+position: relative;
+font-family: ‘Share Tech Mono’, monospace;
+}
+.parchment::before {
+content: ‘’;
+position: absolute;
+inset: 0;
+border-radius: 6px;
+background:
+radial-gradient(ellipse at 0% 0%,    rgba(100,60,10,0.18) 0%, transparent 40%),
+radial-gradient(ellipse at 100% 0%,  rgba(100,60,10,0.14) 0%, transparent 35%),
+radial-gradient(ellipse at 0% 100%,  rgba(100,60,10,0.16) 0%, transparent 40%),
+radial-gradient(ellipse at 100% 100%,rgba(100,60,10,0.20) 0%, transparent 38%);
+pointer-events: none;
+}
+.parchment-header {
+font-size: 13px;
+letter-spacing: 3px;
+color: #5a3e1b;
+text-align: center;
+margin-bottom: 6px;
+opacity: 0.7;
+}
+.parchment-divider {
+border: none;
+border-top: 1px solid rgba(100,70,20,0.35);
+margin: 6px 0;
+}
+.result-badge {
+display: inline-block;
+font-size: 15px;
+letter-spacing: 1px;
+padding: 2px 8px;
+border-radius: 4px;
+margin-bottom: 6px;
+font-family: ‘Share Tech Mono’, monospace;
+}
+.badge-death   { background: rgba(180,40,30,0.15);  border: 1px solid rgba(180,40,30,0.5);   color: #9b1c0a; }
+.badge-door    { background: rgba(180,140,30,0.15); border: 1px solid rgba(180,140,30,0.5);  color: #7a5c0a; }
+.badge-goddess { background: rgba(60,80,160,0.12);  border: 1px solid rgba(100,120,200,0.4); color: #2c3e8a; }
+.parchment-row {
+display: flex;
+align-items: center;
+gap: 6px;
+font-size: 16px;
+color: #3b2a0e;
+margin: 3px 0;
+line-height: 1.5;
+}
+.parchment-label {
+font-size: 15px;
+color: #6b4f1e;
+opacity: 0.75;
+margin-right: 2px;
+}
+.parchment-value {
+color: #2a1800;
+font-weight: bold;
+}
+.parchment-relic-row {
+display: flex;
+gap: 4px;
+margin-top: 4px;
+flex-wrap: wrap;
+}
 </style>
 
 </head>
@@ -457,7 +539,7 @@ line-height: 1.4;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.71</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.72</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -1638,7 +1720,7 @@ function render(){
     document.getElementById("current-event").style.display = "";
     document.getElementById("current-event").style.flexGrow = "1";
     document.getElementById("current-event-icon").innerText = "";
-    document.getElementById("current-event-text").innerText = "採掘を開始しよう！";
+    document.getElementById("current-event-text").innerHTML = buildLastResultHTML();
     document.getElementById("log").classList.remove("relic-scroll");
     document.getElementById("log").style.maxHeight = "0";
     document.getElementById("log").style.flex = "";
@@ -3200,7 +3282,59 @@ function forceReturn(){
   render();
 }
 
-// --- 最新リザルトをlocalStorageに保存 ---
+// --- 前回採掘ログ（羊皮紙）HTML生成 ---
+function buildLastResultHTML(){
+  let raw = null;
+  try { raw = JSON.parse(localStorage.getItem("lastResult")); } catch(e){}
+
+  // バッジ
+  let badgeClass, badgeLabel;
+  if(!raw){
+    badgeClass = "badge-door"; badgeLabel = "－";
+  } else if(raw.returnType === "death"){
+    badgeClass = "badge-death"; badgeLabel = "💀 死亡";
+  } else if(raw.returnType === "goddess"){
+    badgeClass = "badge-goddess"; badgeLabel = "女神像で帰還";
+  } else {
+    badgeClass = "badge-door"; badgeLabel = "鉄扉で帰還";
+  }
+
+  // スクラップ・エメラルド・階層
+  let scrapVal   = raw ? raw.carry.toLocaleString()        : "－";
+  let emeraldVal = raw ? (raw.emeraldCarry || 0)           : "－";
+  let floorVal   = raw ? raw.floor + "階"                  : "－";
+
+  // 紋アイコン
+  let relicHTML = "";
+  if(!raw || !raw.relics || raw.relics.length === 0){
+    relicHTML = `<span class="parchment-label">なし</span>`;
+  } else {
+    relicHTML = raw.relics.map(id => {
+      let c = CREST_MASTER.find(m => m.id === id);
+      if(!c) return "";
+      return `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" style="width:28px;height:auto;filter:drop-shadow(0 1px 2px rgba(80,40,0,0.3));">
+        <rect x="2" y="2" width="96" height="136" rx="6" fill="#1a1a1a" stroke="${c.color}" stroke-width="2"/>
+        <g style="color:${c.color};">${c.svg}</g>
+      </svg>`;
+    }).join("");
+  }
+
+  // スクラップSVGをインライン用に縮小
+  let scrapSVG  = SVG_ICONS.scrap.replace('style="width:1em;height:1em;',   'style="width:1.1em;height:1.1em;');
+  let emerSVG   = SVG_ICONS.emerald.replace('style="width:1em;height:1em;', 'style="width:1.1em;height:1.1em;');
+
+  return `<div class="parchment">
+  <div class="parchment-header">◆ 前回の採掘 ◆</div>
+  <hr class="parchment-divider">
+  <div class="result-badge ${badgeClass}">${badgeLabel}</div>
+  <div class="parchment-row">${scrapSVG}<span class="parchment-value">${scrapVal}</span></div>
+  <div class="parchment-row">${emerSVG}<span class="parchment-value">${emeraldVal}</span></div>
+  <div class="parchment-row"><span class="parchment-label">到達階</span><span class="parchment-value">${floorVal}</span></div>
+  <hr class="parchment-divider">
+  <div class="parchment-label">使用した紋</div>
+  <div class="parchment-relic-row">${relicHTML}</div>
+</div>`;
+}
 function saveLastResult(r){
   localStorage.setItem("lastResult", JSON.stringify({
     returnType:   r.returnType,
