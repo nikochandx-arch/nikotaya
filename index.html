@@ -562,7 +562,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.03</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.04</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -603,6 +603,7 @@ line-height: 1.3;
   </div>
 </div>
 <div id="crest-tooltip" style="display:none;position:fixed;bottom:180px;left:0;right:0;margin:0 auto;width:fit-content;max-width:90vw;z-index:100;pointer-events:none;"></div>
+<div id="tent-tooltip" style="display:none;position:fixed;bottom:180px;left:0;right:0;margin:0 auto;width:fit-content;max-width:90vw;z-index:100;pointer-events:none;"></div>
 
 <div id="bottom">
   <div id="buff-container"></div>
@@ -655,7 +656,7 @@ function makeRunStats(){
   return o;
 }
 
-const SAVE_VERSION = 2;
+const SAVE_VERSION = 3;
 
 function migrateSaveData(data, fromVersion){
   if(fromVersion < 1){
@@ -665,6 +666,10 @@ function migrateSaveData(data, fromVersion){
   }
   if(fromVersion < 2){
     // v1→v2は stats のフィールド追加のみ。下の共通補完で対応する。
+  }
+  if(fromVersion < 3){
+    // v2→v3：upgrades.tent を追加（中断機能）
+    if(data.upgrades.tent === undefined) data.upgrades.tent = false;
   }
   // 共通：ALL_STATS_FIELDS の未定義フィールドを 0 で補う
   // （新規プレイヤーの空 stats {} もここで初期化される）
@@ -678,7 +683,7 @@ function loadSaveData(){
   let version = parseInt(localStorage.getItem("saveVersion")) || 0;
 
   let data = {
-    upgrades:     JSON.parse(localStorage.getItem("upgrades") || '{"hp":0,"power":0,"potionHeal":0,"relicSlots":0,"journal":false}'),
+    upgrades:     JSON.parse(localStorage.getItem("upgrades") || '{"hp":0,"power":0,"potionHeal":0,"relicSlots":0,"journal":false,"tent":false}'),
     totalScrap:   parseInt(localStorage.getItem("totalScrap"))   || 0,
     totalEmerald: parseInt(localStorage.getItem("totalEmerald")) || 0,
     bestFloor:    parseInt(localStorage.getItem("bestFloor"))    || 1,
@@ -852,6 +857,15 @@ window.addEventListener("pageshow", (e) => {
     try { audioCtx.close(); } catch(e2) { /* ignore */ }
     audioCtx = null;
   }
+});
+
+// tent-tooltip：他場所をタップしたら閉じる
+document.addEventListener("click", (e) => {
+  let tooltipEl = document.getElementById("tent-tooltip");
+  if(!tooltipEl || tooltipEl.style.display === "none") return;
+  // テントアイコン自身（precious-icon-btn配下）をタップしたときは閉じない
+  // → onTentTap側でstopPropagation済みなのでここには来ないが、念のため。
+  hideTentTooltip();
 });
 
 // 採掘音：ザクッ（こもった土の音）
@@ -1299,6 +1313,10 @@ ${state.upgrades.journal
   ? `<button disabled style="border-color:#666;color:#666;background:transparent;opacity:0.5;width:100%;height:auto;padding:12px 8px;">採掘日誌<br><span style="font-size:18px;">購入済み</span></button>`
   : `<button onclick="buyJournal()" style="${shopStyle}height:auto;padding:12px 8px;">採掘日誌<br><span ${descStyle}>リザルトを記録</span><br>${priceSpan((15000).toLocaleString())}</button>`
 }
+${state.upgrades.tent
+  ? `<button disabled style="border-color:#666;color:#666;background:transparent;opacity:0.5;width:100%;height:auto;padding:12px 8px;">テント<br><span style="font-size:18px;">購入済み</span></button>`
+  : `<button onclick="buyTent()" style="${shopStyle}height:auto;padding:12px 8px;">テント<br><span ${descStyle}>採掘を中断できる</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">5</span></button>`
+}
 `;
 }
 
@@ -1371,6 +1389,31 @@ function colorizeLog(text, type){
 
 // --- カスタムSVGアイコン ---
 const SVG_ICONS = {
+  tent: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" style="width:1.4em;height:1.4em;vertical-align:-0.3em;display:inline-block;">
+  <ellipse cx="60" cy="95" rx="50" ry="10" fill="#18181b"/>
+  <radialGradient id="tentGlowYellow" cx="50%" cy="80%" r="50%">
+    <stop offset="0%" stop-color="#fef08a" stop-opacity="0.5"/>
+    <stop offset="100%" stop-color="#fef08a" stop-opacity="0"/>
+  </radialGradient>
+  <ellipse cx="50" cy="85" rx="35" ry="15" fill="url(#tentGlowYellow)"/>
+  <path d="M 50 25 L 25 90 L 75 90 Z" fill="#27272a" stroke="#18181b" stroke-width="2"/>
+  <path d="M 40 85 L 60 85 L 50 70 Z" fill="#ef4444" opacity="0.6"/>
+  <path d="M 50 25 L 75 90 L 95 85 L 50 25" fill="#eab308" stroke="#854d0e" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M 50 25 L 35 90 L 15 85 Z" fill="#facc15" stroke="#a16207" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M 50 25 C 45 50 40 70 35 90" fill="none" stroke="#a16207" stroke-width="1.5" opacity="0.6"/>
+  <path d="M 50 25 C 60 50 65 70 75 90" fill="none" stroke="#854d0e" stroke-width="1.5" opacity="0.6"/>
+  <line x1="50" y1="20" x2="50" y2="25" stroke="#451a03" stroke-width="3" stroke-linecap="round"/>
+  <line x1="50" y1="25" x2="10" y2="95" stroke="#d4d4d8" stroke-width="1.5"/>
+  <line x1="50" y1="25" x2="110" y2="95" stroke="#d4d4d8" stroke-width="1.5"/>
+  <rect x="8" y="93" width="4" height="8" rx="1" fill="#71717a" stroke="#000" stroke-width="1" transform="rotate(-30 10 95)"/>
+  <rect x="108" y="93" width="4" height="8" rx="1" fill="#71717a" stroke="#000" stroke-width="1" transform="rotate(30 110 95)"/>
+  <g transform="translate(45, 75)">
+    <rect x="2" y="5" width="6" height="8" rx="1" fill="#fef08a" stroke="#18181b" stroke-width="1.5"/>
+    <path d="M 1 5 L 9 5" stroke="#18181b" stroke-width="2"/>
+    <path d="M 1 13 L 9 13" stroke="#18181b" stroke-width="2"/>
+    <circle cx="5" cy="9" r="2" fill="#fff"/>
+  </g>
+</svg>`,
   journal: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width:1.4em;height:1.4em;vertical-align:-0.3em;display:inline-block;">
   <rect x="18" y="16" width="64" height="74" rx="4" fill="#000" opacity="0.5"/>
   <rect x="22" y="12" width="56" height="74" rx="1" fill="#fef3c7" stroke="#000" stroke-width="2"/>
@@ -1676,7 +1719,15 @@ function floorBadgeHTML(floor){
   if(floor % 30 === 0)                                        extra = "floor-goddess";
   else if(floor % 10 === 0)                                   extra = "floor-return";
   else if(floor === 15 || (floor > 1 && (floor-1) % 50 === 0)) extra = "floor-relic";
-  return `<div class="floor-badge ${extra}">${floor}F</div>`;
+  // 中断可能タイミング（exploreモード）かつテント所持時、階層バッジ隣に小さくテント表示
+  let tentMark = "";
+  if(state.upgrades && state.upgrades.tent && canSuspend()){
+    let smallTent = SVG_ICONS.tent
+      .replace('width:1.4em;height:1.4em;', 'width:0.9em;height:0.9em;')
+      .replace('vertical-align:-0.3em;', 'vertical-align:-0.15em;');
+    tentMark = `<span style="margin-left:8px;font-size:24px;opacity:0.85;">${smallTent}</span>`;
+  }
+  return `<div class="floor-badge ${extra}">${floor}F${tentMark}</div>`;
 }
 
 // --- 描画 ---
@@ -2169,7 +2220,7 @@ ${friendHTML}
   }
 
   let preciousEl = document.getElementById("precious");
-  if(preciousEl) preciousEl.innerHTML = state.mode === "home" ? buildPreciousHTML() : "";
+  if(preciousEl) preciousEl.innerHTML = (state.mode !== "result") ? buildPreciousHTML() : "";
 
   shopEl.innerHTML = state.mode === "home" ? buildShopHTML() : "";
 
@@ -2464,19 +2515,53 @@ function buyJournal(){
   });
 }
 
+function buyTent(){
+  const cost = 5;
+  if(state.totalEmerald < cost){ showAlert("エメラルドが足りない"); return; }
+  showConfirm(`エメラルド ${cost} でテントを購入しますか？`, () => {
+    state.totalEmerald -= cost;
+    state.upgrades.tent = true;
+    playSE("coin");
+    saveAll();
+    render();
+  });
+}
+
 function buildPreciousHTML(){
-  if(!state.upgrades.journal) return "";
-  let bigJournal = SVG_ICONS.journal
-    .replace('width:1.4em;height:1.4em;', 'width:5.2em;height:5.2em;')
-    .replace('vertical-align:-0.3em;', 'vertical-align:middle;');
+  // 採掘日誌もテントも未購入なら何も表示しない
+  if(!state.upgrades.journal && !state.upgrades.tent) return "";
+
+  let icons = "";
+
+  // 採掘日誌アイコン
+  if(state.upgrades.journal){
+    let bigJournal = SVG_ICONS.journal
+      .replace('width:1.4em;height:1.4em;', 'width:5.2em;height:5.2em;')
+      .replace('vertical-align:-0.3em;', 'vertical-align:middle;');
+    icons += `
+    <span onclick="openJournalModal()" class="precious-icon-btn" style="-webkit-tap-highlight-color:transparent;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;gap:6px;">
+      ${bigJournal}
+      <span style="font-size:18px;color:#fef3c7;opacity:0.7;">採掘日誌</span>
+    </span>`;
+  }
+
+  // テントアイコン
+  if(state.upgrades.tent){
+    let bigTent = SVG_ICONS.tent
+      .replace('width:1.4em;height:1.4em;', 'width:5.2em;height:5.2em;')
+      .replace('vertical-align:-0.3em;', 'vertical-align:middle;');
+    icons += `
+    <span onclick="onTentTap(event)" class="precious-icon-btn" style="-webkit-tap-highlight-color:transparent;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;gap:6px;">
+      ${bigTent}
+      <span style="font-size:18px;color:#fef3c7;opacity:0.7;">テント</span>
+    </span>`;
+  }
+
   return `
 <div style="color:#fef3c7;font-size:28px;">
   ▼貴重品
   <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;align-items:center;padding-left:16px;">
-    <span onclick="openJournalModal()" class="precious-icon-btn" style="-webkit-tap-highlight-color:transparent;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;gap:6px;">
-      ${bigJournal}
-      <span style="font-size:18px;color:#fef3c7;opacity:0.7;">採掘日誌</span>
-    </span>
+    ${icons}
   </div>
 </div>`;
 }
@@ -2488,6 +2573,147 @@ function openJournalModal(){
      <div style="font-size:22px;color:#888;text-align:center;padding:24px 0;">準備中…</div>`,
     { alertOnly: true }
   );
+}
+
+// テントアイコンタップ：ホーム時は無反応、採掘中は中断 or 中断不可吹き出し
+function onTentTap(ev){
+  if(ev) ev.stopPropagation();
+  if(!state.upgrades.tent) return;
+  if(state.mode === "home" || state.mode === "result") return;  // ホーム時は無反応
+
+  if(canSuspend()){
+    // 中断実行
+    suspendRun();
+  } else {
+    // 中断不可吹き出し
+    showTentTooltip("今は中断できません");
+  }
+}
+
+// 中断可能判定：「次へ」を押す前のexploreモード時のみ true
+function canSuspend(){
+  return state.mode === "explore";
+}
+
+// テント吹き出し表示
+function showTentTooltip(message){
+  let tooltipEl = document.getElementById("tent-tooltip");
+  if(!tooltipEl) return;
+  tooltipEl.style.display = "block";
+  tooltipEl.innerHTML = `<div style="background:#2d2d2d;border:2px solid #facc15;border-radius:10px;
+    padding:14px 20px;font-size:24px;color:#facc15;text-align:center;
+    box-shadow:0 0 16px rgba(250,204,21,0.5);">${message}</div>`;
+}
+
+function hideTentTooltip(){
+  let tooltipEl = document.getElementById("tent-tooltip");
+  if(tooltipEl) tooltipEl.style.display = "none";
+}
+
+// --- 中断・再開機能 ---
+function suspendRun(){
+  let data = {
+    floor: state.floor,
+    hp: state.hp,
+    maxHp: state.maxHp,
+    power: state.power,
+    scrap: state.scrap,
+    emerald: state.emerald,
+    items: state.items,
+    relics: state.relics,
+    buffs: state.buffs,
+    runStats: state.runStats,
+    relicEventFloors: [...state.relicEventFloors],
+    daigoLastFloor: state.daigoLastFloor,
+    merchantLastFloor: state.merchantLastFloor,
+    moleBlock: state.moleBlock,
+    mushroomBad: state.mushroomBad,
+    veinDepth: state.veinDepth,
+    veinLastGain: state.veinLastGain,
+    veinLastEmerald: state.veinLastEmerald
+  };
+  localStorage.setItem("suspendedRun", JSON.stringify(data));
+  // ホームに戻す（ログはクリア）
+  goHome();
+}
+
+// 再開：中断データから state を復元して採掘モードへ
+function resumeRun(){
+  let raw = localStorage.getItem("suspendedRun");
+  if(!raw) return;
+  let data;
+  try { data = JSON.parse(raw); } catch(e){ localStorage.removeItem("suspendedRun"); return; }
+
+  // 中断データを復元（再開した時点で必ず破棄）
+  localStorage.removeItem("suspendedRun");
+
+  state.floor = data.floor;
+  state.hp = data.hp;
+  state.maxHp = data.maxHp;
+  state.power = data.power;
+  state.scrap = data.scrap;
+  state.emerald = data.emerald;
+  state.items = data.items;
+  state.relics = data.relics;
+  state.buffs = data.buffs;
+  state.runStats = data.runStats;
+  state.relicEventFloors = new Set(data.relicEventFloors);
+  state.daigoLastFloor = data.daigoLastFloor;
+  state.merchantLastFloor = data.merchantLastFloor;
+  state.moleBlock = data.moleBlock;
+  state.mushroomBad = data.mushroomBad;
+  state.veinDepth = data.veinDepth;
+  state.veinLastGain = data.veinLastGain;
+  state.veinLastEmerald = data.veinLastEmerald;
+  state.log = [];
+  state.lastResult = null;
+  state.activeCrestId = null;
+  state.relicViewOpen = false;
+  state.mode = "explore";
+
+  addLog("休憩おわり、冒険を再開しよう");
+  hideResumeOverlay();
+  render();
+}
+
+// 諦める：中断データを破棄してホームへ
+function abandonRun(){
+  showConfirm("中断までの採掘データは保存されませんがよろしいですか？", () => {
+    localStorage.removeItem("suspendedRun");
+    hideResumeOverlay();
+    // ホーム表示はすでに表示されているはずだが、念のためrender
+    render();
+  });
+}
+
+// 起動時に中断データを検出してオーバーレイ表示
+function showResumeOverlayIfNeeded(){
+  let raw = localStorage.getItem("suspendedRun");
+  if(!raw) return;
+  let data;
+  try { data = JSON.parse(raw); } catch(e){ localStorage.removeItem("suspendedRun"); return; }
+
+  let overlay = document.getElementById("resume-overlay");
+  let content = document.getElementById("resume-overlay-content");
+  if(!overlay || !content) return;
+
+  content.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;gap:24px;padding:32px 16px;">
+      <div style="font-size:32px;color:#facc15;text-align:center;">冒険を再開しますか？</div>
+      <div style="font-size:22px;color:#aaa;text-align:center;line-height:1.6;">
+        ${data.floor}階で中断した記録があります<br>
+        ${SVG_ICONS.scrap}<span style="color:#ffcc66;">${(data.scrap||0).toLocaleString()}</span>
+        ${SVG_ICONS.emerald}<span style="color:#58d68d;">${(data.emerald||0).toLocaleString()}</span>
+      </div>
+      <button onclick="resumeRun()" style="border-color:#facc15;color:#facc15;background:rgba(250,204,21,0.15);box-shadow:0 0 12px rgba(250,204,21,0.3);width:80%;font-size:30px;padding:18px 0;">再開</button>
+      <button onclick="abandonRun()" style="border-color:#888;color:#888;background:rgba(136,136,136,0.1);width:80%;font-size:26px;padding:14px 0;">諦める</button>
+    </div>`;
+  overlay.style.display = "block";
+}
+
+function hideResumeOverlay(){
+  let overlay = document.getElementById("resume-overlay");
+  if(overlay) overlay.style.display = "none";
 }
 
 function buyRelicSlot(){
@@ -3522,6 +3748,7 @@ function buyPower(){
 }
 
 render();
+showResumeOverlayIfNeeded();
 </script>
 
 <div id="relic-overlay" style="display:none; position:fixed; inset:0;
@@ -3531,6 +3758,11 @@ render();
     border-color:#0ff; color:#0ff; background:rgba(17,17,17,0.95);
     border-radius:50%; font-size:24px; padding:0;">✕</button>
   <div id="relic-overlay-content"></div>
+</div>
+
+<div id="resume-overlay" style="display:none; position:fixed; inset:0;
+  background:#111; z-index:600; overflow-y:auto; padding:16px; padding-top:80px;">
+  <div id="resume-overlay-content"></div>
 </div>
 
 </body>
