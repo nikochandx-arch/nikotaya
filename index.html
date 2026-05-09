@@ -562,7 +562,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.00</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.01</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -623,6 +623,38 @@ line-height: 1.3;
 
 <script>
 // --- セーブデータバージョン管理 ---
+// --- 統計フィールド定義（一元管理） ---
+// RUN_STATS_FIELDS: ラン中も加算する統計（runStats と stats の両方に同名で存在）
+// STATS_ONLY_FIELDS: 永続のみで集計する統計（stats のみに存在）
+//
+// 新しい統計を追加する手順：
+//   1. 該当する配列にフィールド名を足す
+//   2. SAVE_VERSION を1上げて、migrateSaveData の if(fromVersion < N) ブロックに
+//      初期値補完を書く（STATS_ONLY_FIELDS と RUN_STATS_FIELDS は migrateSaveData では
+//      自動補完されないので、必要なら個別に追記する）
+//   3. 集計タイミング（commitStats または個別箇所）で加算処理を書く
+const RUN_STATS_FIELDS  = [
+  "floors", "scrap", "damage", "potions", "goddess",
+  "goldenMole", "thiefMole", "daigo",
+  "chests", "poisonTurns", "mushrooms", "veinClears",
+  "batScrap", "merchantBuys",
+];
+const STATS_ONLY_FIELDS = [
+  "runs", "deaths", "emerald",
+  "maxScrapCarry", "maxEmeraldCarry",
+];
+// stats（永続）に存在すべき全フィールド（initStats / migrate 用）
+// 注意：scrap は runStats では使わない（commitStats では carry を直接加算）が、
+//       stats 側には必要なため両方に登場する
+const ALL_STATS_FIELDS  = [...new Set([...RUN_STATS_FIELDS, ...STATS_ONLY_FIELDS])];
+
+// runStats の初期オブジェクトを生成
+function makeRunStats(){
+  let o = {};
+  RUN_STATS_FIELDS.forEach(f => o[f] = 0);
+  return o;
+}
+
 const SAVE_VERSION = 2;
 
 function migrateSaveData(data, fromVersion){
@@ -630,20 +662,15 @@ function migrateSaveData(data, fromVersion){
     if(data.upgrades.potionHeal === undefined) data.upgrades.potionHeal = 0;
     if(data.upgrades.relicSlots === undefined) data.upgrades.relicSlots = 0;
     if(data.upgrades.journal    === undefined) data.upgrades.journal    = false;
-    if(data.stats.poisonTurns   === undefined) data.stats.poisonTurns   = 0;
-    if(data.stats.chests        === undefined) data.stats.chests        = 0;
-    if(data.stats.mushrooms     === undefined) data.stats.mushrooms     = 0;
-    if(data.stats.veinClears    === undefined) data.stats.veinClears    = 0;
-    ["runs","deaths","floors","scrap","damage","potions","goddess",
-     "goldenMole","thiefMole","daigo","emerald",
-     "maxScrapCarry","maxEmeraldCarry"].forEach(k => {
-      if(data.stats[k] === undefined) data.stats[k] = 0;
-    });
   }
   if(fromVersion < 2){
-    if(data.stats.batScrap     === undefined) data.stats.batScrap     = 0;
-    if(data.stats.merchantBuys === undefined) data.stats.merchantBuys = 0;
+    // v1→v2は stats のフィールド追加のみ。下の共通補完で対応する。
   }
+  // 共通：ALL_STATS_FIELDS の未定義フィールドを 0 で補う
+  // （新規プレイヤーの空 stats {} もここで初期化される）
+  ALL_STATS_FIELDS.forEach(f => {
+    if(data.stats[f] === undefined) data.stats[f] = 0;
+  });
   return data;
 }
 
@@ -705,12 +732,7 @@ let state = {
   totalEmerald:     saved.totalEmerald,
   seOn:             saved.seOn,
   stats:            saved.stats,
-  runStats: {
-    floors: 0, scrap: 0, damage: 0,
-    potions: 0, goddess: 0, goldenMole: 0, thiefMole: 0, daigo: 0,
-    chests: 0, poisonTurns: 0, mushrooms: 0, veinClears: 0,
-    batScrap: 0, merchantBuys: 0,
-  }
+  runStats: makeRunStats()
 };
 
 // --- バフ管理 ---
@@ -1295,20 +1317,12 @@ function saveAll() {
 function commitStats(died, carry=0){
   state.stats.runs++;
   if(died) state.stats.deaths++;
-  state.stats.floors      += state.runStats.floors;
-  state.stats.scrap       += carry;
-  state.stats.damage      += state.runStats.damage;
-  state.stats.potions     += state.runStats.potions;
-  state.stats.goddess     += state.runStats.goddess;
-  state.stats.goldenMole  += state.runStats.goldenMole;
-  state.stats.thiefMole   += state.runStats.thiefMole;
-  state.stats.daigo       += state.runStats.daigo;
-  state.stats.chests      += state.runStats.chests;
-  state.stats.poisonTurns += state.runStats.poisonTurns;
-  state.stats.mushrooms   += state.runStats.mushrooms;
-  state.stats.veinClears  += state.runStats.veinClears;
-  state.stats.batScrap    += state.runStats.batScrap;
-  state.stats.merchantBuys += state.runStats.merchantBuys;
+  // RUN_STATS_FIELDS の各フィールドを runStats から stats へ加算
+  // ただし scrap だけは「持ち帰った量(carry)」を加算する特殊ケース
+  RUN_STATS_FIELDS.forEach(f => {
+    if(f === "scrap") state.stats.scrap += carry;
+    else              state.stats[f]    += state.runStats[f];
+  });
   resetRunStats();
 }
 
@@ -2369,12 +2383,7 @@ function changeName(){
 }
 
 function resetRunStats(){
-  state.runStats = {
-    floors: 0, scrap: 0, damage: 0,
-    potions: 0, goddess: 0, goldenMole: 0, thiefMole: 0, daigo: 0,
-    chests: 0, poisonTurns: 0, mushrooms: 0, veinClears: 0,
-    batScrap: 0, merchantBuys: 0,
-  };
+  state.runStats = makeRunStats();
 }
 
 // --- 採掘開始 ---
