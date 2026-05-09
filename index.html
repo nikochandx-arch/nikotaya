@@ -562,7 +562,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.02</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.03</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -1680,6 +1680,39 @@ function floorBadgeHTML(floor){
 }
 
 // --- 描画 ---
+// --- ステータスグリッド更新 ---
+// HP/SCRAP/EMERALD/FLOOR の値・色・HPバーを更新する。
+// render() から呼ばれる。state を参照し対象DOMに書き込むだけで戻り値はない。
+function renderStatusGrid(){
+  let sgHp = document.getElementById("sg-hp");
+  if(sgHp){
+    let ratio = state.maxHp > 0 ? state.hp / state.maxHp : 0;
+    let hpC = ratio > 0.75 ? "#00ff50"
+            : ratio > 0.50 ? "#ddff00"
+            : ratio > 0.25 ? "#ff9900"
+            : "#ff3333";
+    sgHp.innerHTML = `<span style="font-size:14px;color:rgba(0,255,80,0.45);letter-spacing:2px;">HP</span>　${state.hp}<span class="stat-sub">/${state.maxHp}</span>`;
+    sgHp.style.color = hpC;
+    sgHp.style.textShadow = `0 0 10px ${hpC}88`;
+    let bar = document.getElementById("sg-hp-bar");
+    if(bar){
+      bar.style.width = Math.round(ratio * 100) + "%";
+      let barColor = ratio > 0.75 ? "linear-gradient(90deg,#00c844,#00ff50)"
+                   : ratio > 0.50 ? "linear-gradient(90deg,#b8cc00,#ddff00)"
+                   : ratio > 0.25 ? "linear-gradient(90deg,#cc6600,#ff9900)"
+                   : "linear-gradient(90deg,#aa1111,#ff3333)";
+      bar.style.background = barColor;
+      bar.style.boxShadow  = `0 0 6px ${hpC}`;
+    }
+  }
+  let sgScrap = document.getElementById("sg-scrap");
+  if(sgScrap) sgScrap.textContent = state.scrap.toLocaleString();
+  let sgEm = document.getElementById("sg-emerald");
+  if(sgEm) sgEm.textContent = (state.emerald || 0).toLocaleString();
+  let sgFloor = document.getElementById("sg-floor");
+  if(sgFloor) sgFloor.textContent = state.floor + "F";
+}
+
 function render(){
   // --- DOM参照キャッシュ（render内で頻出するもの） ---
   const ce      = document.getElementById("current-event");
@@ -1704,36 +1737,7 @@ function render(){
     `<span style="color:${hpColor}">HP:${state.hp}/${state.maxHp}</span> | ${SVG_ICONS.scrap}:<span style="color:#ffcc66;">${state.scrap.toLocaleString()}</span> | ${SVG_ICONS.emerald}:<span style="color:#58d68d;">${(state.emerald || 0).toLocaleString()}</span> | 現在地:${state.floor}階`;
 
   // --- ステータスグリッド更新（デザインリニューアル v2） ---
-  (function updateStatusGrid(){
-    let sgHp = document.getElementById("sg-hp");
-    if(sgHp){
-      let ratio = state.maxHp > 0 ? state.hp / state.maxHp : 0;
-      let hpC = ratio > 0.75 ? "#00ff50"
-              : ratio > 0.50 ? "#ddff00"
-              : ratio > 0.25 ? "#ff9900"
-              : "#ff3333";
-      sgHp.innerHTML = `<span style="font-size:14px;color:rgba(0,255,80,0.45);letter-spacing:2px;">HP</span>　${state.hp}<span class="stat-sub">/${state.maxHp}</span>`;
-      sgHp.style.color = hpC;
-      sgHp.style.textShadow = `0 0 10px ${hpC}88`;
-      let bar = document.getElementById("sg-hp-bar");
-      if(bar){
-        bar.style.width = Math.round(ratio * 100) + "%";
-        let barColor = ratio > 0.75 ? "linear-gradient(90deg,#00c844,#00ff50)"
-                     : ratio > 0.50 ? "linear-gradient(90deg,#b8cc00,#ddff00)"
-                     : ratio > 0.25 ? "linear-gradient(90deg,#cc6600,#ff9900)"
-                     : "linear-gradient(90deg,#aa1111,#ff3333)";
-        bar.style.background = barColor;
-        bar.style.boxShadow  = `0 0 6px ${hpC}`;
-      }
-    }
-    let sgScrap = document.getElementById("sg-scrap");
-    if(sgScrap) sgScrap.textContent = state.scrap.toLocaleString();
-    let sgEm = document.getElementById("sg-emerald");
-    if(sgEm) sgEm.textContent = (state.emerald || 0).toLocaleString();
-    let sgFloor = document.getElementById("sg-floor");
-    if(sgFloor) sgFloor.textContent = state.floor + "F";
-  })();
-  // --- ここまで追記 ---
+  renderStatusGrid();
 
   // バフ・デバフ表示（ログ内に描画するためここはクリアのみ）
   document.getElementById("buff-container").innerHTML = "";
