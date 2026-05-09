@@ -453,13 +453,14 @@ line-height: 1.4;
 /* ── 前回採掘ログ（羊皮紙） ── */
 .parchment {
 width: 100%;
+min-height: 480px;
 box-sizing: border-box;
 background:
 radial-gradient(ellipse at center, rgba(205,180,120,0) 55%, rgba(120,90,40,0.25) 100%),
 linear-gradient(160deg, #e8d9a8 0%, #dece96 30%, #e4d4a0 55%, #d5c07a 80%, #c8b466 100%);
 border: 1.5px solid #9b7c3a;
 border-radius: 6px;
-padding: 10px 12px;
+padding: 16px 16px;
 box-shadow:
 0 0 18px rgba(0,200,80,0.08),
 inset 0 1px 3px rgba(255,255,220,0.6),
@@ -539,7 +540,7 @@ flex-wrap: wrap;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.75</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.76</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -3319,7 +3320,7 @@ function buildLastResultHTML(){
     relicHTML = raw.relics.map(id => {
       let c = CREST_MASTER.find(m => m.id === id);
       if(!c) return "";
-      return `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" style="width:28px;height:auto;filter:drop-shadow(0 1px 2px rgba(80,40,0,0.3));">
+      return `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" style="width:38px;height:auto;filter:drop-shadow(0 1px 2px rgba(80,40,0,0.3));">
         <rect x="2" y="2" width="96" height="136" rx="6" fill="#1a1a1a" stroke="${c.color}" stroke-width="2"/>
         <g style="color:${c.color};">${c.svg}</g>
       </svg>`;
