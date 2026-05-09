@@ -539,7 +539,7 @@ flex-wrap: wrap;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.72</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.73</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -1719,12 +1719,16 @@ function render(){
   if(state.mode === "home"){
     document.getElementById("current-event").style.display = "";
     document.getElementById("current-event").style.flexGrow = "1";
+    document.getElementById("current-event").style.height = "auto";
+    document.getElementById("current-event").style.maxHeight = "560px";
     document.getElementById("current-event-icon").innerText = "";
     document.getElementById("current-event-text").innerHTML = buildLastResultHTML();
-    document.getElementById("log").classList.remove("relic-scroll");
-    document.getElementById("log").style.maxHeight = "0";
-    document.getElementById("log").style.flex = "";
-    document.getElementById("log").innerHTML = "";
+    let homeLog = document.getElementById("log");
+    homeLog.style.display = "none";
+    homeLog.style.maxHeight = "0";
+    homeLog.style.flex = "";
+    homeLog.classList.remove("relic-scroll");
+    homeLog.innerHTML = "";
   }
 
   // リザルト画面（完全独立描画）
