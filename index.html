@@ -528,9 +528,31 @@ font-weight: bold;
 }
 .parchment-relic-row {
 display: flex;
-gap: 4px;
-margin-top: 4px;
-flex-wrap: wrap;
+flex-direction: column;
+gap: 8px;
+margin-top: 6px;
+}
+.parchment-relic-item {
+display: flex;
+align-items: center;
+gap: 10px;
+}
+.parchment-relic-info {
+display: flex;
+flex-direction: column;
+gap: 1px;
+}
+.parchment-relic-name {
+font-size: 15px;
+color: #2a1800;
+font-weight: bold;
+line-height: 1.3;
+}
+.parchment-relic-desc {
+font-size: 13px;
+color: #6b4f1e;
+opacity: 0.85;
+line-height: 1.3;
 }
 </style>
 
@@ -540,7 +562,7 @@ flex-wrap: wrap;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.76</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v11.77</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -3312,7 +3334,7 @@ function buildLastResultHTML(){
   let emeraldVal = raw ? (raw.emeraldCarry || 0)           : "－";
   let floorVal   = raw ? raw.floor + "階"                  : "－";
 
-  // 紋アイコン
+  // 紋リスト（縦並び＋名前・desc）
   let relicHTML = "";
   if(!raw || !raw.relics || raw.relics.length === 0){
     relicHTML = `<span class="parchment-label">なし</span>`;
@@ -3320,14 +3342,12 @@ function buildLastResultHTML(){
     relicHTML = raw.relics.map(id => {
       let c = CREST_MASTER.find(m => m.id === id);
       if(!c) return "";
-      return `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" style="width:38px;height:auto;filter:drop-shadow(0 1px 2px rgba(80,40,0,0.3));">
-        <rect x="2" y="2" width="96" height="136" rx="6" fill="#1a1a1a" stroke="${c.color}" stroke-width="2"/>
-        <g style="color:${c.color};">${c.svg}</g>
-      </svg>`;
+      let iconSVG = `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" style="width:38px;height:auto;flex-shrink:0;filter:drop-shadow(0 1px 2px rgba(80,40,0,0.3));"><rect x="2" y="2" width="96" height="136" rx="6" fill="#1a1a1a" stroke="${c.color}" stroke-width="2"/><g style="color:${c.color};">${c.svg}</g></svg>`;
+      return `<div class="parchment-relic-item">${iconSVG}<div class="parchment-relic-info"><div class="parchment-relic-name">${c.name}</div><div class="parchment-relic-desc">${c.desc}</div></div></div>`;
     }).join("");
   }
 
-  // スクラップSVGをインライン用に縮小
+    // スクラップSVGをインライン用に縮小
   let scrapSVG  = SVG_ICONS.scrap.replace('style="width:1em;height:1em;',   'style="width:1.1em;height:1.1em;');
   let emerSVG   = SVG_ICONS.emerald.replace('style="width:1em;height:1em;', 'style="width:1.1em;height:1.1em;');
 
