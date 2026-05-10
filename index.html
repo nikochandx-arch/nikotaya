@@ -562,7 +562,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.11</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.12</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -1097,7 +1097,7 @@ function deleteAllData(){
 const CREST_MASTER = [
   // ① 採取系（赤）
   { id:"beginner", name:"初心の紋", category:"採取系", color:"#f55", rgb:"255,85,85",
-    desc:"「採掘」で得るスクラップ+1", // システム: 採掘イベント時+1固定加算
+    desc:"採掘スクラップ+1", // システム: 採掘イベント時+1固定加算
     unlockCond:"10階到達",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <line x1="0" y1="20" x2="0" y2="0" stroke-width="4"/>
@@ -1106,7 +1106,7 @@ const CREST_MASTER = [
       <line x1="-15" y1="20" x2="15" y2="20" stroke-width="4"/>
     </g>` },
   { id:"mining",   name:"採掘の紋",  category:"採取系", color:"#f55", rgb:"255,85,85",
-    desc:"「採掘」で得るスクラップが1.1倍になる", // システム: ceil(g*1.1)
+    desc:"採掘スクラップ+10%", // システム: ceil(g*1.1)
     unlockCond:"50階達成",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <path d="M -15 -15 Q 0 -28 15 -15 L 12 -12 Q 0 -22 -12 -12 Z" fill="currentColor"/>
@@ -1135,7 +1135,7 @@ const CREST_MASTER = [
     </g>` },
   // ② 防御系（青）
   { id:"steel",    name:"鋼皮の紋",  category:"防御系", color:"#0ff", rgb:"0,255,255",
-    desc:"ダメージを軽減（毒は対象外）", // システム: 全ダメージを2軽減（毒は対象外）
+    desc:"被ダメージ-2（毒除く）", // システム: 全ダメージを2軽減（毒は対象外）
     unlockCond:"50階達成",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <polygon points="0,-25 20,-10 20,15 0,30 -20,15 -20,-10" stroke-width="4"/>
@@ -1163,7 +1163,7 @@ const CREST_MASTER = [
       <path d="M 0 -20 L -5 -30 M 10 -15 L 20 -25" stroke-width="2"/>
     </g>` },
   { id:"skilldig", name:"巧掘の紋",  category:"防御系", color:"#0ff", rgb:"0,255,255",
-    desc:"鉱脈の崩落確率を軽減する", // システム: depth別に[0.20,0.30,0.40,0.50]の固定値を使用
+    desc:"鉱脈崩落確率を軽減", // システム: depth別に[0.20,0.30,0.40,0.50]の固定値を使用
     unlockCond:"鉱脈を1回掘りつくす",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
   <g stroke-width="2">
@@ -1234,7 +1234,7 @@ const CREST_MASTER = [
     </g>` },
   // ⑤ ユーティリティ系（緑）
   { id:"detect",   name:"探知の紋",  category:"ユーティリティ系", color:"#0f0", rgb:"0,255,0",
-    desc:"選択イベントの出現率が上昇", // システム: 重イベントの出現率が50%に上昇
+    desc:"重イベント出現率+20%", // システム: 重イベントの出現率が50%に上昇
     unlockCond:"50階達成",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <circle cx="0" cy="0" r="20" stroke-dasharray="4 4" stroke-width="2"/>
@@ -1253,7 +1253,7 @@ const CREST_MASTER = [
       <path d="M 0 5 L 5 -20"/>
     </g>` },
   { id:"friend",   name:"友誼の紋",  category:"ユーティリティ系", color:"#0f0", rgb:"0,255,0",
-    desc:"DAIGOに出会った時にHP20%回復", // システム: DAIGOイベント時にheal(ceil(maxHp*0.2))
+    desc:"DAIGO遭遇時HP回復20%", // システム: DAIGOイベント時にheal(ceil(maxHp*0.2))
     unlockCond:"DAIGOに15回会う",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <circle cx="0" cy="0" r="22" stroke-width="3"/>
@@ -1262,7 +1262,7 @@ const CREST_MASTER = [
       <path d="M -12 8 Q 0 18 12 8" stroke-width="4"/>
     </g>` },
   { id:"potion_boost", name:"滋薬の紋", category:"ユーティリティ系", color:"#0f0", rgb:"0,255,0",
-    desc:"ポーションの回復量が1.1倍になる", // システム: ポーション使用時にceil(v*1.1)
+    desc:"ポーション回復量+10%", // システム: ポーション使用時にceil(v*1.1)
     unlockCond:"ポーションを50個飲む",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <!-- 背景の薬草 -->
