@@ -562,7 +562,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.12</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.14</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -652,7 +652,7 @@ const RUN_STATS_FIELDS  = [
   "floors", "scrap", "damage", "potions", "goddess",
   "goldenMole", "thiefMole", "daigo",
   "chests", "poisonTurns", "mushrooms", "veinClears",
-  "batScrap", "merchantBuys",
+  "batScrap", "merchantBuys", "youki",
 ];
 const STATS_ONLY_FIELDS = [
   "runs", "deaths", "emerald",
@@ -670,7 +670,7 @@ function makeRunStats(){
   return o;
 }
 
-const SAVE_VERSION = 3;
+const SAVE_VERSION = 4;
 
 function migrateSaveData(data, fromVersion){
   if(fromVersion < 1){
@@ -684,6 +684,10 @@ function migrateSaveData(data, fromVersion){
   if(fromVersion < 3){
     // v2→v3：upgrades.tent を追加（中断機能）
     if(data.upgrades.tent === undefined) data.upgrades.tent = false;
+  }
+  if(fromVersion < 4){
+    // v3→v4：stats.youki を追加（陽キャイベント）
+    // 共通の補完処理で 0 が入るので個別対応不要
   }
   // 共通：ALL_STATS_FIELDS の未定義フィールドを 0 で補う
   // （新規プレイヤーの空 stats {} もここで初期化される）
@@ -813,9 +817,9 @@ function applyPoison(turns){
       // 毒で死なない：HP1を必ず残す
       d = Math.min(d, state.hp - 1);
       if(d > 0){
-        damage(d, true); // 毒は鋼皮の紋の軽減対象外
+        let actual = damage(d, true); // 毒は鋼皮の紋の軽減対象外
         state.runStats.poisonTurns++;
-        addLog(`🩸 毒ダメージ ${d}`, "damage");
+        addLog(`🩸 毒ダメージ ${actual}`, "damage");
       }
     }
   });
@@ -1209,6 +1213,28 @@ const CREST_MASTER = [
       <path d="M 0 15 A 15 15 0 0 1 -20 -5 A 15 15 0 0 1 0 -15 A 15 15 0 0 1 20 -5 A 15 15 0 0 1 0 15 Z"/>
       <line x1="20" y1="-25" x2="-20" y2="25" stroke-width="5"/>
     </g>` },
+  { id:"gamble_shield", name:"諸盾の紋", category:"リスク系", color:"#ffcc66", rgb:"255,204,102",
+    desc:"被ダメージを0か2倍にする", // システム: 被ダメージを50%で0、50%で2倍にする
+    unlockCond:"陽キャを助ける",
+    svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
+      <polyline points="0,-35 4,-20 -4,-5 2,10 -2,25 0,35" stroke-width="2" stroke-dasharray="2 4"/>
+      <g stroke-width="4">
+        <path d="M -2 -32 L -20 -25 L -20 5 C -20 20 -10 30 -2 33 Z" />
+      </g>
+      <path d="M -10 -20 L -10 0 C -10 10 -6 18 -2 22" stroke-width="2"/>
+      <line x1="-20" y1="-10" x2="-2" y2="-10" stroke-width="2"/>
+      <line x1="-20" y1="5" x2="-2" y2="5" stroke-width="2"/>
+      <circle cx="-14" cy="-18" r="1.5" fill="currentColor" stroke="none"/>
+      <circle cx="-14" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+      <g stroke-width="3">
+        <polygon points="4,-30 18,-24 15,-10 6,-18"/>
+        <polygon points="6,-5 20,-2 18,12 8,5"/>
+        <polygon points="4,15 15,22 8,30"/>
+      </g>
+      <polygon points="25,-15 28,-12 24,-10" fill="currentColor" stroke="none"/>
+      <polygon points="22,18 26,16 24,22" fill="currentColor" stroke="none"/>
+      <line x1="28" y1="5" x2="32" y2="2" stroke-width="2"/>
+    </g>` },
   // ④ コンボ系（紫）
   { id:"toxeat",   name:"毒喰の紋",  category:"コンボ系", color:"#f9f", rgb:"255,153,255",
     desc:"毒状態中は採掘量が2倍になる", // システム: 毒状態中は採掘量が2倍になる
@@ -1309,6 +1335,7 @@ const UNLOCK_CHECKS = {
   friend:       () => state.stats.daigo >= 15,
   skilldig:     () => state.stats.veinClears >= 1,
   potion_boost: () => state.stats.potions >= 50,
+  gamble_shield: () => state.stats.youki >= 1,
   // 他の紋は今後追加
 };
 
@@ -1396,7 +1423,17 @@ function getPotionHealCost() { return Math.floor(1500 * Math.pow(1.55, state.upg
 function getPotionHealValue(){ return 3 + state.upgrades.potionHeal; }
 
 // --- HP処理 ---
+// 諸盾の紋（gamble_shield）など、ダメージ値を変動させる紋があるため、
+// damage() は適用後の実ダメージを返す。ログ表示などで利用する側はこの戻り値を使うこと。
 function damage(d, ignoreArmor=false){
+  // 諸盾の紋：50%でダメージ無効、50%で2倍（鋼皮より先に適用）
+  if(state.relics.some(r => r.id === "gamble_shield")){
+    if(Math.random() < 0.5){
+      d = 0;
+    } else {
+      d = d * 2;
+    }
+  }
   // 鋼皮の紋：毒以外のダメージを2軽減（最低1）
   if(!ignoreArmor && state.relics.some(r => r.id === "steel")){
     d = Math.max(1, d - 2);
@@ -1404,6 +1441,7 @@ function damage(d, ignoreArmor=false){
   let actual = Math.min(d, state.hp);
   state.hp = Math.max(0, state.hp - d);
   state.runStats.damage += actual;
+  return d;
 }
 function heal(v)  { state.hp = Math.min(state.maxHp, state.hp + v); }
 
@@ -1700,6 +1738,27 @@ const SVG_ICONS = {
       <circle cx="70" cy="35" r="1.5"></circle>
     </g>
   </svg>`,
+  youki: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
+    <g stroke="#a1a1aa" stroke-width="2" stroke-linecap="round" fill="none">
+      <path d="M 75 30 Q 85 25 90 35" opacity="0.6"></path>
+      <path d="M 80 25 Q 95 15 100 30" opacity="0.3"></path>
+    </g>
+    <g fill="#09090b" stroke="#71717a" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M 45 45 C 35 60 40 85 55 85 C 65 85 65 60 55 45 Z"></path>
+      <path d="M 45 80 L 40 100 L 45 115" stroke-width="4"></path>
+      <path d="M 45 115 L 35 115" stroke-width="4"></path>
+      <path d="M 55 85 L 65 100 L 60 115" stroke-width="4"></path>
+      <path d="M 60 115 L 70 115" stroke-width="4"></path>
+      <path d="M 40 50 L 30 70 L 35 85" stroke-width="4"></path>
+      <path d="M 60 50 L 70 65 L 60 75" stroke-width="4"></path>
+      <circle cx="50" cy="35" r="9"></circle>
+    </g>
+    <g transform="translate(-8, 0)">
+      <path d="M 50 35 L 45 20 L 52 25 L 55 12 L 60 22 L 68 15 L 65 28 L 72 32 L 65 38 Z" fill="#facc15" stroke="#ca8a04" stroke-width="1.5" stroke-linejoin="round"></path>
+    </g>
+    <circle cx="58" cy="38" r="1.5" fill="#fef08a" stroke="none"></circle>
+    <path d="M 45 45 Q 50 52 55 45" fill="none" stroke="#fef08a" stroke-width="1.5" opacity="0.8"></path>
+  </svg>`,
 };
 
 // --- 絵文字取得 ---
@@ -1972,10 +2031,12 @@ ${relicsHTML}
       let depth = state.veinDepth;
       let p = VEIN_PARAMS[Math.min(depth, 3)];
       let hasSkilldig = state.relics.some(r => r.id === "skilldig");
+      let hasGambleShield = state.relics.some(r => r.id === "gamble_shield");
       let displayCollapse = hasSkilldig ? [0.20, 0.30, 0.40, 0.50][Math.min(depth, 3)] : p.collapse;
       iconEl.innerHTML = SVG_ICONS.vein.replace("width:1em;height:1em;", "width:2em;height:2em;");
       let tier = Math.floor((state.floor - 1) / 10) + 1;
       let dmg = tier * p.dmgCoef;
+      let dmgDisplay = hasGambleShield ? `0 or ${dmg * 2}` : `${dmg}`;
       let skilldigNote = hasSkilldig ? `<span style="color:#0ff;font-size:20px;">（巧掘の紋が効いている）</span>` : "";
       // エメラルド表示：直前の掘りでエメラルドを得た場合（veinDepth >= 1 かつ state.veinLastEmerald）
       let emeraldNote = state.veinLastEmerald
@@ -1983,7 +2044,7 @@ ${relicsHTML}
         : "";
       let veinStatusHTML = `<div style="margin-top:8px;font-size:22px;line-height:2.0;">` +
         `<div><span style="color:#ffcc66;">崩落確率：</span><span style="color:#f55;font-weight:bold;">${displayCollapse*100}%</span>${skilldigNote ? " " + skilldigNote : ""}</div>` +
-        `<div><span style="color:#ffcc66;">想定ダメージ：</span><span style="color:#f55;font-weight:bold;">${dmg}</span></div>` +
+        `<div><span style="color:#ffcc66;">想定ダメージ：</span><span style="color:#f55;font-weight:bold;">${dmgDisplay}</span></div>` +
         `<div><span style="color:#ffcc66;">獲得倍率：</span><span style="color:#58d68d;font-weight:bold;">×${p.mult}</span></div>` +
         `</div>`;
       if(depth === 0){
@@ -2090,6 +2151,18 @@ ${friendHTML}
 `<div style="font-size:26px;color:#a855f7;">謎の商人</div>
 <div style="font-size:22px;color:#fff;margin-top:6px;">『やあ、${state.name}さん。何か入り用かい？』</div>
 <div style="font-size:20px;color:#aaa;margin-top:4px;">ポーション：${SVG_ICONS.scrap}<span style="color:#ffcc66;">${price.toLocaleString()}</span></div>
+`;
+      // ボタンは下のswitchで描画するのでここではスキップ
+    } else
+    // 陽キャイベントは専用表示
+    if(state.mode === "event_youki"){
+      ceIcon.innerHTML = SVG_ICONS.youki.replace("width:1em;height:1em;","width:2em;height:2em;");
+      ceText.innerHTML =
+        floorBadgeHTML(state.floor) +
+`<div style="font-size:26px;color:#facc15;">陽キャ</div>
+<div style="font-size:22px;color:#fff;margin-top:6px;">『プレイヤーさん、今ちょっと懐が寂しくて…</div>
+<div style="font-size:22px;color:#fff;">いくらか融通してもらえませんか？』</div>
+<div style="font-size:20px;color:#aaa;margin-top:4px;">必要：${SVG_ICONS.scrap}<span style="color:#ffcc66;">${YOUKI_COST.toLocaleString()}</span></div>
 `;
       // ボタンは下のswitchで描画するのでここではスキップ
     } else {
@@ -2209,6 +2282,9 @@ ${friendHTML}
       break;
     case "event_merchant":
       renderMerchantEvent();
+      break;
+    case "event_youki":
+      renderYoukiEvent();
       break;
     case "event_goddess":
       btn("回復してほしい", goddessHeal, "special");
@@ -2843,8 +2919,8 @@ const LIGHT_EVENTS = [
     fn: () => {
       playSE("damage");
       let d = Math.floor(Math.random()*3) + 1 + floorDmgBonus();
-      damage(d);
-      addLog(`落石！ ${d} ダメージ`, "damage");
+      let actual = damage(d);
+      addLog(`落石！ ${actual} ダメージ`, "damage");
     }
   },
   {
@@ -2883,8 +2959,8 @@ const LIGHT_EVENTS = [
       playSE("damage");
       let base = Math.floor(Math.random()*3) + 1 + floorDmgBonus();
       let d = Math.max(1, Math.floor(base / 2));
-      damage(d);
-      addLog(`暗闇で岩にぶつかった！ ${d} ダメージ`, "damage");
+      let actual = damage(d);
+      addLog(`暗闇で岩にぶつかった！ ${actual} ダメージ`, "damage");
     }
   },
   {
@@ -2895,10 +2971,10 @@ const LIGHT_EVENTS = [
       let lost = Math.max(0, Math.floor(Math.floor(calcScrap() * 0.1) / 2));
       state.scrap = Math.max(0, state.scrap - lost);
       let d = Math.max(1, Math.ceil(state.maxHp * 0.05));
-      damage(d);
+      let actual = damage(d);
       addLog(`足を滑らせた！`, "damage");
       addLog(`スクラップを ${lost.toLocaleString()} 落とした`, "sub");
-      addLog(`${d} ダメージを受けた`, "sub");
+      addLog(`${actual} ダメージを受けた`, "sub");
     }
   },
   {
@@ -3022,6 +3098,24 @@ const HEAVY_EVENTS = [
   },
 ];
 
+// --- 階確定イベント ---
+// 特定の階で必ず発生するイベント。通常イベント抽選より優先される。
+// 各イベントは { floor: 出現階, isAvailable: 出現可能か, fn: 発動処理 } で定義。
+// isAvailable() が false ならその階の通常イベント抽選が走る（同階では再抽選しない）。
+const FIXED_FLOOR_EVENTS = [
+  {
+    id: "youki",
+    floor: 95,
+    // 出現条件：累計で一度も助けていない（=紋未解放）かつ、このランでもまだ遭遇していない
+    isAvailable: () => state.stats.youki === 0 && state.runStats.youki === 0,
+    fn: () => {
+      playSE("select");
+      state.mode = "event_youki";
+      addLog("派手な金髪の青年が話しかけてきた…");
+    },
+  },
+];
+
 // --- 探索 ---
 function next(){
   state.floor++;
@@ -3064,6 +3158,15 @@ function next(){
     state.mode = "return";
     render();
     return;
+  }
+
+  // 階確定イベント（鉄扉・女神像の特殊階の後、通常イベント抽選の前）
+  for(const fe of FIXED_FLOOR_EVENTS){
+    if(fe.floor === state.floor && fe.isAvailable()){
+      fe.fn();
+      render();
+      return;
+    }
   }
 
   // --- 軽(70%) / 重(30%) の2段階抽選 ---
@@ -3163,9 +3266,9 @@ function openChest(){
   } else {
     // 罠 15%
     let d = Math.ceil(state.maxHp * 0.2);
-    damage(d);
+    let actual = damage(d);
     playSE("damage");
-    addLog(`罠だった！ ${d} ダメージ`, "sub");
+    addLog(`罠だった！ ${actual} ダメージ`, "sub");
     checkDeath();
     if(state.mode !== "dead") state.mode = "explore";
   }
@@ -3277,10 +3380,10 @@ function batForce(){
     addLog("うまく切り抜けられた！", "sub");
   } else {
     let d = Math.ceil(state.maxHp * 0.1);
-    damage(d);
+    let actual = damage(d);
     playSE("damage");
     applyPoison(3);
-    addLog(`コウモリに襲われた！ ${d} ダメージ＋毒3ターン`, "sub");
+    addLog(`コウモリに襲われた！ ${actual} ダメージ＋毒3ターン`, "sub");
   }
   checkDeath();
   if(state.mode !== "dead") state.mode = "explore";
@@ -3423,6 +3526,43 @@ function ignoreMerchant(){
   render();
 }
 
+// --- 陽キャイベント ---
+const YOUKI_COST = 10000;
+
+function renderYoukiEvent(){
+  let canPay = state.scrap >= YOUKI_COST;
+  let b = document.createElement("button");
+  b.innerHTML = `${YOUKI_COST.toLocaleString()}スクラップあげる`;
+  let s = canPay ? BTN_STYLES.risk : BTN_STYLES.skip;
+  b.style.borderColor = s.color;
+  b.style.color       = s.color;
+  b.style.background  = s.bg;
+  b.style.boxShadow   = `0 0 10px ${s.color}66`;
+  b.style.opacity     = canPay ? "1" : "0.4";
+  b.disabled          = !canPay;
+  if(canPay) b.onclick = helpYouki;
+  document.getElementById("actions").appendChild(b);
+  btn("無視する", ignoreYouki, "skip");
+}
+
+function helpYouki(){
+  state.scrap -= YOUKI_COST;
+  state.runStats.youki = 1;  // ラン中フラグ：commitStats時に永続statsに加算される
+  playSE("coin");
+  addLog("「あざす！流石プレイヤーさんス！」");
+  addLog("陽キャは嬉しそうに去っていった", "sub");
+  state.mode = "explore";
+  render();
+}
+
+function ignoreYouki(){
+  playSE("select");
+  addLog("「そんな…痛たたた、なんかお腹痛くなってきたなぁ…」");
+  addLog("陽キャはこちらをチラ見しながら去っていった", "sub");
+  state.mode = "explore";
+  render();
+}
+
 // --- DAIGOイベント ---
 function renderDaigoEvent(){
   btn("了解！", ignoreDaigo, "main");
@@ -3473,10 +3613,10 @@ function digVein(){
     // 崩落
     let tier = Math.floor((state.floor - 1) / 10) + 1;
     let d = tier * p.dmgCoef;
-    damage(d);
+    let actual = damage(d);
     playSE("damage");
     state.veinLastEmerald = false;
-    addLog(`地盤が崩れた！ ${d} ダメージ`, "sub");
+    addLog(`地盤が崩れた！ ${actual} ダメージ`, "sub");
     checkDeath();
     if(state.mode !== "dead") state.mode = "explore";
   } else {
