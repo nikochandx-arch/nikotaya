@@ -562,7 +562,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.19</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.20</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -1358,7 +1358,9 @@ function checkUnlocks(){
 // --- ショップHTML生成 ---
 function buildShopHTML(){
   let itemFull = state.items.length >= 5;
-  let shopStyle = "border-color:#f9f;color:#f9f;background:rgba(255,153,255,0.1);width:100%;";
+  let shopStyle     = "border-color:#f9f;color:#f9f;background:rgba(255,153,255,0.1);width:100%;";
+  let shopStylePerm = "border-color:#f9c;color:#f9c;background:rgba(255,153,204,0.1);width:100%;";
+  let shopStylePrev = "border-color:#e9f;color:#e9f;background:rgba(238,153,255,0.1);width:100%;";
   let maxStyle  = "border-color:#666;color:#666;background:transparent;opacity:0.5;width:100%;";
   let disabledStyle = itemFull ? "opacity:0.4;" : "";
   let priceSpan = (val) => `${SVG_ICONS.scrap}<span style="color:#ffcc66;font-size:26px;">${val}</span>`;
@@ -1370,25 +1372,25 @@ function buildShopHTML(){
 <button onclick="buyPotion()" style="${shopStyle}height:auto;padding:12px 8px;${disabledStyle}">ポーション<br><span ${descStyle}>HP+${getPotionHealValue()}</span><br>${priceSpan(1)}</button>
 <button onclick="buyAntidote()" style="${shopStyle}height:auto;padding:12px 8px;${disabledStyle}">毒消し草<br><span ${descStyle}>毒を治す</span><br>${priceSpan(10)}</button>
 <div style="color:#888;margin:6px 0;">[ 永続強化 ]</div>
-<button onclick="buyHp()" style="${shopStyle}height:auto;padding:12px 8px;">最大HP +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getHpCost().toLocaleString())}</button>
-<button onclick="buyPower()" style="${shopStyle}height:auto;padding:12px 8px;">採掘力 +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getPowerCost().toLocaleString())}</button>
-<button onclick="buyPotionHeal()" style="${shopStyle}height:auto;padding:12px 8px;">ポーション強化<br><span ${descStyle}>回復量+1</span><br>${priceSpan(getPotionHealCost().toLocaleString())}</button>
+<button onclick="buyHp()" style="${shopStylePerm}height:auto;padding:12px 8px;">最大HP +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getHpCost().toLocaleString())}</button>
+<button onclick="buyPower()" style="${shopStylePerm}height:auto;padding:12px 8px;">採掘力 +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getPowerCost().toLocaleString())}</button>
+<button onclick="buyPotionHeal()" style="${shopStylePerm}height:auto;padding:12px 8px;">ポーション強化<br><span ${descStyle}>回復量+1</span><br>${priceSpan(getPotionHealCost().toLocaleString())}</button>
 ${(() => {
   let cost = getRelicSlotCost();
   let cur = getRelicSlotCount();
   if(cost === null){
     return `<button disabled style="${maxStyle}height:auto;padding:12px 8px;">紋スロット拡張<br><span ${descStyle}>MAX（5枠）</span></button>`;
   }
-  return `<button onclick="buyRelicSlot()" style="${shopStyle}height:auto;padding:12px 8px;">紋スロット拡張<br><span ${descStyle}>${cur}枠 → ${cur+1}枠</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">${cost}</span></button>`;
+  return `<button onclick="buyRelicSlot()" style="${shopStylePerm}height:auto;padding:12px 8px;">紋スロット拡張<br><span ${descStyle}>${cur}枠 → ${cur+1}枠</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">${cost}</span></button>`;
 })()}
 <div style="color:#888;margin:6px 0;">[ 貴重品 ]</div>
 ${state.upgrades.journal
   ? `<button disabled style="border-color:#666;color:#666;background:transparent;opacity:0.5;width:100%;height:auto;padding:12px 8px;">採掘日誌<br><span style="font-size:18px;">購入済み</span></button>`
-  : `<button onclick="buyJournal()" style="${shopStyle}height:auto;padding:12px 8px;">採掘日誌<br><span ${descStyle}>リザルトを記録</span><br>${priceSpan((15000).toLocaleString())}</button>`
+  : `<button onclick="buyJournal()" style="${shopStylePrev}height:auto;padding:12px 8px;">採掘日誌<br><span ${descStyle}>リザルトを記録</span><br>${priceSpan((15000).toLocaleString())}</button>`
 }
 ${state.upgrades.tent
   ? `<button disabled style="border-color:#666;color:#666;background:transparent;opacity:0.5;width:100%;height:auto;padding:12px 8px;">テント<br><span style="font-size:18px;">購入済み</span></button>`
-  : `<button onclick="buyTent()" style="${shopStyle}height:auto;padding:12px 8px;">テント<br><span ${descStyle}>採掘を中断できる</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">5</span></button>`
+  : `<button onclick="buyTent()" style="${shopStylePrev}height:auto;padding:12px 8px;">テント<br><span ${descStyle}>採掘を中断できる</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">5</span></button>`
 }
 `;
 }
@@ -2029,7 +2031,7 @@ function render(){
     ceText.innerHTML = `
 <div style="color:#ff0;font-size:28px;margin-bottom:6px;">── リザルト ──</div>
 <div style="font-size:26px;">${resultLabel}</div>
-<div style="font-size:26px;">到達階層：${r.floor} 階</div>
+<div style="font-size:26px;">到達階層：${r.floor} 階${r.newBest ? `&nbsp;<span style="color:#ff0;font-size:22px;font-weight:bold;text-shadow:0 0 8px #ff0;">新記録！</span>` : ""}</div>
 <div style="font-size:26px;margin-top:4px;">持ち帰った物</div>
 ${scrapLine}
 ${emeraldLine}
