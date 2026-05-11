@@ -562,7 +562,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.14</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.16</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -820,6 +820,7 @@ function applyPoison(turns){
         let actual = damage(d, true); // 毒は鋼皮の紋の軽減対象外
         state.runStats.poisonTurns++;
         addLog(`🩸 毒ダメージ ${actual}`, "damage");
+        state.poisonTickedThisTurn = true;  // 中間モード移行用の一時フラグ
       }
     }
   });
@@ -1766,6 +1767,7 @@ function getEmoji(text, type){
   // テキスト優先チェック（型より先に）
   if(text.includes("金モグラ"))        return SVG_ICONS.goldenMole;
   if(text.includes("泥棒モグラ"))      return SVG_ICONS.thiefMole;
+  if(text.includes("陽キャ") || text.includes("あざす") || text.includes("お腹痛")) return SVG_ICONS.youki;
   if(type==="divider")     return text.includes("女神") ? SVG_ICONS.goddess : SVG_ICONS.door;
   if(type==="damage")      return text.includes("毒") ? "🩸" : "💥";
   if(type==="scrap")       return "⛏️";
@@ -2160,7 +2162,7 @@ ${friendHTML}
       ceText.innerHTML =
         floorBadgeHTML(state.floor) +
 `<div style="font-size:26px;color:#facc15;">陽キャ</div>
-<div style="font-size:22px;color:#fff;margin-top:6px;">『プレイヤーさん、今ちょっと懐が寂しくて…</div>
+<div style="font-size:22px;color:#fff;margin-top:6px;">『${state.name}さん、今ちょっと懐が寂しくて…</div>
 <div style="font-size:22px;color:#fff;">いくらか融通してもらえませんか？』</div>
 <div style="font-size:20px;color:#aaa;margin-top:4px;">必要：${SVG_ICONS.scrap}<span style="color:#ffcc66;">${YOUKI_COST.toLocaleString()}</span></div>
 `;
@@ -2253,6 +2255,9 @@ ${friendHTML}
       break;
     case "explore":
       btn("採掘する", next, "main", null);
+      break;
+    case "poison_tick":
+      btn("進む", proceedAfterTick, "main", null);
       break;
     case "event":
       btn("開ける", openChest, "risk");
@@ -3121,10 +3126,27 @@ function next(){
   state.floor++;
   state.runStats.floors++;
 
+  // 毒中間モード用フラグをクリア
+  state.poisonTickedThisTurn = false;
+
   // バフ・デバフのターン処理（階層上昇時）
   tickBuffs();
   if(state.hp <= 0){ checkDeath(); render(); return; }
 
+  // 毒ダメージが発生した場合は中間モードへ。プレイヤーが「進む」ボタンを押すまで
+  // 次のイベント抽選・特殊階判定を行わない。
+  if(state.poisonTickedThisTurn){
+    state.mode = "poison_tick";
+    render();
+    return;
+  }
+
+  proceedAfterTick();
+}
+
+// next() のうち、tickBuffs後のイベント抽選〜特殊階判定部分。
+// 毒ダメージ後の中間モードからも呼ばれる。
+function proceedAfterTick(){
   // 紋獲得イベント：15階 または 51,101,151...階
   let isRelicFloor = state.floor === 15 || (state.floor > 1 && (state.floor - 1) % 50 === 0);
   if(isRelicFloor && !state.relicEventFloors.has(state.floor)){
