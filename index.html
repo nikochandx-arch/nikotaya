@@ -562,7 +562,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.17</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.18</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -809,7 +809,7 @@ function applyMiningDown(turns){
 function applyPoison(turns){
   applyBuff({
     id: "poison",
-    name: "🩸 毒",
+    name: "毒",
     turns: turns,
     isBad: true,
     onTurn: () => {
@@ -819,7 +819,7 @@ function applyPoison(turns){
       if(d > 0){
         let actual = damage(d, true); // 毒は鋼皮の紋の軽減対象外
         state.runStats.poisonTurns++;
-        addLog(`🩸 毒ダメージ ${actual}`, "damage");
+        addLog(`毒ダメージ ${actual}`, "damage");
         state.poisonTickedThisTurn = true;  // 中間モード移行用の一時フラグ
       }
     }
@@ -1760,6 +1760,46 @@ const SVG_ICONS = {
     <circle cx="58" cy="38" r="1.5" fill="#fef08a" stroke="none"></circle>
     <path d="M 45 45 Q 50 52 55 45" fill="none" stroke="#fef08a" stroke-width="1.5" opacity="0.8"></path>
   </svg>`,
+  poison: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
+    <defs>
+      <radialGradient id="vortexGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#9333ea" stop-opacity="0.6"/>
+        <stop offset="100%" stop-color="#9333ea" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="greenSmoke" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#4ade80"/>
+        <stop offset="50%" stop-color="#22c55e"/>
+        <stop offset="100%" stop-color="#14532d"/>
+      </linearGradient>
+    </defs>
+    <circle cx="60" cy="60" r="50" fill="url(#vortexGlow)"/>
+    <path d="M 20 60 C 10 30 50 15 65 30 C 80 15 110 30 100 65 C 115 80 85 105 60 95 C 40 105 10 85 20 60 Z" fill="#7e22ce" stroke="#4c1d95" stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="20" cy="35" r="12" fill="#7e22ce" stroke="#4c1d95" stroke-width="2"/>
+    <circle cx="95" cy="85" r="15" fill="#7e22ce" stroke="#4c1d95" stroke-width="2"/>
+    <path d="M 30 65 C 20 40 50 30 60 45 C 80 30 100 50 90 75 C 100 95 65 105 50 90 C 35 100 20 85 30 65 Z" fill="url(#greenSmoke)" stroke="#064e3b" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M 40 45 C 50 35 60 50 50 60" fill="none" stroke="#bbf7d0" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+    <path d="M 80 60 C 95 65 85 85 70 75" fill="none" stroke="#bbf7d0" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+    <path d="M 40 80 C 30 90 50 95 55 85" fill="none" stroke="#bbf7d0" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+    <g transform="translate(60, 60) scale(0.9) translate(-60, -60)">
+      <path d="M 30 45 C 30 15 90 15 90 45 C 90 65 80 75 75 80 L 75 95 L 45 95 L 45 80 C 40 75 30 65 30 45 Z" fill="#f8fafc" stroke="#064e3b" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M 45 25 L 55 35 M 75 25 L 70 30 L 75 35" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/>
+      <path d="M 40 55 C 40 40 55 45 55 55 C 55 65 40 65 40 55 Z" fill="#022c22"/>
+      <path d="M 80 55 C 80 40 65 45 65 55 C 65 65 80 65 80 55 Z" fill="#022c22"/>
+      <circle cx="50" cy="55" r="4" fill="#d8b4fe"/>
+      <circle cx="70" cy="55" r="4" fill="#d8b4fe"/>
+      <path d="M 60 65 L 53 75 L 67 75 Z" fill="#022c22"/>
+      <line x1="45" y1="85" x2="75" y2="85" stroke="#022c22" stroke-width="3" stroke-linecap="round"/>
+      <line x1="52" y1="80" x2="52" y2="95" stroke="#022c22" stroke-width="3"/>
+      <line x1="60" y1="80" x2="60" y2="95" stroke="#022c22" stroke-width="3"/>
+      <line x1="68" y1="80" x2="68" y2="95" stroke="#022c22" stroke-width="3"/>
+    </g>
+    <g fill="#bef264">
+      <circle cx="20" cy="80" r="3"/>
+      <circle cx="25" cy="95" r="4"/>
+      <circle cx="100" cy="40" r="3"/>
+      <circle cx="90" cy="20" r="4"/>
+    </g>
+  </svg>`,
 };
 
 // --- 絵文字取得 ---
@@ -1769,7 +1809,7 @@ function getEmoji(text, type){
   if(text.includes("泥棒モグラ"))      return SVG_ICONS.thiefMole;
   if(text.includes("陽キャ") || text.includes("あざす") || text.includes("お腹痛")) return SVG_ICONS.youki;
   if(type==="divider")     return text.includes("女神") ? SVG_ICONS.goddess : SVG_ICONS.door;
-  if(type==="damage")      return text.includes("毒") ? "🩸" : "💥";
+  if(type==="damage")      return text.includes("毒") ? SVG_ICONS.poison : "💥";
   if(type==="scrap")       return "⛏️";
   if(text.includes("一休み"))       return SVG_ICONS.campfire;
   if(type==="heal")        return "💤";
