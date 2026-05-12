@@ -562,7 +562,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.23</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.24</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -762,60 +762,31 @@ let state = {
   runStats: makeRunStats()
 };
 
-// --- バフ管理 ---
-function applyBuff(buff){
-  // 同じidがあれば上書き、なければ追加
-  let idx = state.buffs.findIndex(b => b.id === buff.id);
-  if(idx >= 0) state.buffs[idx] = buff;
-  else state.buffs.push(buff);
-}
-
-function tickBuffs(){
-  // 階層が上がった瞬間に発動・ターン消費
-  state.buffs.forEach(b => {
-    if(b.onTurn) b.onTurn();
-    b.turns--;
-  });
-  // 0以下になったバフを削除
-  state.buffs = state.buffs.filter(b => b.turns > 0);
-}
-
-function clearBuffs(){
-  state.buffs = [];
-  state.moleBlock = -1;
-}
-
-// --- 採掘力UPバフを付与する関数 ---
-function applyMiningUp(turns){
-  applyBuff({
-    id: "miningUp",
+// --- バフ・デバフ定義マスタ ---
+// 新しいバフを追加する時はここに1エントリ追加すればOK。
+// effects: 効果プロパティ（採掘量倍率など）。「最終的にかける倍率」で統一。
+// consumeOn: "turn"（ターン経過で消費・デフォルト）/ "use"（使用時に手動で消費）
+// onTurn: 階を進むたびに呼ばれる処理（毒のダメージなど）。不要なら null。
+const BUFF_DEF = {
+  miningUp: {
     name: "⛏️ 採掘力UP",
-    turns: turns,
     isBad: false,
-    miningBonus: 1,  // +1倍（採掘量2倍）
+    consumeOn: "turn",
+    effects: { miningMultiplier: 2.0 },  // 採掘量×2
     onTurn: null
-  });
-}
-
-// --- 採掘量低下デバフを付与する関数 ---
-function applyMiningDown(turns){
-  applyBuff({
-    id: "miningDown",
+  },
+  miningDown: {
     name: "🤕 採掘量低下",
-    turns: turns,
     isBad: true,
-    miningPenalty: 0.5,  // ×0.5（半減）
+    consumeOn: "turn",
+    effects: { miningMultiplier: 0.5 },  // 採掘量×0.5
     onTurn: null
-  });
-}
-
-// --- 毒を付与する関数 ---
-function applyPoison(turns){
-  applyBuff({
-    id: "poison",
+  },
+  poison: {
     name: "毒",
-    turns: turns,
     isBad: true,
+    consumeOn: "turn",
+    effects: {},
     onTurn: () => {
       let d = Math.max(1, Math.floor(state.maxHp * 0.1));
       // 毒で死なない：HP1を必ず残す
@@ -827,8 +798,69 @@ function applyPoison(turns){
         state.poisonTickedThisTurn = true;  // 中間モード移行用の一時フラグ
       }
     }
+  }
+};
+
+// --- バフ管理 ---
+// バフID と 残量（turns or uses）を渡して付与する。
+// turns/uses はバフ定義の consumeOn に応じて意味が変わる：
+//   - consumeOn: "turn" → turns（残ターン数）
+//   - consumeOn: "use"  → uses（残使用回数）
+// 内部的にはどちらも `remaining` というフィールドで管理する。
+function applyBuffById(id, remaining){
+  const def = BUFF_DEF[id];
+  if(!def){ console.warn("Unknown buff id:", id); return; }
+  applyBuff({
+    id,
+    name: def.name,
+    isBad: def.isBad,
+    consumeOn: def.consumeOn,
+    turns: remaining,             // 既存UI互換のため turns プロパティに格納
+    effects: def.effects || {},
+    onTurn: def.onTurn
   });
 }
+
+function applyBuff(buff){
+  // 同じidがあれば上書き、なければ追加
+  let idx = state.buffs.findIndex(b => b.id === buff.id);
+  if(idx >= 0) state.buffs[idx] = buff;
+  else state.buffs.push(buff);
+}
+
+// 階を進むたびに呼ばれる。ターン消費型バフのみ残量を減らす。
+function tickBuffs(){
+  state.buffs.forEach(b => {
+    if(b.onTurn) b.onTurn();
+    if(b.consumeOn === "turn" || b.consumeOn == null){
+      b.turns--;
+    }
+  });
+  // 残量0以下になったバフを削除
+  state.buffs = state.buffs.filter(b => b.turns > 0);
+}
+
+// 回数消費型バフの残量を1減らす（効果が発動した時に呼ぶ）。
+// 例：「次の3回の被ダメージを軽減」なら、ダメージを受けた時にこれを呼ぶ。
+function consumeBuffUse(id){
+  let b = state.buffs.find(x => x.id === id);
+  if(!b) return;
+  if(b.consumeOn !== "use") return; // ターン消費型には何もしない
+  b.turns--;
+  if(b.turns <= 0){
+    state.buffs = state.buffs.filter(x => x.id !== id);
+  }
+}
+
+function clearBuffs(){
+  state.buffs = [];
+  state.moleBlock = -1;
+}
+
+// --- 個別バフ付与ラッパー（呼び出し側の可読性のため残す） ---
+function applyMiningUp(turns){   applyBuffById("miningUp", turns);   }
+function applyMiningDown(turns){ applyBuffById("miningDown", turns); }
+function applyPoison(turns){     applyBuffById("poison", turns);     }
 
 // --- アイテム定義マスタ ---
 const ITEM_DEF = {
@@ -2317,7 +2349,9 @@ ${friendHTML}
     if(state.buffs.length > 0){
       let badges = state.buffs.map(b => {
         let cls = b.isBad ? "buff-bad" : "buff-good";
-        return `<span class="buff-badge ${cls}">${b.name} : ${b.turns}T</span>`;
+        // 消費タイプに応じて単位を出し分け：ターン消費型は "T"、回数消費型は "回"
+        let unit = b.consumeOn === "use" ? "回" : "T";
+        return `<span class="buff-badge ${cls}">${b.name} : ${b.turns}${unit}</span>`;
       }).join("");
       buffRow = `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px 0 8px;border-bottom:1px solid rgba(0,255,80,0.15);margin-bottom:6px;font-size:22px;color:rgba(0,255,80,0.5);">状態：${badges}</div>`;
     } else {
@@ -2732,15 +2766,10 @@ function calcScrap(){
 
 // --- 採掘倍率計算 ---
 function getMiningMultiplier(){
-  // バフ：(1 + miningBonus合計)
-  let bonus = state.buffs
-    .filter(b => b.miningBonus)
-    .reduce((sum, b) => sum + b.miningBonus, 0);
-  // デバフ：miningPenalty の積算（0.5なら半減）
-  let penalty = state.buffs
-    .filter(b => b.miningPenalty)
-    .reduce((prod, b) => prod * b.miningPenalty, 1);
-  return (1 + bonus) * penalty;
+  // バフ・デバフの effects.miningMultiplier を全部掛け合わせる
+  return state.buffs
+    .filter(b => b.effects && b.effects.miningMultiplier != null)
+    .reduce((mult, b) => mult * b.effects.miningMultiplier, 1);
 }
 
 // --- 紋スロット数取得 ---
@@ -2914,7 +2943,28 @@ function resumeRun(){
   state.emerald = data.emerald;
   state.items = data.items;
   state.relics = data.relics;
-  state.buffs = data.buffs;
+  // バフ復元：旧フォーマット（miningBonus/miningPenalty を直接持つ）から
+  // 新フォーマット（effects.miningMultiplier）へ自動移行する
+  state.buffs = (data.buffs || []).map(b => {
+    if(b.effects) return b; // 既に新フォーマット
+    // 旧フォーマットを変換
+    let newBuff = {
+      id: b.id,
+      name: b.name,
+      isBad: b.isBad,
+      turns: b.turns,
+      consumeOn: "turn",
+      effects: {},
+      onTurn: null
+    };
+    if(b.miningBonus)   newBuff.effects.miningMultiplier = (1 + b.miningBonus);
+    if(b.miningPenalty) newBuff.effects.miningMultiplier = b.miningPenalty;
+    // 毒の onTurn はBUFF_DEFから再生
+    if(BUFF_DEF[b.id] && BUFF_DEF[b.id].onTurn){
+      newBuff.onTurn = BUFF_DEF[b.id].onTurn;
+    }
+    return newBuff;
+  });
   state.runStats = data.runStats;
   state.relicEventFloors = new Set(data.relicEventFloors);
   state.goddessUsedFloors = new Set(data.goddessUsedFloors || []);
