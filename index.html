@@ -562,7 +562,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.22</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.23</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -743,6 +743,7 @@ let state = {
   daigoLastFloor:    -999,
   merchantLastFloor: -999,
   pitJumpLastFloor:  -999,
+  pitJumpResult:    null,
   relics:           [],
   pendingItem:      null,
   relicEventFloors: new Set(),
@@ -2240,6 +2241,24 @@ ${friendHTML}
 `;
       // ボタンは下のswitchで描画するのでここではスキップ
     } else
+    if(state.mode === "event_pitjump_result"){
+      ceIcon.innerHTML = SVG_ICONS.pitJump.replace("width:1em;height:1em;","width:2em;height:2em;");
+      let r = state.pitJumpResult || {};
+      if(r.success){
+        ceText.innerHTML =
+          floorBadgeHTML(state.floor) +
+`<div style="font-size:26px;color:#60a5fa;">ジャンプ成功！</div>
+<div style="font-size:22px;color:#fff;margin-top:6px;">一気に深部へ降り立った</div>
+`;
+      } else {
+        ceText.innerHTML =
+          floorBadgeHTML(state.floor) +
+`<div style="font-size:26px;color:#f55;">ジャンプ失敗…</div>
+<div style="font-size:22px;color:#fff;margin-top:6px;">落下して <span style="color:#f55;">${r.dmg}</span> ダメージ</div>
+`;
+      }
+      // ボタンは下のswitchで描画するのでここではスキップ
+    } else
     if(state.mode === "event_merchant"){
       ceIcon.innerHTML = SVG_ICONS.merchant.replace("width:1em;height:1em;","width:2em;height:2em;");
       let price = Math.max(1, Math.floor(state.scrap * 0.2));
@@ -2386,6 +2405,9 @@ ${friendHTML}
     case "event_pitjump":
       btn("ジャンプで渡る", pitJumpAttempt, "special");
       btn("迂回する", pitJumpDetour, "skip");
+      break;
+    case "event_pitjump_result":
+      btn("採掘する", proceedPitJump, "main", null);
       break;
     case "event_youki":
       renderYoukiEvent();
@@ -4055,31 +4077,46 @@ function pitJumpAttempt(){
   // 成功率 = 現在HP / 最大HP
   let chance = state.hp / state.maxHp;
   if(Math.random() < chance){
-    // 成功：3階層スキップ（state.floor += 2、その後 next() の +1 で合計+3）
+    // 成功：結果モードへ。floor操作は「採掘する」ボタン押下時に行う
     playSE("select");
-    state.floor += 2;
-    state.runStats.floors += 2; // 実階数派：next()の+1と合わせて+3
     addLog("ジャンプ成功！ 一気に深部へ降り立った", "scrap");
-    state.mode = "explore";
-    next();
+    state.pitJumpResult = { success: true };
+    state.mode = "event_pitjump_result";
+    render();
   } else {
-    // 失敗：暗石と同じダメージ計算 + 1階層戻る（state.floor -= 2、その後 next() の +1 で合計-1）
+    // 失敗：暗石と同じダメージ計算
     playSE("damage");
     let base = Math.floor(Math.random()*3) + 1 + floorDmgBonus();
     let d = Math.max(1, Math.floor(base / 2));
     let actual = damage(d);
     addLog(`ジャンプ失敗… 落下して ${actual} ダメージ`, "damage");
     if(state.hp <= 0){
-      // 死亡判定。floor は動かさず death モードへ（damage()内で処理されている想定）
+      // 死亡時は damage() 内で death モードに遷移済み
       render();
       return;
     }
-    state.floor -= 2;
-    state.runStats.floors -= 2; // 実階数派：next()の+1と合わせて-1
-    if(state.floor < 0) state.floor = 0; // 念のため負数ガード
-    state.mode = "explore";
-    next();
+    state.pitJumpResult = { success: false, dmg: actual };
+    state.mode = "event_pitjump_result";
+    render();
   }
+}
+
+// ジャンプ結果モードの「採掘する」ボタン押下時：floor操作 + next()
+function proceedPitJump(){
+  let r = state.pitJumpResult || { success: true };
+  if(r.success){
+    // 成功：+3階（state.floor += 2、その後 next() の +1 で合計+3）
+    state.floor += 2;
+    state.runStats.floors += 2; // 実階数派
+  } else {
+    // 失敗：-1階（state.floor -= 2、その後 next() の +1 で合計-1）
+    state.floor -= 2;
+    state.runStats.floors -= 2; // 実階数派
+    if(state.floor < 0) state.floor = 0; // 念のため負数ガード
+  }
+  state.pitJumpResult = null;
+  state.mode = "explore";
+  next();
 }
 
 // 「迂回する」ボタン押下
