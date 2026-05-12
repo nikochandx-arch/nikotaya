@@ -562,7 +562,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.27</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.28</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -890,8 +890,8 @@ const ITEM_DEF = {
     desc: "毒状態を治す",
     usableModes: null
   },
-  helmet: {
-    name: "🪖 ヘルメット",
+  guard3: {
+    name: "ヘルメット",
     desc: "🛡️ガードを3回付与（重ねがけで加算）",
     usableModes: null
   }
@@ -1428,7 +1428,7 @@ function buildShopHTML(){
 <div style="color:#888;margin:6px 0;">[ 消耗品 ] ${itemFullMsg}</div>
 <button onclick="buyPotion()" style="${shopStyle}height:auto;padding:12px 8px;${disabledStyle}">ポーション<br><span ${descStyle}>HP+${getPotionHealValue()}</span><br>${priceSpan(1)}</button>
 <button onclick="buyAntidote()" style="${shopStyle}height:auto;padding:12px 8px;${disabledStyle}">毒消し草<br><span ${descStyle}>毒を治す</span><br>${priceSpan(10)}</button>
-<button onclick="buyHelmet()" style="${shopStyle}height:auto;padding:12px 8px;${disabledStyle}">🪖 ヘルメット<br><span ${descStyle}>🛡️ガード+3回</span><br>${priceSpan(1000)}</button>
+<button onclick="buyHelmet()" style="${shopStyle}height:auto;padding:12px 8px;${disabledStyle}">ヘルメット<br><span ${descStyle}>🛡️ガード+3回</span><br>${priceSpan(1000)}</button>
 <div style="color:#888;margin:6px 0;">[ 永続強化 ]</div>
 <button onclick="buyHp()" style="${shopStylePerm}height:auto;padding:12px 8px;">最大HP +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getHpCost().toLocaleString())}</button>
 <button onclick="buyPower()" style="${shopStylePerm}height:auto;padding:12px 8px;">採掘力 +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getPowerCost().toLocaleString())}</button>
@@ -4258,7 +4258,7 @@ function buyHelmet(){
   if(state.totalScrap < cost){ showAlert("スクラップが足りない"); return; }
   if(state.items.length >= 5){ showAlert("持ち物がいっぱい"); return; }
   state.totalScrap -= cost;
-  state.items.push({ name: "🪖 ヘルメット", effect: "guard3" });
+  state.items.push({ name: "ヘルメット", effect: "guard3" });
   playSE("coin");
   saveAll();
   render();
