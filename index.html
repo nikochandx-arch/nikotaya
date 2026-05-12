@@ -562,7 +562,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.24</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.25</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -769,7 +769,7 @@ let state = {
 // onTurn: 階を進むたびに呼ばれる処理（毒のダメージなど）。不要なら null。
 const BUFF_DEF = {
   miningUp: {
-    name: "⛏️ 採掘力UP",
+    get name(){ return `${SVG_ICONS.pickaxe} 採掘力UP`; },
     isBad: false,
     consumeOn: "turn",
     effects: { miningMultiplier: 2.0 },  // 採掘量×2
@@ -1511,6 +1511,18 @@ function colorizeLog(text, type){
 
 // --- カスタムSVGアイコン ---
 const SVG_ICONS = {
+  pickaxe: `<svg viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
+    <g transform="rotate(45 70 70)">
+      <g fill="none" stroke="#27272a" stroke-width="8" stroke-linejoin="round" stroke-linecap="round">
+        <rect x="62" y="25" width="16" height="95" rx="6"/>
+        <path d="M 15 45 Q 70 -5 125 45 Q 90 25 76 35 L 76 45 L 64 45 L 64 35 Q 50 25 15 45 Z"/>
+      </g>
+      <rect x="62" y="25" width="16" height="95" rx="6" fill="#b45309" stroke="#18181b" stroke-width="4"/>
+      <rect x="66" y="28" width="4" height="89" rx="2" fill="#f59e0b"/>
+      <path d="M 15 45 Q 70 -5 125 45 Q 90 25 76 35 L 76 45 L 64 45 L 64 35 Q 50 25 15 45 Z" fill="#e2e8f0" stroke="#18181b" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M 23 41 Q 70 5 117 41 Q 90 26 74 34 L 74 38 L 66 38 L 66 34 Q 50 26 23 41 Z" fill="#ffffff"/>
+    </g>
+  </svg>`,
   tent: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" style="width:1.4em;height:1.4em;vertical-align:-0.3em;display:inline-block;">
   <ellipse cx="60" cy="95" rx="50" ry="10" fill="#18181b"/>
   <radialGradient id="tentGlowYellow" cx="50%" cy="80%" r="50%">
@@ -1887,12 +1899,12 @@ function getEmoji(text, type){
   if(text.includes("深い縦穴") || text.includes("ジャンプ") || text.includes("迂回")) return SVG_ICONS.pitJump;
   if(type==="divider")     return text.includes("女神") ? SVG_ICONS.goddess : SVG_ICONS.door;
   if(type==="damage")      return text.includes("毒") ? SVG_ICONS.poison : "💥";
-  if(type==="scrap")       return "⛏️";
+  if(type==="scrap")       return SVG_ICONS.pickaxe;
   if(text.includes("一休み"))       return SVG_ICONS.campfire;
   if(type==="heal")        return "💤";
   if(type==="loss")        return "🕳️";
   if(type==="sub")         return "";
-  if(text.includes("採掘開始"))     return "⛏️";
+  if(text.includes("採掘開始"))     return SVG_ICONS.pickaxe;
   if(text.includes("コンテナ"))     return "📦";
   if(text.includes("鉱脈"))         return SVG_ICONS.vein;
   if(text.includes("キノコ"))       return SVG_ICONS.mushroom;
