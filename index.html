@@ -562,7 +562,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.25</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.26</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -792,12 +792,19 @@ const BUFF_DEF = {
       // 毒で死なない：HP1を必ず残す
       d = Math.min(d, state.hp - 1);
       if(d > 0){
-        let actual = damage(d, true); // 毒は鋼皮の紋の軽減対象外
+        let actual = damage(d, true); // 毒は非物理ダメージ（鋼皮の紋・ガードの対象外）
         state.runStats.poisonTurns++;
         addLog(`毒ダメージ ${actual}`, "damage");
         state.poisonTickedThisTurn = true;  // 中間モード移行用の一時フラグ
       }
     }
+  },
+  guard: {
+    name: "🛡️ ガード",
+    isBad: false,
+    consumeOn: "use",
+    effects: {},  // 物理ダメージ無効化はdamage()内で個別判定
+    onTurn: null
   }
 };
 
@@ -1464,8 +1471,12 @@ function getPotionHealValue(){ return 3 + state.upgrades.potionHeal; }
 // --- HP処理 ---
 // 諸盾の紋（gamble_shield）など、ダメージ値を変動させる紋があるため、
 // damage() は適用後の実ダメージを返す。ログ表示などで利用する側はこの戻り値を使うこと。
-function damage(d, ignoreArmor=false){
-  // 諸盾の紋：50%でダメージ無効、50%で2倍（鋼皮より先に適用）
+// ダメージ処理
+// d           : 元ダメージ量
+// nonPhysical : 物理ダメージかどうか。true なら鋼皮の紋とガードバフを無視する
+//               （毒・自傷・将来の特殊ダメージなど、防具・盾で防げないダメージ用）
+function damage(d, nonPhysical=false){
+  // 諸盾の紋：50%でダメージ無効、50%で2倍（最初に適用）
   if(state.relics.some(r => r.id === "gamble_shield")){
     if(Math.random() < 0.5){
       d = 0;
@@ -1473,8 +1484,18 @@ function damage(d, ignoreArmor=false){
       d = d * 2;
     }
   }
-  // 鋼皮の紋：毒以外のダメージを2軽減（最低1）
-  if(!ignoreArmor && state.relics.some(r => r.id === "steel")){
+  // 🛡️ ガードバフ：物理ダメージを完全無効化（諸盾の後、鋼皮の前）
+  // 0ダメでも2倍でも、ダメージイベントが発生した時点で1回消費する仕様
+  if(!nonPhysical){
+    let guard = state.buffs.find(b => b.id === "guard");
+    if(guard){
+      d = 0;
+      consumeBuffUse("guard");
+      addLog("🛡️ ガードでダメージを無効化した！", "sub");
+    }
+  }
+  // 鋼皮の紋：物理ダメージを2軽減（最低1）
+  if(!nonPhysical && state.relics.some(r => r.id === "steel")){
     d = Math.max(1, d - 2);
   }
   let actual = Math.min(d, state.hp);
