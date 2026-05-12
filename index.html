@@ -562,7 +562,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.21</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.22</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -737,10 +737,12 @@ let state = {
   upgrades:     saved.upgrades,
   lastResult:   null,
   buffs:        [],
+  maxFloorThisRun: 1,
   moleBlock:    -1,
   relicViewOpen: false,
   daigoLastFloor:    -999,
   merchantLastFloor: -999,
+  pitJumpLastFloor:  -999,
   relics:           [],
   pendingItem:      null,
   relicEventFloors: new Set(),
@@ -1803,6 +1805,44 @@ const SVG_ICONS = {
       <circle cx="90" cy="20" r="4"/>
     </g>
   </svg>`,
+  pitJump: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
+    <defs>
+      <linearGradient id="pitJumpDeepBlueGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#0f172a"/>
+        <stop offset="100%" stop-color="#020617"/>
+      </linearGradient>
+    </defs>
+    <rect width="120" height="120" fill="url(#pitJumpDeepBlueGrad)"/>
+    <path d="M -10 -10 L 45 -10 L 30 30 L 50 70 L 30 100 L 45 130 L -10 130 Z" transform="translate(0, 24)" fill="#0f172a"/>
+    <path d="M -10 -10 L 45 -10 L 30 30 L 50 70 L 30 100 L 45 130 L -10 130 Z" transform="translate(0, 12)" fill="#1e293b"/>
+    <path d="M -10 -10 L 45 -10 L 30 30 L 50 70 L 30 100 L 45 130 L -10 130 Z" fill="#334155" stroke="#0f172a" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M 130 -10 L 75 -10 L 90 40 L 70 80 L 85 130 L 130 130 Z" transform="translate(0, 24)" fill="#0f172a"/>
+    <path d="M 130 -10 L 75 -10 L 90 40 L 70 80 L 85 130 L 130 130 Z" transform="translate(0, 12)" fill="#1e293b"/>
+    <path d="M 130 -10 L 75 -10 L 90 40 L 70 80 L 85 130 L 130 130 Z" fill="#334155" stroke="#0f172a" stroke-width="2" stroke-linejoin="round"/>
+    <g fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round">
+      <path d="M 30 30 L 20 40 M 30 30 L 15 25"/>
+      <path d="M 50 70 L 40 85 M 40 85 L 25 80"/>
+      <path d="M 90 40 L 105 50 M 105 50 L 115 45"/>
+    </g>
+    <g stroke="#1d4ed8" stroke-width="1.5" stroke-linejoin="round">
+      <path d="M 25 25 L 30 10 L 35 27 Z" fill="#60a5fa"/>
+      <path d="M 30 10 L 32 25" stroke="#bfdbfe" stroke-width="1"/>
+      <path d="M 95 85 L 90 70 L 85 82 Z" fill="#60a5fa"/>
+      <path d="M 100 110 L 105 95 L 110 112 Z" fill="#60a5fa" transform="scale(0.8) translate(20, 20)"/>
+    </g>
+    <g fill="#64748b" opacity="0.5">
+      <path d="M 60 50 L 63 53 L 58 55 Z"/>
+      <path d="M 70 80 L 72 82 L 69 84 Z" transform="scale(0.8) translate(20, 20)"/>
+      <path d="M 50 100 L 52 101 L 49 103 Z" transform="scale(0.5) translate(50, 50)" opacity="0.3"/>
+    </g>
+    <g fill="#93c5fd" opacity="0.6">
+      <circle cx="55" cy="40" r="1.5"/>
+      <circle cx="65" cy="20" r="1"/>
+      <circle cx="45" cy="90" r="1.5"/>
+      <circle cx="80" cy="60" r="2"/>
+      <circle cx="60" cy="110" r="1"/>
+    </g>
+  </svg>`,
 };
 
 // --- 絵文字取得 ---
@@ -1811,6 +1851,7 @@ function getEmoji(text, type){
   if(text.includes("金モグラ"))        return SVG_ICONS.goldenMole;
   if(text.includes("泥棒モグラ"))      return SVG_ICONS.thiefMole;
   if(text.includes("陽キャ") || text.includes("あざす") || text.includes("お腹痛")) return SVG_ICONS.youki;
+  if(text.includes("深い縦穴") || text.includes("ジャンプ") || text.includes("迂回")) return SVG_ICONS.pitJump;
   if(type==="divider")     return text.includes("女神") ? SVG_ICONS.goddess : SVG_ICONS.door;
   if(type==="damage")      return text.includes("毒") ? SVG_ICONS.poison : "💥";
   if(type==="scrap")       return "⛏️";
@@ -2188,6 +2229,17 @@ ${friendHTML}
       // ボタンは下のswitchで描画するのでここではスキップ
     } else
     // 商人イベントは専用表示
+    if(state.mode === "event_pitjump"){
+      ceIcon.innerHTML = SVG_ICONS.pitJump.replace("width:1em;height:1em;","width:2em;height:2em;");
+      let pct = Math.round((state.hp / state.maxHp) * 100);
+      ceText.innerHTML =
+        floorBadgeHTML(state.floor) +
+`<div style="font-size:26px;color:#60a5fa;">深い縦穴</div>
+<div style="font-size:22px;color:#fff;margin-top:6px;">向こう側にジャンプ出来れば近道になりそうだけど…</div>
+<div style="font-size:20px;color:#aaa;margin-top:4px;">ジャンプ成功率：<span style="color:#60a5fa;">${pct}%</span></div>
+`;
+      // ボタンは下のswitchで描画するのでここではスキップ
+    } else
     if(state.mode === "event_merchant"){
       ceIcon.innerHTML = SVG_ICONS.merchant.replace("width:1em;height:1em;","width:2em;height:2em;");
       let price = Math.max(1, Math.floor(state.scrap * 0.2));
@@ -2330,6 +2382,10 @@ ${friendHTML}
       break;
     case "event_merchant":
       renderMerchantEvent();
+      break;
+    case "event_pitjump":
+      btn("ジャンプで渡る", pitJumpAttempt, "special");
+      btn("迂回する", pitJumpDetour, "skip");
       break;
     case "event_youki":
       renderYoukiEvent();
@@ -2624,11 +2680,13 @@ function startRun(){
   state.hp    = state.maxHp;
   state.scrap = 0;
   state.floor = 1;
+  state.maxFloorThisRun = 1;
   state.log   = [];
   clearBuffs();
   resetRunStats();
   state.daigoLastFloor = -999;
   state.merchantLastFloor = -999;
+  state.pitJumpLastFloor = -999;
   state.relics = [];
   state.relicEventFloors = new Set();
   state.goddessUsedFloors = new Set();
@@ -2788,6 +2846,7 @@ function hideTentTooltip(){
 function suspendRun(){
   let data = {
     floor: state.floor,
+    maxFloorThisRun: state.maxFloorThisRun,
     hp: state.hp,
     maxHp: state.maxHp,
     power: state.power,
@@ -2801,6 +2860,7 @@ function suspendRun(){
     goddessUsedFloors: [...state.goddessUsedFloors],
     daigoLastFloor: state.daigoLastFloor,
     merchantLastFloor: state.merchantLastFloor,
+    pitJumpLastFloor: state.pitJumpLastFloor,
     moleBlock: state.moleBlock,
     mushroomBad: state.mushroomBad,
     veinDepth: state.veinDepth,
@@ -2824,6 +2884,7 @@ function resumeRun(){
   localStorage.removeItem("suspendedRun");
 
   state.floor = data.floor;
+  state.maxFloorThisRun = data.maxFloorThisRun ?? data.floor;
   state.hp = data.hp;
   state.maxHp = data.maxHp;
   state.power = data.power;
@@ -2837,6 +2898,7 @@ function resumeRun(){
   state.goddessUsedFloors = new Set(data.goddessUsedFloors || []);
   state.daigoLastFloor = data.daigoLastFloor;
   state.merchantLastFloor = data.merchantLastFloor;
+  state.pitJumpLastFloor = data.pitJumpLastFloor ?? -999;
   state.moleBlock = data.moleBlock;
   state.mushroomBad = data.mushroomBad;
   state.veinDepth = data.veinDepth;
@@ -3097,6 +3159,14 @@ const LIGHT_EVENTS = [
   },
 ];
 
+// --- 縦穴ジャンプ用ヘルパー：特殊階（女神像・紋階）かを判定 ---
+function isSpecialFloor(f){
+  if(f % 30 === 0) return true; // 女神像
+  if(f === 15) return true;     // 紋階（初回）
+  if(f > 1 && (f - 1) % 50 === 0) return true; // 紋階（51, 101, 151...）
+  return false;
+}
+
 // --- 重イベント定義 ---
 const HEAVY_EVENTS = [
   {
@@ -3147,6 +3217,26 @@ const HEAVY_EVENTS = [
       addLog("謎の商人が現れた！");
     }
   },
+  {
+    id: "pitJump", name: "縦穴", weight: 15,
+    condition: ctx => {
+      // CD: 前回出現から15階以上空いていること
+      if(ctx.floor - ctx.state.pitJumpLastFloor < 15) return false;
+      // 着地階(+3)が bestFloor を超えないこと
+      if(ctx.floor + 3 > ctx.state.bestFloor) return false;
+      // +1〜+4階に特殊階（女神像・紋階）がないこと
+      for(let i = 1; i <= 4; i++){
+        if(isSpecialFloor(ctx.floor + i)) return false;
+      }
+      return true;
+    },
+    fn: () => {
+      playSE("select");
+      state.pitJumpLastFloor = state.floor;
+      state.mode = "event_pitjump";
+      addLog("深い縦穴がある。向こう側にジャンプ出来れば近道になりそうだけど…");
+    }
+  },
 ];
 
 // --- 階確定イベント ---
@@ -3171,6 +3261,7 @@ const FIXED_FLOOR_EVENTS = [
 function next(){
   state.floor++;
   state.runStats.floors++;
+  if(state.floor > state.maxFloorThisRun) state.maxFloorThisRun = state.floor;
 
   // 毒中間モード用フラグをクリア
   state.poisonTickedThisTurn = false;
@@ -3797,8 +3888,8 @@ function doReturn(){
   state.totalScrap += carry;
   let emeraldCarry = state.emerald;
   state.totalEmerald += emeraldCarry;
-  let newBest = state.floor > state.bestFloor;
-  if(newBest) state.bestFloor = state.floor;
+  let newBest = state.maxFloorThisRun > state.bestFloor;
+  if(newBest) state.bestFloor = state.maxFloorThisRun;
   commitStats(false, carry);
   state.stats.emerald += emeraldCarry;
   if(carry > state.stats.maxScrapCarry) state.stats.maxScrapCarry = carry;
@@ -3806,19 +3897,19 @@ function doReturn(){
   saveAll();
   let unlocks = checkUnlocks();
   // 鉄扉：10階ごとに現れる帰還扉。スクラップ半分を支払って帰還する
-  state.lastResult = { survived: true, returnType: "door", floor: state.floor, carry, emeraldCarry, newBest, unlocks, relics: [...state.relics] };
+  state.lastResult = { survived: true, returnType: "door", floor: state.maxFloorThisRun, carry, emeraldCarry, newBest, unlocks, relics: [...state.relics] };
   saveLastResult(state.lastResult);
   state.mode = "result";
   render();
 }
 
 function forceReturn(){
-  let newBest = state.floor > state.bestFloor;
-  if(newBest) state.bestFloor = state.floor;
+  let newBest = state.maxFloorThisRun > state.bestFloor;
+  if(newBest) state.bestFloor = state.maxFloorThisRun;
   commitStats(true);
   saveAll();
   let unlocks = checkUnlocks();
-  state.lastResult = { survived: false, returnType: "death", floor: state.floor, carry: 0, emeraldCarry: 0, newBest, unlocks, relics: [...state.relics] };
+  state.lastResult = { survived: false, returnType: "death", floor: state.maxFloorThisRun, carry: 0, emeraldCarry: 0, newBest, unlocks, relics: [...state.relics] };
   saveLastResult(state.lastResult);
   state.mode = "result";
   render();
@@ -3890,6 +3981,7 @@ function goHome(){
   state.scrap = 0;
   state.emerald = 0;
   state.floor = 1;
+  state.maxFloorThisRun = 1;
   state.log   = [];
   state.lastResult = null;
   state.activeCrestId = null;
@@ -3937,15 +4029,15 @@ function goddessReturn(){
   state.totalScrap += carry;
   let emeraldCarry = state.emerald;
   state.totalEmerald += emeraldCarry;
-  let newBest = state.floor > state.bestFloor;
-  if(newBest) state.bestFloor = state.floor;
+  let newBest = state.maxFloorThisRun > state.bestFloor;
+  if(newBest) state.bestFloor = state.maxFloorThisRun;
   commitStats(false, carry);
   state.stats.emerald += emeraldCarry;
   if(carry > state.stats.maxScrapCarry) state.stats.maxScrapCarry = carry;
   if(emeraldCarry > state.stats.maxEmeraldCarry) state.stats.maxEmeraldCarry = emeraldCarry;
   saveAll();
   let unlocks = checkUnlocks();
-  state.lastResult = { survived: true, returnType: "goddess", floor: state.floor, carry, emeraldCarry, goddess: true, newBest, unlocks, relics: [...state.relics] };
+  state.lastResult = { survived: true, returnType: "goddess", floor: state.maxFloorThisRun, carry, emeraldCarry, goddess: true, newBest, unlocks, relics: [...state.relics] };
   saveLastResult(state.lastResult);
   state.mode = "result";
   render();
@@ -3953,6 +4045,48 @@ function goddessReturn(){
 
 function continueRun(){
   addLog("さらに深く潜る…");
+  state.mode = "explore";
+  render();
+}
+
+// --- 縦穴ジャンプイベント ---
+// 「ジャンプで渡る」ボタン押下
+function pitJumpAttempt(){
+  // 成功率 = 現在HP / 最大HP
+  let chance = state.hp / state.maxHp;
+  if(Math.random() < chance){
+    // 成功：3階層スキップ（state.floor += 2、その後 next() の +1 で合計+3）
+    playSE("select");
+    state.floor += 2;
+    state.runStats.floors += 2; // 実階数派：next()の+1と合わせて+3
+    addLog("ジャンプ成功！ 一気に深部へ降り立った", "scrap");
+    state.mode = "explore";
+    next();
+  } else {
+    // 失敗：暗石と同じダメージ計算 + 1階層戻る（state.floor -= 2、その後 next() の +1 で合計-1）
+    playSE("damage");
+    let base = Math.floor(Math.random()*3) + 1 + floorDmgBonus();
+    let d = Math.max(1, Math.floor(base / 2));
+    let actual = damage(d);
+    addLog(`ジャンプ失敗… 落下して ${actual} ダメージ`, "damage");
+    if(state.hp <= 0){
+      // 死亡判定。floor は動かさず death モードへ（damage()内で処理されている想定）
+      render();
+      return;
+    }
+    state.floor -= 2;
+    state.runStats.floors -= 2; // 実階数派：next()の+1と合わせて-1
+    if(state.floor < 0) state.floor = 0; // 念のため負数ガード
+    state.mode = "explore";
+    next();
+  }
+}
+
+// 「迂回する」ボタン押下
+function pitJumpDetour(){
+  playSE("select");
+  applyMiningDown(3);
+  addLog("縦穴を迂回した。慎重に進んだが疲れてしまった…", "sub");
   state.mode = "explore";
   render();
 }
