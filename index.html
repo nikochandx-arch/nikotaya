@@ -562,7 +562,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.26</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.27</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -811,12 +811,21 @@ const BUFF_DEF = {
 // --- バフ管理 ---
 // バフID と 残量（turns or uses）を渡して付与する。
 // turns/uses はバフ定義の consumeOn に応じて意味が変わる：
-//   - consumeOn: "turn" → turns（残ターン数）
-//   - consumeOn: "use"  → uses（残使用回数）
+//   - consumeOn: "turn" → turns（残ターン数）。既存バフがあれば上書き。
+//   - consumeOn: "use"  → uses（残使用回数）。既存バフがあれば加算。
 // 内部的にはどちらも `remaining` というフィールドで管理する。
 function applyBuffById(id, remaining){
   const def = BUFF_DEF[id];
   if(!def){ console.warn("Unknown buff id:", id); return; }
+  // 回数制バフで既に同IDがある場合は加算する
+  if(def.consumeOn === "use"){
+    let existing = state.buffs.find(b => b.id === id);
+    if(existing){
+      existing.turns += remaining;
+      return;
+    }
+  }
+  // それ以外（ターン制 or 既存なし）は新規追加 or 上書き
   applyBuff({
     id,
     name: def.name,
@@ -879,6 +888,11 @@ const ITEM_DEF = {
   antidote: {
     name: "毒消し草",
     desc: "毒状態を治す",
+    usableModes: null
+  },
+  helmet: {
+    name: "🪖 ヘルメット",
+    desc: "🛡️ガードを3回付与（重ねがけで加算）",
     usableModes: null
   }
 };
@@ -1414,6 +1428,7 @@ function buildShopHTML(){
 <div style="color:#888;margin:6px 0;">[ 消耗品 ] ${itemFullMsg}</div>
 <button onclick="buyPotion()" style="${shopStyle}height:auto;padding:12px 8px;${disabledStyle}">ポーション<br><span ${descStyle}>HP+${getPotionHealValue()}</span><br>${priceSpan(1)}</button>
 <button onclick="buyAntidote()" style="${shopStyle}height:auto;padding:12px 8px;${disabledStyle}">毒消し草<br><span ${descStyle}>毒を治す</span><br>${priceSpan(10)}</button>
+<button onclick="buyHelmet()" style="${shopStyle}height:auto;padding:12px 8px;${disabledStyle}">🪖 ヘルメット<br><span ${descStyle}>🛡️ガード+3回</span><br>${priceSpan(1000)}</button>
 <div style="color:#888;margin:6px 0;">[ 永続強化 ]</div>
 <button onclick="buyHp()" style="${shopStylePerm}height:auto;padding:12px 8px;">最大HP +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getHpCost().toLocaleString())}</button>
 <button onclick="buyPower()" style="${shopStylePerm}height:auto;padding:12px 8px;">採掘力 +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getPowerCost().toLocaleString())}</button>
@@ -2732,6 +2747,10 @@ function useItem(index){
     } else {
       addLog("毒消し草を使った（毒状態ではなかった）", "normal");
     }
+  } else if(item.effect === "guard3"){
+    applyBuffById("guard", 3);
+    playSE("select");
+    addLog("ヘルメットを装着！ 🛡️ ガード +3回", "sub");
   }
 
   // 消費して上詰め
@@ -4229,6 +4248,17 @@ function buyAntidote(){
   if(state.items.length >= 5){ showAlert("持ち物がいっぱい"); return; }
   state.totalScrap -= cost;
   state.items.push({ name: "毒消し草", effect: "antidote" });
+  playSE("coin");
+  saveAll();
+  render();
+}
+
+function buyHelmet(){
+  const cost = 1000;
+  if(state.totalScrap < cost){ showAlert("スクラップが足りない"); return; }
+  if(state.items.length >= 5){ showAlert("持ち物がいっぱい"); return; }
+  state.totalScrap -= cost;
+  state.items.push({ name: "🪖 ヘルメット", effect: "guard3" });
   playSE("coin");
   saveAll();
   render();
