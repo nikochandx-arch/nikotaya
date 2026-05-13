@@ -166,7 +166,7 @@ padding: 12px;
 #bottom {
 flex: 1;
 padding: 16px;
-padding-bottom: 80px;
+padding-bottom: 140px;
 background: #111;
 }
 
@@ -563,7 +563,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.32</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.33</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -1999,9 +1999,9 @@ function floorBadgeHTML(floor){
   let tentMark = "";
   if(state.upgrades && state.upgrades.tent && canSuspend()){
     let smallTent = SVG_ICONS.tent
-      .replace('width:1.4em;height:1.4em;', 'width:0.9em;height:0.9em;')
-      .replace('vertical-align:-0.3em;', 'vertical-align:-0.15em;');
-    tentMark = `<span style="font-size:24px;opacity:0.85;vertical-align:middle;">${smallTent}</span>`;
+      .replace('width:1.4em;height:1.4em;', 'width:1.1em;height:1.1em;')
+      .replace('vertical-align:-0.3em;', 'vertical-align:-0.2em;');
+    tentMark = `<span style="font-size:28px;opacity:0.85;vertical-align:middle;">${smallTent}</span>`;
   }
   return `<div class="floor-badge ${extra}">${floor}F</div>${tentMark}`;
 }
