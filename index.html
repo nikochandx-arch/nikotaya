@@ -563,7 +563,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.35</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.36</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -674,7 +674,107 @@ function makeRunStats(){
   return o;
 }
 
-const SAVE_VERSION = 5;
+const SAVE_VERSION = 6;
+
+// ============================================
+// 採掘便り（Cloudflare連携）
+// ============================================
+// Cloudflare Worker の API エンドポイント
+// （Worker側でR2バケットの最新墓データ1件を管理している）
+const LETTER_API_URL = "https://empty-voice-1c60.nikochandx.workers.dev/grave";
+
+// プレイヤーUUIDを取得（無ければ生成して永続保存）
+// 「自分の墓データを自分が引かない」判定に使う
+function getPlayerUuid(){
+  let uuid = localStorage.getItem("playerUuid");
+  if(!uuid){
+    // crypto.randomUUID() が無い古い環境ではフォールバック
+    if(typeof crypto !== "undefined" && crypto.randomUUID){
+      uuid = crypto.randomUUID();
+    } else {
+      // 簡易フォールバック（衝突確率はやや上がるが個人ゲーム規模なら実用上問題ない）
+      uuid = "u-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+    }
+    localStorage.setItem("playerUuid", uuid);
+  }
+  return uuid;
+}
+
+// 死亡時に墓データをCloudflareへ送信する
+// 失敗してもユーザー側にエラー表示はしない（リザルト体験を阻害しないため）
+async function sendDeathToServer(floor, scrap, itemEffect){
+  try {
+    const payload = {
+      uuid:  getPlayerUuid(),
+      name:  state.name,
+      floor: floor,
+      scrap: scrap,
+      item:  itemEffect  // 既知のeffect文字列 or null
+    };
+    await fetch(LETTER_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    // レスポンス内容は問わない。失敗しても黙る。
+  } catch(e){
+    // ネットワーク失敗等：無視
+  }
+}
+
+// 採掘便りを更新する。読込フラグ letterRead=1 のときは通信せず即終了。
+// 取得した墓データが自分のUUIDだったら、便りは更新しない（ただし読込フラグは立てる）。
+// 返り値： { status:"updated"|"skipped_self"|"skipped_same"|"empty"|"throttled"|"error" }
+async function fetchLatestLetter(){
+  // 連打防止フラグ
+  if(localStorage.getItem("letterRead") === "1"){
+    return { status: "throttled" };
+  }
+  let resp;
+  try {
+    resp = await fetch(LETTER_API_URL, { method: "GET" });
+  } catch(e){
+    return { status: "error" };
+  }
+  if(!resp.ok){
+    return { status: "error" };
+  }
+  let data;
+  try {
+    data = await resp.json();
+  } catch(e){
+    return { status: "error" };
+  }
+  // 読取成功 → フラグ立てる（次のラン完了まで再読込しない）
+  localStorage.setItem("letterRead", "1");
+
+  if(!data.grave){
+    return { status: "empty" };
+  }
+  // 自分の墓は更新しない
+  if(data.grave.uuid === getPlayerUuid()){
+    return { status: "skipped_self" };
+  }
+  // 既に表示中の便りと同じ墓データなら更新しない（保険）
+  const currentRaw = localStorage.getItem("currentLetter");
+  if(currentRaw){
+    try {
+      const current = JSON.parse(currentRaw);
+      if(current && current.uuid === data.grave.uuid &&
+         current.diedAt === data.grave.diedAt){
+        return { status: "skipped_same" };
+      }
+    } catch(e){ /* 壊れてたら無視して更新 */ }
+  }
+  // 便りを更新
+  localStorage.setItem("currentLetter", JSON.stringify(data.grave));
+  return { status: "updated", grave: data.grave };
+}
+
+// ラン終了時に呼ぶ。次回の採掘便り読込を解禁する。
+function resetLetterRead(){
+  localStorage.setItem("letterRead", "0");
+}
 
 function migrateSaveData(data, fromVersion){
   if(fromVersion < 1){
@@ -697,6 +797,12 @@ function migrateSaveData(data, fromVersion){
     // v4→v5：unlockedItems を追加（ショップ「解放」カテゴリ）
     // 既存プレイヤーは未解放状態（空配列）からスタート
     if(data.unlockedItems === undefined) data.unlockedItems = [];
+  }
+  if(fromVersion < 6){
+    // v5→v6：採掘便り機能の追加
+    // playerUuid / letterRead / currentLetter は localStorage で個別管理しており
+    // loadSaveData の data オブジェクトには含まれない（マイグレーション不要）。
+    // 既存プレイヤーは playerUuid を持っていないので、初回起動時に自動生成される。
   }
   // 共通：ALL_STATS_FIELDS の未定義フィールドを 0 で補う
   // （新規プレイヤーの空 stats {} もここで初期化される）
@@ -1464,8 +1570,8 @@ ${state.unlockedItems.includes("guard3")
 }
 <div style="color:#888;margin:6px 0;">[ 貴重品 ]</div>
 ${state.upgrades.journal
-  ? `<button disabled style="${shopStylePrev}height:auto;padding:12px 8px;opacity:0.4;">採掘日誌<br><span ${descStyle}>購入済み</span><br>${priceSpan((15000).toLocaleString())}</button>`
-  : `<button onclick="buyJournal()" style="${shopStylePrev}height:auto;padding:12px 8px;">採掘日誌<br><span ${descStyle}>リザルトを記録</span><br>${priceSpan((15000).toLocaleString())}</button>`
+  ? `<button disabled style="${shopStylePrev}height:auto;padding:12px 8px;opacity:0.4;">採掘便り<br><span ${descStyle}>購入済み</span><br>${priceSpan((15000).toLocaleString())}</button>`
+  : `<button onclick="buyJournal()" style="${shopStylePrev}height:auto;padding:12px 8px;">採掘便り<br><span ${descStyle}>他の坑夫の最期を読む</span><br>${priceSpan((15000).toLocaleString())}</button>`
 }
 ${state.upgrades.tent
   ? `<button disabled style="${shopStylePrev}height:auto;padding:12px 8px;opacity:0.4;">テント<br><span ${descStyle}>購入済み</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">5</span></button>`
@@ -1497,6 +1603,8 @@ function commitStats(died, carry=0){
     else              state.stats[f]    += state.runStats[f];
   });
   resetRunStats();
+  // ★採掘便り：ラン終了したので次回の便り読込を解禁
+  resetLetterRead();
 }
 
 // --- コスト ---
@@ -1733,7 +1841,7 @@ function render(){
   }
   document.getElementById("itemBox").innerHTML = itemHTML;
 
-  // 採掘日誌表示
+  // 採掘便り：ホーム時のメイン画面処理
   if(state.mode === "home"){
     ce.style.display = "";
     ce.style.flexGrow = "1";
@@ -2485,7 +2593,7 @@ function getRelicSlotCost(){
 function buyJournal(){
   const cost = 15000;
   if(state.totalScrap < cost){ showAlert("スクラップが足りない"); return; }
-  showConfirm(`スクラップ ${cost.toLocaleString()} で採掘日誌を購入しますか？`, () => {
+  showConfirm(`スクラップ ${cost.toLocaleString()} で採掘便りを購入しますか？`, () => {
     state.totalScrap -= cost;
     state.upgrades.journal = true;
     playSE("coin");
@@ -2507,12 +2615,12 @@ function buyTent(){
 }
 
 function buildPreciousHTML(){
-  // 採掘日誌もテントも未購入なら何も表示しない
+  // 採掘便りもテントも未購入なら何も表示しない
   if(!state.upgrades.journal && !state.upgrades.tent) return "";
 
   let icons = "";
 
-  // 採掘日誌アイコン
+  // 採掘便りアイコン
   if(state.upgrades.journal){
     let bigJournal = SVG_ICONS.journal
       .replace('width:1.4em;height:1.4em;', 'width:5.2em;height:5.2em;')
@@ -2520,7 +2628,7 @@ function buildPreciousHTML(){
     icons += `
     <span onclick="openJournalModal()" class="precious-icon-btn" style="-webkit-tap-highlight-color:transparent;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;gap:6px;">
       ${bigJournal}
-      <span style="font-size:18px;color:#fef3c7;opacity:0.7;">採掘日誌</span>
+      <span style="font-size:18px;color:#fef3c7;opacity:0.7;">採掘便り</span>
     </span>`;
   }
 
@@ -2545,13 +2653,100 @@ function buildPreciousHTML(){
 </div>`;
 }
 
+// 採掘便り本体：他の坑夫の最新墓データを表示するモーダル
+// 開いた瞬間に Cloudflare から最新データを取りに行く（letterRead フラグで連打防止）。
+// 通信前後で modal-message の中身を動的に書き換える。
 function openJournalModal(){
   if(!state.upgrades.journal) return;
-  showModal(
-    `<div style="font-size:26px;color:#fef3c7;margin-bottom:16px;">[ 採掘日誌 ]</div>
-     <div style="font-size:22px;color:#888;text-align:center;padding:24px 0;">準備中…</div>`,
-    { alertOnly: true }
-  );
+
+  // 1) 先に「読込中」の状態でモーダルを表示
+  showModal(buildLetterHTML("loading"), { alertOnly: true });
+
+  // 2) 非同期で取得 → モーダルの中身を結果に差し替え
+  fetchLatestLetter().then(result => {
+    const msgEl = document.getElementById("modal-message");
+    if(!msgEl) return; // モーダルが閉じられた後なら何もしない
+    msgEl.innerHTML = buildLetterHTML(result.status);
+  }).catch(() => {
+    const msgEl = document.getElementById("modal-message");
+    if(!msgEl) return;
+    msgEl.innerHTML = buildLetterHTML("error");
+  });
+}
+
+// 採掘便りモーダルの中身HTMLを組み立てる
+// state: "loading" | "updated" | "skipped_self" | "skipped_same" | "throttled" | "empty" | "error"
+function buildLetterHTML(status){
+  const heading = `<div style="font-size:26px;color:#fef3c7;margin-bottom:16px;">[ 採掘便り ]</div>`;
+
+  if(status === "loading"){
+    return heading +
+      `<div style="font-size:22px;color:#888;text-align:center;padding:24px 0;">便りを取り寄せています…</div>`;
+  }
+
+  // 現在保存中の便り（あれば）
+  let current = null;
+  try {
+    const raw = localStorage.getItem("currentLetter");
+    if(raw) current = JSON.parse(raw);
+  } catch(e){ /* 無視 */ }
+
+  // 通信エラー時
+  if(status === "error"){
+    let body = `<div style="font-size:20px;color:#f88;text-align:center;padding:12px 0;">便りを更新できませんでした</div>`;
+    if(current){
+      body += `<div style="font-size:18px;color:#888;text-align:center;margin-bottom:8px;">― 前回の便り ―</div>`;
+      body += renderGrave(current);
+    }
+    return heading + body;
+  }
+
+  // まだ誰も死んでない
+  if(status === "empty"){
+    return heading +
+      `<div style="font-size:20px;color:#888;text-align:center;padding:24px 0;">便りはまだ届いていない…</div>`;
+  }
+
+  // 更新成功 or 同じ便り or 自分の便り or 連打抑制
+  // どれも「現在の便り」を表示すればよい
+  if(current){
+    let body = renderGrave(current);
+    // 「自分の便り」のときは小さくヒント表示
+    if(status === "skipped_self"){
+      body += `<div style="font-size:16px;color:#666;text-align:center;margin-top:12px;">（最新は あなた自身 でした）</div>`;
+    }
+    return heading + body;
+  }
+
+  // ここに来るのは「currentが無くて status が何か」というレアケース（自分の便りスキップなど）
+  return heading +
+    `<div style="font-size:20px;color:#888;text-align:center;padding:24px 0;">便りはまだ届いていない…</div>`;
+}
+
+// 個別の墓データを表示するHTML片を組み立てる
+function renderGrave(grave){
+  // アイテム effect → 表示名
+  let itemLabel = "―";
+  if(grave.item){
+    if(ITEM_DEF[grave.item] && ITEM_DEF[grave.item].name){
+      itemLabel = ITEM_DEF[grave.item].name;
+    } else {
+      // 未知のeffect（将来追加されたものなど）：何かは落としていることだけ伝える
+      itemLabel = "見覚えのないもの";
+    }
+  } else {
+    // アイテムなし：スクラップ1%が代替報酬
+    const scrapDrop = Math.floor((grave.scrap || 0) * 0.01);
+    itemLabel = `スクラップ ${scrapDrop.toLocaleString()}`;
+  }
+  const safeName = String(grave.name || "名もなき坑夫").replace(/[<>&]/g, c => ({ "<":"&lt;", ">":"&gt;", "&":"&amp;" }[c]));
+  return `
+    <div style="font-size:22px;color:#fef3c7;text-align:center;line-height:1.8;padding:12px 0;">
+      <div><span style="color:#fff;">${safeName}</span> は</div>
+      <div><span style="color:#fbbf24;">${grave.floor}階</span> で息絶えた</div>
+      <div style="font-size:18px;color:#aaa;margin-top:8px;">遺品：${itemLabel}</div>
+    </div>
+  `;
 }
 
 // テントアイコンタップ：ホーム時は無反応、採掘中は中断 or 中断不可吹き出し
@@ -3672,6 +3867,15 @@ function doReturn(){
 }
 
 function forceReturn(){
+  // ★採掘便り：死亡データをCloudflareへ送信（非同期・失敗は無視）
+  // 送信する階数は「死亡した階」= state.floor。
+  // アイテムは items[0]（消耗品欄1番目）の effect 文字列。なければ null。
+  const deathFloor = state.floor;
+  const deathScrap = state.scrap;
+  const item0 = state.items[0];
+  const itemEffect = (item0 && item0.effect) ? item0.effect : null;
+  sendDeathToServer(deathFloor, deathScrap, itemEffect);
+
   let newBest = state.maxFloorThisRun > state.bestFloor;
   if(newBest) state.bestFloor = state.maxFloorThisRun;
   commitStats(true);
@@ -3958,6 +4162,8 @@ function buyPower(){
 }
 
 render();
+// ★採掘便り：起動時にUUIDを確保（無ければ生成・既存ならそのまま）
+getPlayerUuid();
 showResumeOverlayIfNeeded();
 </script>
 
