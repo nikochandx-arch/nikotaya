@@ -249,6 +249,8 @@ border-radius: 12px;
 padding: 24px;
 max-width: 500px;
 width: 80%;
+max-height: 90vh;
+overflow-y: auto;
 box-shadow: 0 0 24px rgba(0, 255, 0, 0.4);
 }
 #modal-message {
@@ -563,7 +565,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.36</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.37</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -2257,10 +2259,6 @@ ${friendHTML}
     case "dead":
       btn("帰還する", forceReturn, "danger");
       break;
-    case "item":
-      renderItemMenu();
-      btn("戻る", closeItemMenu, "skip");
-      break;
   }
 
   // 紋枠（採掘中のみ表示）
@@ -2411,67 +2409,119 @@ function renderRelicCollection(){
 }
 
 // --- アイテムメニュー ---
-let prevMode = "explore";
+// ============================================
+// アイテムメニュー（モーダル）
+// ============================================
+// 旧仕様（state.mode="item" でactions領域に展開）からモーダル化に変更。
+// prevMode/openItemMenu/closeItemMenu の状態管理は廃止し、
+// 現在のmodeを問わずモーダルだけ開閉する。
 
+// アイテム1行を表すHTML文字列を組み立てる共通関数。
+// 通常メニュー（モーダル）と満タン時イベント（actions領域）の両方で使う。
+//   item    : アイテムオブジェクト { name, effect } または null（空きスロット）
+//   index   : 一覧上のインデックス
+//   opts    : {
+//     showNumber:    true なら "1. " のような番号を表示（通常メニュー）
+//     useEnabled:    "使う" ボタンを有効にするか
+//     useHandler:    "使う" 押下時の onclick 属性文字列（例 "useItemFromModal(0)"）
+//     discardEnabled:"捨てる" ボタンを有効にするか
+//     discardHandler:"捨てる" 押下時の onclick 属性文字列
+//     newBadge:      true なら NEW バッジを名前の横に表示（満タン時イベント用）
+//   }
+function buildItemRowHTML(item, index, opts){
+  // 空きスロット
+  if(!item){
+    const numLabel = opts.showNumber ? `${index+1}. ` : "";
+    return `
+      <div style="display:flex;align-items:center;gap:8px;width:100%;margin:6px 0;padding:6px 0;">
+        <div style="flex:1;font-size:22px;color:#444;">${numLabel}────</div>
+        <div style="flex:0 0 220px;"></div>
+      </div>
+    `;
+  }
+  const def = ITEM_DEF[item.effect];
+  const descText = def ? def.desc : "";
+  const numLabel = opts.showNumber ? `${index+1}. ` : "";
+  const newBadge = opts.newBadge ? ' <span style="color:#0ff;font-size:18px;">NEW</span>' : "";
+
+  // 「使う」ボタン
+  const useStyle = `min-width:78px;font-size:20px;padding:8px 0;border-color:#0ff;color:#0ff;background:rgba(0,255,255,0.1);` +
+                   (opts.useEnabled ? "" : "opacity:0.4;");
+  const useAttr  = opts.useEnabled ? `onclick="${opts.useHandler}"` : `disabled`;
+
+  // 「捨てる」ボタン
+  const discardStyle = `min-width:78px;font-size:20px;padding:8px 0;border-color:#f55;color:#f55;background:rgba(245,85,85,0.1);` +
+                       (opts.discardEnabled ? "" : "opacity:0.4;");
+  const discardAttr  = opts.discardEnabled ? `onclick="${opts.discardHandler}"` : `disabled`;
+
+  return `
+    <div style="display:flex;align-items:center;gap:8px;width:100%;margin:6px 0;padding:6px 0;border-bottom:1px solid rgba(0,255,0,0.15);">
+      <div style="flex:1;text-align:left;">
+        <div style="font-size:22px;color:#aaffaa;font-weight:bold;">${numLabel}${item.name}${newBadge}</div>
+        <div style="font-size:16px;color:#888;margin-top:2px;">${descText}</div>
+      </div>
+      <button style="${useStyle}" ${useAttr}>使う</button>
+      <button style="${discardStyle}" ${discardAttr}>捨てる</button>
+    </div>
+  `;
+}
+
+// アイテムメニュー（モーダル）を開く
+// 採掘中・ホーム・コンテナ後など、resultモード以外ならいつでも開ける。
 function openItemMenu(){
   if(state.mode === "result") return;
-  if(state.mode === "item") return;
-  prevMode = state.mode;
-  state.mode = "item";
-  render();
+  showModal(buildItemMenuHTML(), { alertOnly: true });
 }
 
-function closeItemMenu(){
-  state.mode = prevMode;
-  render();
-}
+// モーダル内のHTMLを組み立てる
+function buildItemMenuHTML(){
+  const heading = `<div style="font-size:26px;color:#fef3c7;margin-bottom:16px;">[ 持ち物 ]</div>`;
 
-function renderItemMenu(){
-  let a = document.getElementById("actions");
-  let isHome = prevMode === "home";
+  // ホーム時は「使う」不可、それ以外は「使う」可（個別のusableModesも見る）
+  const isHome = state.mode === "home";
 
-  if(state.items.length === 0){
-    let d = document.createElement("div");
-    d.innerText = "アイテムがない";
-    d.style.color = "#888";
-    d.style.margin = "8px";
-    a.appendChild(d);
-    return;
+  // 5枠ぶん描画（空きも含む）
+  let rowsHTML = "";
+  for(let i = 0; i < 5; i++){
+    const item = state.items[i];
+    let useEnabled = false;
+    if(item){
+      const def = ITEM_DEF[item.effect];
+      const modeUsable = !def || !def.usableModes || def.usableModes.includes(state.mode);
+      useEnabled = !isHome && modeUsable;
+    }
+    rowsHTML += buildItemRowHTML(item, i, {
+      showNumber: true,
+      useEnabled: useEnabled,
+      useHandler: `useItemFromModal(${i})`,
+      discardEnabled: !!item,    // 空きスロットは「捨てる」も無効
+      discardHandler: `discardItemFromModal(${i})`,
+    });
   }
 
-  state.items.forEach((item, i) => {
-    let def = ITEM_DEF[item.effect];
-    let wrap = document.createElement("div");
-    wrap.style.cssText = "display:flex;align-items:center;gap:8px;width:100%;margin:4px 0;";
+  // 全部空のときは案内文を中央に
+  if(state.items.length === 0){
+    rowsHTML = `<div style="font-size:20px;color:#888;text-align:center;padding:24px 0;">持ち物はない</div>`
+             + rowsHTML;  // 空欄も下に表示しておく
+  }
 
-    let info = document.createElement("div");
-    info.style.cssText = "flex:1;font-size:24px;color:#aaffaa;";
-    info.innerHTML = `<b>${i+1}. ${item.name}</b>`;
+  return heading + rowsHTML;
+}
 
-    let desc = document.createElement("div");
-    desc.style.cssText = "flex:2;font-size:20px;color:#888;text-align:center;";
-    desc.innerText = def ? def.desc : "";
+// モーダル上から「使う」を押したときの処理
+// 既存の useItem(index) を呼ぶ前にモーダルを閉じる
+function useItemFromModal(index){
+  // モーダルを閉じる
+  document.getElementById("modal-overlay").classList.remove("show");
+  useItem(index);
+}
 
-    let actionBtn = document.createElement("button");
-    actionBtn.style.cssText = "min-width:100px;max-width:120px;font-size:22px;padding:10px 0;";
-
-    if(isHome){
-      actionBtn.innerText = "捨てる";
-      actionBtn.style.cssText += "border-color:#f55;color:#f55;background:rgba(245,85,85,0.1);";
-      actionBtn.onclick = () => discardItem(i);
-    } else {
-      let usable = !def.usableModes || def.usableModes.includes(prevMode);
-      actionBtn.innerText = "使う";
-      actionBtn.style.cssText += `border-color:#0ff;color:#0ff;background:rgba(0,255,255,0.1);${usable ? "" : "opacity:0.4;"}`;
-      actionBtn.disabled = !usable;
-      if(usable) actionBtn.onclick = () => useItem(i);
-    }
-
-    wrap.appendChild(info);
-    wrap.appendChild(desc);
-    wrap.appendChild(actionBtn);
-    a.appendChild(wrap);
-  });
+// モーダル上から「捨てる」を押したときの処理
+// 既存の discardItem は showConfirm を内部で呼ぶので、
+// 先にこっちのモーダルを閉じてから discardItem を呼ぶ。
+function discardItemFromModal(index){
+  document.getElementById("modal-overlay").classList.remove("show");
+  discardItem(index);
 }
 
 function useItem(index){
@@ -2479,36 +2529,12 @@ function useItem(index){
   let def  = ITEM_DEF[item.effect];
   if(!def){ return; }
 
-  // 効果発動
-  if(item.effect === "hp3"){
-    let v = getPotionHealValue();
-    // 滋薬の紋：回復量1.1倍（切り上げ）
-    if(state.relics.some(r => r.id === "potion_boost")){
-      v = Math.ceil(v * 1.1);
-    }
-    heal(v);
-    playSE("heal");
-    state.runStats.potions++;
-    addLog(`ポーションを使った！ HP +${v}`, "scrap");
-  } else if(item.effect === "antidote"){
-    let idx = state.buffs.findIndex(b => b.id === "poison");
-    if(idx >= 0){
-      state.buffs.splice(idx, 1);
-      playSE("heal");
-      addLog("毒消し草を使った！ 毒が治った", "heal");
-    } else {
-      addLog("毒消し草を使った（毒状態ではなかった）", "normal");
-    }
-  } else if(item.effect === "guard3"){
-    applyBuffById("guard", 3);
-    playSE("select");
-    addLog("ヘルメットを装着！ 🛡️ ガード +3回", "sub");
-  }
+  // 効果発動（共通処理）
+  applyItemEffect(item);
 
   // 消費して上詰め
   state.items.splice(index, 1);
   saveAll();
-  state.mode = prevMode;
   render();
 }
 
@@ -3414,36 +3440,91 @@ function renderItemFullEvent(){
 
   let label = document.createElement("div");
   label.style.cssText = "color:#aaa;font-size:22px;margin:4px 8px;width:100%;text-align:center;";
-  label.innerText = "捨てるアイテムを選んでください";
+  label.innerText = "持ち物がいっぱい！ 使うか、捨てるアイテムを選んでください";
   a.appendChild(label);
 
+  // 一旦コンテナを作り、共通関数のHTML文字列をまとめて挿入
+  let container = document.createElement("div");
+  container.style.cssText = "width:100%;";
+  let html = "";
   allItems.forEach((item, i) => {
-    let def = ITEM_DEF[item.effect];
-    let wrap = document.createElement("div");
-    wrap.style.cssText = "display:flex;align-items:center;gap:8px;width:100%;margin:4px 0;";
-
-    let info = document.createElement("div");
-    info.style.cssText = "flex:1;font-size:24px;color:#aaffaa;";
-    let isNew = (i === allItems.length - 1);
-    info.innerHTML = `<b>${item.name}</b>${isNew ? ' <span style="color:#0ff;font-size:18px;">NEW</span>' : ""}`;
-
-    let desc = document.createElement("div");
-    desc.style.cssText = "flex:2;font-size:20px;color:#888;text-align:center;";
-    desc.innerText = def ? def.desc : "";
-
-    let dropBtn = document.createElement("button");
-    dropBtn.style.cssText = "min-width:100px;max-width:120px;font-size:22px;padding:10px 0;border-color:#f55;color:#f55;background:rgba(245,85,85,0.1);";
-    dropBtn.innerText = "捨てる";
-    dropBtn.onclick = () => dropAndKeep(i, allItems);
-
-    wrap.appendChild(info);
-    wrap.appendChild(desc);
-    wrap.appendChild(dropBtn);
-    a.appendChild(wrap);
+    const isNew = (i === allItems.length - 1);
+    // 採掘中限定で出るイベントなので「使う」は基本可能（個別のusableModesは見る）
+    const def = item ? ITEM_DEF[item.effect] : null;
+    const modeUsable = !def || !def.usableModes || def.usableModes.includes("event_item_full") || def.usableModes.includes("explore");
+    html += buildItemRowHTML(item, i, {
+      showNumber: false,
+      useEnabled: modeUsable,
+      useHandler: `useFromFull(${i})`,
+      discardEnabled: true,
+      discardHandler: `dropAndKeep(${i})`,
+      newBadge: isNew,
+    });
   });
+  container.innerHTML = html;
+  a.appendChild(container);
 }
 
-function dropAndKeep(dropIndex, allItems){
+// 満タン時に「使う」を押したときの処理
+//  - 既存スロットのアイテムを使う → そこに空きができる → pendingItem を空きへ入れる
+//  - 新規アイテム(pendingItem)自身を使う → 持ち物は5個のまま、pendingItemを消費
+function useFromFull(index){
+  const allItems = [...state.items, state.pendingItem];
+  const target = allItems[index];
+  if(!target) return;
+
+  const isNew = (index === allItems.length - 1);
+
+  // 効果を発動（既存の useItem の中身に相当する処理を直接呼ぶ）
+  applyItemEffect(target);
+
+  if(isNew){
+    // 新規アイテムを直接使った：pendingItem を消費して終了
+    state.pendingItem = null;
+  } else {
+    // 既存スロットを消費 → そこに pendingItem を入れる
+    state.items.splice(index, 1);
+    state.items.push(state.pendingItem);
+    state.pendingItem = null;
+  }
+  saveAll();
+  state.mode = "explore";
+  render();
+}
+
+// 既存のアイテム効果発動ロジックを切り出した関数
+// （useItem からも useFromFull からも使えるようにする）
+function applyItemEffect(item){
+  const def = ITEM_DEF[item.effect];
+  if(!def) return;
+  if(item.effect === "hp3"){
+    let v = getPotionHealValue();
+    if(state.relics.some(r => r.id === "potion_boost")){
+      v = Math.ceil(v * 1.1);
+    }
+    heal(v);
+    playSE("heal");
+    state.runStats.potions++;
+    addLog(`ポーションを使った！ HP +${v}`, "scrap");
+  } else if(item.effect === "antidote"){
+    let idx = state.buffs.findIndex(b => b.id === "poison");
+    if(idx >= 0){
+      state.buffs.splice(idx, 1);
+      playSE("heal");
+      addLog("毒消し草を使った！ 毒が治った", "heal");
+    } else {
+      addLog("毒消し草を使った（毒状態ではなかった）", "normal");
+    }
+  } else if(item.effect === "guard3"){
+    applyBuffById("guard", 3);
+    playSE("select");
+    addLog("ヘルメットを装着！ 🛡️ ガード +3回", "sub");
+  }
+}
+
+function dropAndKeep(dropIndex){
+  // 引数 allItems を取らない形に変更（呼び出し側がHTML属性経由で渡せないため）
+  const allItems = [...state.items, state.pendingItem];
   // 捨てたアイテムを除いた5個を装備
   let kept = allItems.filter((_, i) => i !== dropIndex);
   state.items = kept;
