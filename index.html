@@ -278,6 +278,45 @@ font-weight: bold;
 .modal-yes { border: 2px solid #0f0; color: #0f0; background: rgba(0,255,0,0.1) !important; box-shadow: 0 0 10px rgba(0,255,0,0.3); }
 .modal-no  { border: 2px solid #aaa; color: #aaa; }
 
+/* — 羊皮紙テーマ（採掘便りなど読み物系モーダル用） — */
+/* showModal の opts.theme="parchment" 指定時に
+   #modal-box に .theme-parchment クラスが付与される */
+#modal-box.theme-parchment {
+  background:
+    radial-gradient(ellipse at center, rgba(205,180,120,0) 55%, rgba(120,90,40,0.25) 100%),
+    linear-gradient(160deg, #e8d9a8 0%, #dece96 30%, #e4d4a0 55%, #d5c07a 80%, #c8b466 100%);
+  border: 1.5px solid #9b7c3a;
+  border-radius: 6px;
+  box-shadow:
+    0 0 18px rgba(0,0,0,0.5),
+    inset 0 1px 3px rgba(255,255,220,0.6),
+    inset 0 -2px 6px rgba(100,70,20,0.2),
+    inset 2px 0 6px rgba(100,70,20,0.12),
+    inset -2px 0 6px rgba(100,70,20,0.12);
+  position: relative;
+}
+/* 羊皮紙テーマ時のメッセージ部分（文字色を紙色に合わせる） */
+#modal-box.theme-parchment #modal-message {
+  color: #3a2818;
+}
+/* 羊皮紙テーマ時はOKボタン群を非表示（外側タップで閉じる仕様） */
+#modal-box.theme-parchment #modal-buttons {
+  display: none;
+}
+/* 羊皮紙テーマ時の四隅のシミ（既存 .parchment::before と同じ表現） */
+#modal-box.theme-parchment::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background:
+    radial-gradient(ellipse at 0% 0%,    rgba(100,60,10,0.18) 0%, transparent 40%),
+    radial-gradient(ellipse at 100% 0%,  rgba(100,60,10,0.14) 0%, transparent 35%),
+    radial-gradient(ellipse at 0% 100%,  rgba(100,60,10,0.16) 0%, transparent 40%),
+    radial-gradient(ellipse at 100% 100%,rgba(100,60,10,0.20) 0%, transparent 38%);
+  pointer-events: none;
+}
+
 /* === デザインリニューアル v2 === */
 
 @import url(‘https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap’);
@@ -565,7 +604,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.40</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.41</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -1230,6 +1269,7 @@ function toggleSE(){
 // --- モーダル基盤（共通） ---
 function showModal(message, opts){
   let overlay = document.getElementById("modal-overlay");
+  let box     = document.getElementById("modal-box");
   document.getElementById("modal-message").innerHTML = message;
   let yesBtn = document.getElementById("modal-yes");
   let noBtn  = document.getElementById("modal-no");
@@ -1247,13 +1287,36 @@ function showModal(message, opts){
     newYes.innerText = "はい";
   }
 
+  // テーマ切替：opts.theme="parchment" のとき羊皮紙風に
+  // 何もないときはデフォルト（緑モーダル）に戻す
+  box.classList.remove("theme-parchment");
+  // 外側タップで閉じる用の古いリスナーを念のため除去
+  overlay.onclick = null;
+  if(opts.theme === "parchment"){
+    box.classList.add("theme-parchment");
+    // 羊皮紙テーマ：外側タップで閉じる仕様
+    // （オーバーレイ自身がクリックされた=ボックスの外側がタップされた場合のみ閉じる）
+    overlay.onclick = (e) => {
+      if(e.target === overlay){
+        overlay.classList.remove("show");
+        box.classList.remove("theme-parchment");
+        overlay.onclick = null;
+        if(opts.onClose) opts.onClose();
+      }
+    };
+  }
+
   overlay.classList.add("show");
   newYes.onclick = () => {
     overlay.classList.remove("show");
+    box.classList.remove("theme-parchment");
+    overlay.onclick = null;
     if(opts.onYes) opts.onYes();
   };
   newNo.onclick = () => {
     overlay.classList.remove("show");
+    box.classList.remove("theme-parchment");
+    overlay.onclick = null;
     if(opts.onNo) opts.onNo();
   };
 }
@@ -2694,8 +2757,8 @@ function buildPreciousHTML(){
 function openJournalModal(){
   if(!state.upgrades.journal) return;
 
-  // 1) 先に「読込中」の状態でモーダルを表示
-  showModal(buildLetterHTML("loading"), { alertOnly: true });
+  // 1) 先に「読込中」の状態でモーダルを表示（羊皮紙テーマ）
+  showModal(buildLetterHTML("loading"), { alertOnly: true, theme: "parchment" });
 
   // 2) 非同期で取得 → モーダルの中身を結果に差し替え
   fetchLatestLetter().then(result => {
@@ -2711,12 +2774,14 @@ function openJournalModal(){
 
 // 採掘便りモーダルの中身HTMLを組み立てる
 // state: "loading" | "updated" | "skipped_self" | "skipped_same" | "throttled" | "empty" | "error"
+// 配色は羊皮紙テーマ前提（背景がベージュ系なので、文字は茶〜黒系）
 function buildLetterHTML(status){
-  const heading = `<div style="font-size:26px;color:#fef3c7;margin-bottom:16px;">[ 採掘便り ]</div>`;
+  const heading = `<div style="font-size:22px;letter-spacing:3px;color:#5a3e1b;text-align:center;margin-bottom:8px;opacity:0.8;">◆ 採掘便り ◆</div>
+                   <hr style="border:none;border-top:1px solid rgba(100,70,20,0.35);margin:6px 0 14px 0;">`;
 
   if(status === "loading"){
     return heading +
-      `<div style="font-size:22px;color:#888;text-align:center;padding:24px 0;">便りを取り寄せています…</div>`;
+      `<div style="font-size:20px;color:#7a5a2e;text-align:center;padding:24px 0;">便りを取り寄せています…</div>`;
   }
 
   // 現在保存中の便り（あれば）
@@ -2728,24 +2793,23 @@ function buildLetterHTML(status){
 
   // 通信エラー時
   if(status === "error"){
-    let body = `<div style="font-size:20px;color:#f88;text-align:center;padding:12px 0;">便りを取り寄せられませんでした</div>`;
+    let body = `<div style="font-size:18px;color:#9b1c0a;text-align:center;padding:12px 0;">便りを取り寄せられませんでした</div>`;
     if(current){
-      body += `<div style="font-size:18px;color:#888;text-align:center;margin-bottom:8px;">― 前回の便り ―</div>`;
+      body += `<div style="font-size:16px;color:#7a5a2e;text-align:center;margin-bottom:8px;">― 前回の便り ―</div>`;
       body += renderGrave(current);
     }
     return heading + body;
   }
 
-  // まだ誰も死んでない or 自分の墓だった（=自分には透明扱い）or 同じ便り or 連打抑制
-  // どれも「現在の便り（currentLetter）がそのまま」が真実なので、currentがあれば表示、無ければ空メッセージ
-  // → "skipped_self" でも特別な表示は一切しない（プレイヤーには「新しい便りは来なかった」としか見えない）
+  // 自分の墓だった / 同じ便り / 連打抑制 / 更新成功
+  // → currentLetterがそのまま真実。自分の墓は完全透明扱い。
   if(current){
     return heading + renderGrave(current);
   }
 
   // currentLetter が無い状態（=このゲームで一度も他人の死亡データを受信していない）
   return heading +
-    `<div style="font-size:20px;color:#888;text-align:center;padding:24px 0;">便りはまだ届いていない…</div>`;
+    `<div style="font-size:20px;color:#7a5a2e;text-align:center;padding:24px 0;">便りはまだ届いていない…</div>`;
 }
 
 // ISO 8601文字列（UTC） → 日本時間の時間帯ラベル
@@ -2756,9 +2820,6 @@ function getTimeOfDayLabel(isoString){
   try { d = new Date(isoString); }
   catch(e){ return ""; }
   if(isNaN(d.getTime())) return "";
-  // toLocaleString で JST に変換した時の "時" を取得
-  // getHours() は端末タイムゾーン依存だが、ISO文字列は末尾Zで明示的にUTCを示すので
-  // 日本にいる端末では自動的にJSTに変換される
   const h = d.getHours();
   if(h >= 5  && h <= 10) return "朝方";
   if(h >= 11 && h <= 17) return "昼間";
@@ -2766,8 +2827,8 @@ function getTimeOfDayLabel(isoString){
 }
 
 // 個別の墓データを「お便り」風に表示するHTML片を組み立てる
-// 遺品情報は表示しない（取りに行くプレイヤーがハイエナっぽくならないように、
-// 墓イベントでサプライズとして判明する形にする）
+// 遺品情報は表示しない（墓イベントでサプライズとして判明する形にする）
+// 配色は羊皮紙テーマ前提：本文は焦茶、強調は深い赤茶系
 function renderGrave(grave){
   const safeName = String(grave.name || "名もなき坑夫").replace(/[<>&]/g, c => ({ "<":"&lt;", ">":"&gt;", "&":"&amp;" }[c]));
   const timeLabel = getTimeOfDayLabel(grave.diedAt);
@@ -2778,16 +2839,17 @@ function renderGrave(grave){
     .replace('width:1em;height:1em;', 'width:9em;height:9em;')
     .replace('vertical-align:-0.2em;', 'vertical-align:middle;');
 
+  // 紙の上で読みやすい配色：本文は焦茶 #3a2818、強調は深い赤茶 #9b1c0a
   return `
-    <div style="font-size:22px;color:#fef3c7;text-align:center;line-height:1.7;padding:8px 0;">
-      <div style="margin-bottom:8px;">
-        ${timeLabel ? `<span style="color:#fbbf24;">${timeLabel}</span> ` : ""}<span style="color:#fff;">${safeName}</span> さんが
+    <div style="font-size:21px;color:#3a2818;text-align:center;line-height:1.7;padding:4px 0;">
+      <div style="margin-bottom:6px;">
+        ${timeLabel ? `<span style="color:#9b1c0a;font-weight:bold;">${timeLabel}</span> ` : ""}<span style="color:#1f1208;font-weight:bold;">${safeName}</span> さんが
       </div>
-      <div style="margin-bottom:8px;">
-        <span style="color:#fbbf24;">${floorText}</span> で死亡しました。
+      <div style="margin-bottom:6px;">
+        <span style="color:#9b1c0a;font-weight:bold;">${floorText}</span> で死亡しました。
       </div>
-      <div style="font-size:18px;color:#aaa;margin-top:4px;">皆さんも気をつけましょう。</div>
-      <div style="margin-top:12px;line-height:1;">${fallenSvg}</div>
+      <div style="font-size:17px;color:#5a3e1b;margin-top:4px;">皆さんも気をつけましょう。</div>
+      <div style="margin-top:10px;line-height:1;">${fallenSvg}</div>
     </div>
   `;
 }
