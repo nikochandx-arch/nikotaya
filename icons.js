@@ -1,5 +1,5 @@
 // ============================================
-// icons.js  (for v12.35+)
+// icons.js  (for v12.40+)
 // ============================================
 // Nikotaya Mining Roguelike のSVGアイコン定義ファイル。
 // SVG_ICONS オブジェクトを定義する。index.html 本体より
@@ -385,6 +385,66 @@ const SVG_ICONS = {
       <circle cx="45" cy="90" r="1.5"/>
       <circle cx="80" cy="60" r="2"/>
       <circle cx="60" cy="110" r="1"/>
+    </g>
+  </svg>`,
+
+  fallenMiner: `<svg viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
+    <g transform="translate(0, 5)">
+      <!-- 1. 地面の影 -->
+      <ellipse cx="70" cy="115" rx="50" ry="8" fill="#18181b"/>
+
+      <!-- 2. 背景分離用の太いフチ -->
+      <g fill="none" stroke="#d4d4d8" stroke-width="12" stroke-linejoin="round" stroke-linecap="round">
+        <!-- ピッケル -->
+        <g transform="translate(35, 75) rotate(-65) scale(0.8)">
+          <rect x="-4" y="-35" width="8" height="75" rx="4"/>
+          <path d="M -24 -25 Q 0 -45 24 -25 L 20 -19 Q 0 -35 -20 -19 Z"/>
+        </g>
+        <!-- キャラ本体（うつ伏せ） -->
+        <rect x="35" y="95" width="45" height="20" rx="10"/>
+        <circle cx="85" cy="100" r="20"/>
+        <rect x="25" y="105" width="18" height="10" rx="5"/>
+        <rect x="35" y="110" width="18" height="10" rx="5"/>
+        <rect x="60" y="105" width="18" height="10" rx="5"/>
+        <!-- ヘルメット（右に転がる） -->
+        <g transform="translate(115, 105) rotate(75)">
+          <path d="M -18 0 C -18 -22 18 -22 18 0 Z"/>
+          <path d="M -22 6 L -18 0 L 18 0 L 22 6 Z"/>
+          <rect x="-8" y="-14" width="16" height="14" rx="4"/>
+        </g>
+      </g>
+
+      <!-- 3. ピッケル（手前に落ちている） -->
+      <g transform="translate(35, 75) rotate(-65) scale(0.8)">
+        <rect x="-4" y="-35" width="8" height="75" rx="4" fill="#b45309" stroke="#18181b" stroke-width="3"/>
+        <path d="M -24 -25 Q 0 -45 24 -25 L 20 -19 Q 0 -35 -20 -19 Z" fill="#e2e8f0" stroke="#18181b" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M -19 -26 Q 0 -42 19 -26" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+      </g>
+
+      <!-- 4. キャラ本体（黒塗りシルエット） -->
+      <g fill="#09090b">
+        <rect x="35" y="95" width="45" height="20" rx="10"/>
+        <rect x="25" y="105" width="18" height="10" rx="5"/>
+        <rect x="35" y="110" width="18" height="10" rx="5"/>
+        <rect x="60" y="105" width="18" height="10" rx="5"/>
+        <circle cx="85" cy="100" r="20"/>
+      </g>
+
+      <!-- 5. 脱げて転がったヘルメット -->
+      <g transform="translate(115, 105) rotate(75)" stroke="#18181b" stroke-width="3" stroke-linejoin="round">
+        <path d="M -18 0 C -18 -22 18 -22 18 0 Z" fill="#facc15"/>
+        <path d="M -22 6 L -18 0 L 18 0 L 22 6 Z" fill="#eab308"/>
+        <rect x="-8" y="-14" width="16" height="14" rx="4" fill="#52525b"/>
+        <circle cx="0" cy="-7" r="4" fill="#ffffff" stroke="none"/>
+        <circle cx="0" cy="-7" r="1.5" fill="#fef08a" stroke="none"/>
+      </g>
+
+      <!-- 6. 倒れた衝撃のホコリ（土煙） -->
+      <g fill="#a1a1aa" opacity="0.6">
+        <circle cx="20" cy="100" r="4"/>
+        <circle cx="10" cy="110" r="3"/>
+        <circle cx="105" cy="85" r="3"/>
+      </g>
     </g>
   </svg>`,
 };
