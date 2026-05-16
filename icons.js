@@ -1,5 +1,5 @@
 // ============================================
-// icons.js  (for v12.40+)
+// icons.js  (for v12.42+)
 // ============================================
 // Nikotaya Mining Roguelike のSVGアイコン定義ファイル。
 // SVG_ICONS オブジェクトを定義する。index.html 本体より
@@ -444,6 +444,32 @@ const SVG_ICONS = {
         <circle cx="20" cy="100" r="4"/>
         <circle cx="10" cy="110" r="3"/>
         <circle cx="105" cy="85" r="3"/>
+      </g>
+    </g>
+  </svg>`,
+
+  grave: `<svg viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
+    <g transform="translate(0, 10)">
+      <!-- 1. ダークな外周フチ（既存アイコンと同じ程度の太さに調整） -->
+      <g fill="none" stroke="#27272a" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+        <ellipse cx="70" cy="110" rx="45" ry="12"/>
+        <path d="M 40 110 L 40 50 A 30 30 0 0 1 100 50 L 100 110 Z"/>
+      </g>
+
+      <!-- 2. 盛り土（ベース） -->
+      <ellipse cx="70" cy="110" rx="45" ry="12" fill="#78350f" stroke="#18181b" stroke-width="2"/>
+
+      <!-- 3. 墓石本体（暗めのグレー） -->
+      <path d="M 40 110 L 40 50 A 30 30 0 0 1 100 50 L 100 110 Z" fill="#64748b" stroke="#18181b" stroke-width="2" stroke-linejoin="round"/>
+
+      <!-- 4. 十字の刻印 -->
+      <path d="M 70 45 L 70 65 M 60 52 L 80 52" fill="none" stroke="#18181b" stroke-width="2" stroke-linecap="round"/>
+
+      <!-- 5. 文字が書いてある風の横線 -->
+      <g fill="none" stroke="#18181b" stroke-width="2" stroke-linecap="round">
+        <path d="M 50 78 L 90 78"/>
+        <path d="M 55 88 L 85 88"/>
+        <path d="M 50 98 L 75 98"/>
       </g>
     </g>
   </svg>`,
