@@ -604,7 +604,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.41</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.42</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -764,9 +764,14 @@ async function sendDeathToServer(floor, scrap, itemEffect){
 }
 
 // 採掘便りを更新する。読込フラグ letterRead=1 のときは通信せず即終了。
+// ホーム以外で開いた場合も通信せず即終了（ラン中の便り内容を固定する）。
 // 取得した墓データが自分のUUIDだったら、便りは更新しない（ただし読込フラグは立てる）。
 // 返り値： { status:"updated"|"skipped_self"|"skipped_same"|"empty"|"throttled"|"error" }
 async function fetchLatestLetter(){
+  // ホーム以外では通信せず現状維持（ラン中に他人が新しく死んでも、そのランでは反映しない）
+  if(state.mode !== "home"){
+    return { status: "throttled" };
+  }
   // 連打防止フラグ
   if(localStorage.getItem("letterRead") === "1"){
     return { status: "throttled" };
@@ -807,8 +812,9 @@ async function fetchLatestLetter(){
       }
     } catch(e){ /* 壊れてたら無視して更新 */ }
   }
-  // 便りを更新
+  // 便りを更新（新しい墓データになるので、回収済みフラグもリセット）
   localStorage.setItem("currentLetter", JSON.stringify(data.grave));
+  localStorage.setItem("currentLetterCollected", "0");
   return { status: "updated", grave: data.grave };
 }
 
@@ -2167,6 +2173,16 @@ ${friendHTML}
 `;
       // ボタンは下のswitchで描画するのでここではスキップ
     } else
+    // 採掘便りの墓イベント：誰かが倒れた形跡を発見
+    if(state.mode === "event_grave"){
+      ceIcon.innerHTML = SVG_ICONS.grave.replace("width:1em;height:1em;","width:2em;height:2em;");
+      ceText.innerHTML =
+        floorBadgeHTML(state.floor) +
+`<div style="font-size:24px;color:#fff;margin-top:6px;">誰かが倒れた形跡がある…</div>
+<div style="font-size:22px;color:#aaa;margin-top:4px;">傍らに何か落ちている</div>
+`;
+      // ボタンは下のswitchで描画するのでここではスキップ
+    } else
     // 陽キャイベントは専用表示
     if(state.mode === "event_youki"){
       ceIcon.innerHTML = SVG_ICONS.youki.replace("width:1em;height:1em;","width:2em;height:2em;");
@@ -2310,6 +2326,9 @@ ${friendHTML}
       break;
     case "event_youki":
       renderYoukiEvent();
+      break;
+    case "event_grave":
+      btn("拾う", pickupGrave, "main", null);
       break;
     case "event_goddess":
       btn("回復してほしい", goddessHeal, "special");
@@ -2843,7 +2862,7 @@ function renderGrave(grave){
   return `
     <div style="font-size:21px;color:#3a2818;text-align:center;line-height:1.7;padding:4px 0;">
       <div style="margin-bottom:6px;">
-        ${timeLabel ? `<span style="color:#9b1c0a;font-weight:bold;">${timeLabel}</span> ` : ""}<span style="color:#1f1208;font-weight:bold;">${safeName}</span> さんが
+        ${timeLabel ? `<span>${timeLabel}</span> ` : ""}<span style="color:#1f1208;font-weight:bold;">${safeName}</span> さんが
       </div>
       <div style="margin-bottom:6px;">
         <span style="color:#9b1c0a;font-weight:bold;">${floorText}</span> で死亡しました。
@@ -3311,6 +3330,8 @@ const HEAVY_EVENTS = [
 // 特定の階で必ず発生するイベント。通常イベント抽選より優先される。
 // 各イベントは { floor: 出現階, isAvailable: 出現可能か, fn: 発動処理 } で定義。
 // isAvailable() が false ならその階の通常イベント抽選が走る（同階では再抽選しない）。
+// 階確定イベント定義
+// floor は数値 or 関数。関数の場合は実行時に対象階を返す（採掘便りの墓イベントなど動的なものに対応）
 const FIXED_FLOOR_EVENTS = [
   {
     id: "youki",
@@ -3321,6 +3342,31 @@ const FIXED_FLOOR_EVENTS = [
       playSE("select");
       state.mode = "event_youki";
       addLog("派手な金髪の青年が話しかけてきた…");
+    },
+  },
+  {
+    id: "grave",
+    // floor を関数化：現在の採掘便り（currentLetter）の階を返す。便りが無ければ -1（決して一致しない）
+    floor: () => {
+      try {
+        const raw = localStorage.getItem("currentLetter");
+        if(!raw) return -1;
+        const letter = JSON.parse(raw);
+        return (letter && typeof letter.floor === "number") ? letter.floor : -1;
+      } catch(e){ return -1; }
+    },
+    // 出現条件：採掘便りに墓データがあり、まだ回収していない
+    isAvailable: () => {
+      const raw = localStorage.getItem("currentLetter");
+      if(!raw) return false;
+      const collected = localStorage.getItem("currentLetterCollected") === "1";
+      return !collected;
+    },
+    fn: () => {
+      playSE("select");
+      state.mode = "event_grave";
+      addLog("誰かが倒れた形跡がある…");
+      // 詳細表示は render() 側で event_grave モード用のメッセージを組み立てる
     },
   },
 ];
@@ -3399,7 +3445,9 @@ function proceedAfterTick(){
 
   // 階確定イベント（鉄扉・女神像の特殊階の後、通常イベント抽選の前）
   for(const fe of FIXED_FLOOR_EVENTS){
-    if(fe.floor === state.floor && fe.isAvailable()){
+    // floor は数値 or 関数。関数なら呼び出して階を取得
+    const targetFloor = (typeof fe.floor === "function") ? fe.floor() : fe.floor;
+    if(targetFloor === state.floor && fe.isAvailable()){
       fe.fn();
       render();
       return;
@@ -3853,6 +3901,73 @@ function ignoreYouki(){
   addLog("陽キャはこちらをチラ見しながら去っていった", "sub");
   state.mode = "explore";
   render();
+}
+
+// ============================================
+// 採掘便りの墓イベント
+// ============================================
+// 採掘便りに表示されている墓データの指定階に到達すると発動。
+// アイテム報酬 or スクラップ報酬（1%）。アイテム報酬時に持ち物満タンならコンテナと同じ満タン処理へ。
+function pickupGrave(){
+  const raw = localStorage.getItem("currentLetter");
+  if(!raw){
+    // 想定外ケース：墓データが消えてしまっている。何もせず次へ進む
+    addLog("…何もなかった", "sub");
+    state.mode = "explore";
+    render();
+    return;
+  }
+  let letter;
+  try { letter = JSON.parse(raw); }
+  catch(e){
+    addLog("…何もなかった", "sub");
+    state.mode = "explore";
+    render();
+    return;
+  }
+
+  // アイテム報酬 or スクラップ報酬の振り分け
+  // 既知のアイテムeffectで、ITEM_DEFに存在するもの → アイテム報酬
+  // それ以外（null・未知のeffect） → 故人の所持スクラップ1%が代替報酬
+  if(letter.item && ITEM_DEF[letter.item]){
+    const def = ITEM_DEF[letter.item];
+    const newItem = { name: def.name, effect: letter.item };
+
+    if(state.items.length >= 5){
+      // 持ち物満タン：コンテナと同じ満タン処理画面へ
+      state.pendingItem = newItem;
+      state.mode = "event_item_full";
+      addLog(`${def.name} を見つけた！ …が、持ち物がいっぱいだ`, "scrap");
+      markGraveCollected();
+      render();
+      return;
+    }
+    // 空きあり：そのまま入手
+    state.items.push(newItem);
+    playSE("coin");
+    addLog(`${def.name} を手に入れた！`, "scrap");
+  } else {
+    // スクラップ報酬（故人の所持スクラップ1%）
+    const scrapDrop = Math.floor((letter.scrap || 0) * 0.01);
+    if(scrapDrop > 0){
+      state.scrap += scrapDrop;
+      playSE("coin");
+      addLog(`スクラップ ${scrapDrop} を手に入れた！`, "scrap");
+    } else {
+      // 故人がスクラップも所持してなかった超レアケース
+      addLog("…めぼしいものはなかった", "sub");
+    }
+  }
+
+  markGraveCollected();
+  state.mode = "explore";
+  render();
+}
+
+// 墓イベントを「回収済み」としてマークする
+// 次に採掘便りが更新されるまで再発動しない
+function markGraveCollected(){
+  localStorage.setItem("currentLetterCollected", "1");
 }
 
 // --- DAIGOイベント ---
