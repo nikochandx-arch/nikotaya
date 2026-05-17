@@ -604,7 +604,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.02</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.03</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -2243,13 +2243,14 @@ ${friendHTML}
         ceText.innerHTML =
           floorBadgeHTML(state.floor) +
 `<div style="font-size:26px;color:#60a5fa;">ジャンプ成功！</div>
-<div style="font-size:22px;color:#fff;margin-top:6px;">一気に深部へ降り立った</div>
+<div style="font-size:22px;color:#fff;margin-top:6px;">一気に<span style="color:#60a5fa;">${r.targetFloor}</span>階へ降り立った</div>
 `;
       } else {
         ceText.innerHTML =
           floorBadgeHTML(state.floor) +
 `<div style="font-size:26px;color:#f55;">ジャンプ失敗…</div>
 <div style="font-size:22px;color:#fff;margin-top:6px;">落下して <span style="color:#f55;">${r.dmg}</span> ダメージ</div>
+<div style="font-size:22px;color:#fff;margin-top:6px;"><span style="color:#f55;">${r.targetFloor}</span>階に落ちた</div>
 `;
       }
       // ボタンは下のswitchで描画するのでここではスキップ
@@ -2873,7 +2874,7 @@ function buildPreciousHTML(){
 </div>`;
 }
 
-// 採掘便り本体：他の坑夫の最新墓データを表示するモーダル
+// 採掘便り本体：他の鉱夫の最新墓データを表示するモーダル
 // 開いた瞬間に Cloudflare から最新データを取りに行く（letterRead フラグで連打防止）。
 // 通信前後で modal-message の中身を動的に書き換える。
 function openJournalModal(){
@@ -2952,7 +2953,7 @@ function getTimeOfDayLabel(isoString){
 // 遺品情報は表示しない（墓イベントでサプライズとして判明する形にする）
 // 配色は羊皮紙テーマ前提：本文は焦茶、強調は深い赤茶系
 function renderGrave(grave){
-  const safeName = String(grave.name || "名もなき坑夫").replace(/[<>&]/g, c => ({ "<":"&lt;", ">":"&gt;", "&":"&amp;" }[c]));
+  const safeName = String(grave.name || "名もなき鉱夫").replace(/[<>&]/g, c => ({ "<":"&lt;", ">":"&gt;", "&":"&amp;" }[c]));
   const timeLabel = getTimeOfDayLabel(grave.diedAt);
   const floorText = `${grave.floor}階`;
 
@@ -3969,11 +3970,11 @@ function renderGoddessEvent(){
   if(canHeal) healBtn.onclick = () => { playSE("select"); goddessHeal(); };
   document.getElementById("actions").appendChild(healBtn);
 
-  // 「帰還したい」（旧「ホームに帰りたい」）
-  btn("帰還したい", confirmGoddessReturn, "danger");
-
   // 「無視する」
   btn("無視する", ignoreGoddess, "skip");
+
+  // 「帰還したい」（旧「ホームに帰りたい」）
+  btn("帰還したい", confirmGoddessReturn, "danger");
 }
 
 // --- 商人イベント ---
@@ -4239,7 +4240,7 @@ function eatMushroom(){
     isBad = true;
     let back = Math.min(2, state.floor - 1);
     state.floor -= back;
-    addLog(`錯乱した！ ${back}階層戻された`, "sub");
+    addLog(`錯乱した！ ${state.floor}階まで戻ってしまった！`, "sub");
   } else {
     // 錯乱：スクラップ破棄 5%
     isBad = true;
@@ -4482,9 +4483,11 @@ function pitJumpAttempt(){
   let chance = state.hp / state.maxHp;
   if(Math.random() < chance){
     // 成功：結果モードへ。floor操作は「採掘する」ボタン押下時に行う
+    // 到達予定階層 = 現在の floor + 3（proceedPitJumpで +2、next()で +1）
     playSE("select");
-    addLog("ジャンプ成功！ 一気に深部へ降り立った", "scrap");
-    state.pitJumpResult = { success: true };
+    let targetFloor = state.floor + 3;
+    addLog(`ジャンプ成功！ 一気に${targetFloor}階へ降り立った`, "scrap");
+    state.pitJumpResult = { success: true, targetFloor };
     state.mode = "event_pitjump_result";
     render();
   } else {
@@ -4493,13 +4496,16 @@ function pitJumpAttempt(){
     let base = Math.floor(Math.random()*3) + 1 + floorDmgBonus();
     let d = Math.max(1, Math.floor(base / 2));
     let actual = damage(d);
+    // 到達予定階層 = 現在の floor - 1（proceedPitJumpで -2、next()で +1）
+    let targetFloor = Math.max(1, state.floor - 1);
     addLog(`ジャンプ失敗… 落下して ${actual} ダメージ`, "damage");
+    addLog(`${targetFloor}階に落ちた`, "sub");
     if(state.hp <= 0){
       // 死亡時は damage() 内で death モードに遷移済み
       render();
       return;
     }
-    state.pitJumpResult = { success: false, dmg: actual };
+    state.pitJumpResult = { success: false, dmg: actual, targetFloor };
     state.mode = "event_pitjump_result";
     render();
   }
