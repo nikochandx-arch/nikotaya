@@ -604,7 +604,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v12.43</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.01</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -715,7 +715,7 @@ function makeRunStats(){
   return o;
 }
 
-const SAVE_VERSION = 6;
+const SAVE_VERSION = 7;
 
 // ============================================
 // 採掘便り（Cloudflare連携）
@@ -851,6 +851,10 @@ function migrateSaveData(data, fromVersion){
     // loadSaveData の data オブジェクトには含まれない（マイグレーション不要）。
     // 既存プレイヤーは playerUuid を持っていないので、初回起動時に自動生成される。
   }
+  if(fromVersion < 7){
+    // v6→v7：女神回復量の永続強化を追加（goddessHeal Lv0〜6 / 5%刻み）
+    if(data.upgrades.goddessHeal === undefined) data.upgrades.goddessHeal = 0;
+  }
   // 共通：ALL_STATS_FIELDS の未定義フィールドを 0 で補う
   // （新規プレイヤーの空 stats {} もここで初期化される）
   ALL_STATS_FIELDS.forEach(f => {
@@ -863,7 +867,7 @@ function loadSaveData(){
   let version = parseInt(localStorage.getItem("saveVersion")) || 0;
 
   let data = {
-    upgrades:     JSON.parse(localStorage.getItem("upgrades") || '{"hp":0,"power":0,"potionHeal":0,"relicSlots":0,"journal":false,"tent":false}'),
+    upgrades:     JSON.parse(localStorage.getItem("upgrades") || '{"hp":0,"power":0,"potionHeal":0,"relicSlots":0,"journal":false,"tent":false,"goddessHeal":0}'),
     totalScrap:   parseInt(localStorage.getItem("totalScrap"))   || 0,
     totalEmerald: parseInt(localStorage.getItem("totalEmerald")) || 0,
     bestFloor:    parseInt(localStorage.getItem("bestFloor"))    || 1,
@@ -1635,6 +1639,17 @@ ${(() => {
   }
   return `<button onclick="buyRelicSlot()" style="${shopStylePerm}height:auto;padding:12px 8px;">紋スロット拡張<br><span ${descStyle}>${cur}枠 → ${cur+1}枠</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">${cost}</span></button>`;
 })()}
+${(() => {
+  // 女神回復強化（Lv0〜6 / 5%刻み / エメラルド）
+  let cost = getGoddessHealCost();
+  let curPct = 20 + state.upgrades.goddessHeal * 5;
+  if(cost === null){
+    let lastCost = GODDESS_HEAL_COSTS[GODDESS_HEAL_COSTS.length - 1];
+    return `<button disabled style="${shopStylePerm}height:auto;padding:12px 8px;opacity:0.4;">女神回復強化<br><span ${descStyle}>購入済み（${curPct}%）</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">${lastCost}</span></button>`;
+  }
+  let nextPct = curPct + 5;
+  return `<button onclick="buyGoddessHeal()" style="${shopStylePerm}height:auto;padding:12px 8px;">女神回復強化<br><span ${descStyle}>回復量${curPct}%→${nextPct}%</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">${cost}</span></button>`;
+})()}
 <div style="color:#888;margin:6px 0;">[ 解放 ]</div>
 ${state.unlockedItems.includes("guard3")
   ? `<button disabled style="${shopStyleUnlock}height:auto;padding:12px 8px;opacity:0.4;">ヘルメット解放<br><span ${descStyle}>購入済み</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">3</span></button>`
@@ -2345,8 +2360,7 @@ ${friendHTML}
       btn("拾う", pickupGrave, "main", null);
       break;
     case "event_goddess":
-      btn("回復してほしい", goddessHeal, "special");
-      btn("ホームに帰りたい", confirmGoddessReturn, "danger");
+      renderGoddessEvent();
       break;
     case "return":
       btn("続行する", continueRun, "main");
@@ -2721,6 +2735,16 @@ function getRelicSlotCost(){
   return RELIC_SLOT_COSTS[lv];
 }
 
+// 女神回復強化コスト（エメラルド）。Lv0→1 が GODDESS_HEAL_COSTS[0] = 5。
+// 回復量は Lv0:20% / Lv1:25% / ... / Lv6:50%（5%刻みで上限50%）
+const GODDESS_HEAL_COSTS = [5, 10, 15, 20, 25, 25];
+
+function getGoddessHealCost(){
+  let lv = state.upgrades.goddessHeal;
+  if(lv >= 6) return null;  // MAX（50%）
+  return GODDESS_HEAL_COSTS[lv];
+}
+
 function buyJournal(){
   const cost = 15000;
   if(state.totalScrap < cost){ showAlert("スクラップが足りない"); return; }
@@ -3064,6 +3088,21 @@ function buyRelicSlot(){
   showConfirm(`エメラルド ${cost} で紋スロットを拡張しますか？<br>（${cur}枠 → ${cur+1}枠）`, () => {
     state.totalEmerald -= cost;
     state.upgrades.relicSlots++;
+    playSE("coin");
+    saveAll();
+    render();
+  });
+}
+
+function buyGoddessHeal(){
+  let cost = getGoddessHealCost();
+  if(cost === null){ showAlert("これ以上強化できない"); return; }
+  if(state.totalEmerald < cost){ showAlert("エメラルドが足りない"); return; }
+  let curPct = 20 + state.upgrades.goddessHeal * 5;
+  let nextPct = curPct + 5;
+  showConfirm(`エメラルド ${cost} で女神回復を強化しますか？<br>（回復量${curPct}% → ${nextPct}%）`, () => {
+    state.totalEmerald -= cost;
+    state.upgrades.goddessHeal++;
     playSE("coin");
     saveAll();
     render();
@@ -3444,7 +3483,7 @@ function proceedAfterTick(){
       render();
       return;
     }
-    addLog(`－－－ ${state.floor}階層 －－－\n女神像がある…`, "divider");
+    addLog(`－－－ ${state.floor}階層 －－－\n女神像がある…お布施をすればご利益があるかも`, "divider");
     state.mode = "event_goddess";
     render();
     return;
@@ -3841,6 +3880,35 @@ function cancelSwap(){
   state.pendingRelic = null;
   state.mode = "explore";
   render();
+}
+
+// --- 女神像イベント描画 ---
+// ボタン3つ：
+//   ・「回復してほしい」+ 価格（スクラップ不足でグレーアウト）
+//   ・「帰還したい」（スクラップ全額持ち帰り、確認ダイアログあり）
+//   ・「無視する」（一礼して通り過ぎる。同階に戻っても沈黙）
+function renderGoddessEvent(){
+  const price = getGoddessPrice(state.floor);
+  const canHeal = state.scrap >= price;
+
+  // 「回復してほしい」ボタン（商人のポーションボタンと同じスタイル）
+  let healBtn = document.createElement("button");
+  healBtn.innerHTML = `回復してほしい<br><span style="font-size:22px;">${SVG_ICONS.scrap}<span style="color:#ffcc66;">${price.toLocaleString()}</span></span>`;
+  let s = canHeal ? BTN_STYLES.special : BTN_STYLES.skip;
+  healBtn.style.borderColor = s.color;
+  healBtn.style.color       = s.color;
+  healBtn.style.background  = s.bg;
+  healBtn.style.boxShadow   = `0 0 10px ${s.color}66`;
+  healBtn.style.opacity     = canHeal ? "1" : "0.4";
+  healBtn.disabled          = !canHeal;
+  if(canHeal) healBtn.onclick = () => { playSE("select"); goddessHeal(); };
+  document.getElementById("actions").appendChild(healBtn);
+
+  // 「帰還したい」（旧「ホームに帰りたい」）
+  btn("帰還したい", confirmGoddessReturn, "danger");
+
+  // 「無視する」
+  btn("無視する", ignoreGoddess, "skip");
 }
 
 // --- 商人イベント ---
@@ -4266,13 +4334,45 @@ function goHome(){
 }
 
 // --- 女神像イベント ---
+// 女神への支払額（スクラップ）を計算
+// floor=30,60,90,120,150,180,210,240,270,300階で
+//   50,150,300,500/1000,1500,2100/5600,7200,9000,11000... と
+// 100階の境目で tierMultiplier が倍になる設計
+function getGoddessPrice(floor){
+  const n = floor / 30;
+  const tier = Math.ceil(floor / 100);  // 1, 2, 3, 4, 5...
+  const tierMultiplier = Math.pow(2, tier - 1);  // 1, 2, 4, 8, 16...
+  return 25 * n * (n + 1) * tierMultiplier;
+}
+
+// 女神回復量（現在HP回復値）。永続強化 goddessHeal Lv0〜6 で +0%〜+30%。
+// 初期20%、最大50%、最低保証5HP。
+function getGoddessHealAmount(){
+  const ratio = 0.20 + state.upgrades.goddessHeal * 0.05;
+  return Math.max(5, Math.ceil(state.maxHp * ratio));
+}
+
 function goddessHeal(){
+  const price = getGoddessPrice(state.floor);
+  // 念のため最終チェック（ボタン側でも disabled しているが二重で）
+  if(state.scrap < price) return;
+  state.scrap -= price;
   state.runStats.goddess++;
   state.goddessUsedFloors.add(state.floor);
-  let h = Math.max(5, Math.ceil(state.maxHp * 0.4));
+  let h = getGoddessHealAmount();
   heal(h);
   playSE("heal");
   addLog(`女神の加護！ HP +${h} 回復した`, "heal");
+  addLog(`スクラップ ${price.toLocaleString()} をお布施した`, "sub");
+  state.mode = "explore";
+  render();
+}
+
+function ignoreGoddess(){
+  // 「使わない判断をした」も使用扱いとし、同階に戻っても沈黙させる
+  state.goddessUsedFloors.add(state.floor);
+  playSE("select");
+  addLog("一礼して通り過ぎた", "sub");
   state.mode = "explore";
   render();
 }
