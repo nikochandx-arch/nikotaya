@@ -97,7 +97,7 @@ background: rgba(255, 85, 85, 0.1);
 .log-damage { color: #f55; }
 .log-scrap { color: #ffcc66; }
 .log-divider { color: #fff; text-align: center; }
-.log-loss { color: #f55; }
+.log-loss { color: #ffcc66; }  /* スクラップロス系。赤ではなく黄（スクラップ系統） */
 
 #top {
 display: flex;
@@ -604,7 +604,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.03</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.04</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -716,6 +716,25 @@ function makeRunStats(){
 }
 
 const SAVE_VERSION = 7;
+
+// ============================================
+// 表示色のルール（v13.04で整理）
+// ============================================
+// 「色＝意味」の対応をプレイヤーに直感的に伝えるためのルール。
+// 数値だけでなく、できる限り「数値＋単位」「効果名＋ターン数」をひとまとめにして色付ける。
+// 地の文（動詞や状況説明）は白／グレー、対象語と数値のみが色を持つ。
+//
+// イベント見出し（深い縦穴／謎のキノコ／謎の商人 など）は基本白字。
+// 特定人物（商人・DAIGO・陽キャ等）の名前色付けは将来個別対応する余地を残してある。
+const COLORS = {
+  damage:   "#f55",     // ダメージ（HP減）
+  scrap:    "#ffcc66",  // スクラップ増減（増減は符号で表す）
+  emerald:  "#58d68d",  // エメラルド
+  heal:     "#aaff66",  // HP回復・デバフ解消（=良いこと）
+  buff:     "#22d3ee",  // バフ付与（採掘力UP等）
+  debuff:   "#c084fc",  // デバフ付与（毒・採掘量低下等）
+  floor:    "#60a5fa",  // 階層変化（縦穴・キノコ錯乱戻り等）
+};
 
 // ============================================
 // 採掘便り（Cloudflare連携）
@@ -1809,27 +1828,77 @@ function damage(d, nonPhysical=false){
 function heal(v)  { state.hp = Math.min(state.maxHp, state.hp + v); }
 
 // --- ログテキスト色付け ---
+// 色ルール（v13.04）：
+//   数値だけでなく「数値＋単位」「効果名＋ターン数」をひとまとめに色付ける。
+//   地の文は白／グレー、意味を担う部分だけ色を持つ。
+// 適用順は重要（早い置換が優先される）。
+//   1. アイテム名（黄緑） … 文章中のどこに現れても置換
+//   2. ダメージ「N ダメージ」
+//   3. HP増減
+//   4. スクラップ増減（符号付き / 単独数値）
+//   5. エメラルド増減
+//   6. バフ付与「○○UP！（Nターン）」
+//   7. デバフ付与「○○（Nターン）」「毒を受けた（Nターン）」
+//   8. 階層変化「N階に落ちた」「N階まで戻ってしまった」「N階へ降り立った」
 function colorizeLog(text, type){
-  // アイテム名を黄緑に
+  // 1. アイテム名を黄緑に
   Object.values(ITEM_DEF).forEach(def => {
     text = text.split(def.name).join(
       `<span style="color:#aaffaa;font-weight:bold;">${def.name}</span>`);
   });
-  // ダメージ数値を赤に（「X ダメージ」）
-  text = text.replace(/(\d+)( ダメージ)/g,
-    '<span style="color:#f55;font-weight:bold;">$1</span>$2');
-  // スクラップ数値をオレンジに（「スクラップ +X」の形のみ）、前にSVGアイコン挿入
-  text = text.replace(/(スクラップ )(\+[\d,]+)/g,
-    `$1${SVG_ICONS.scrap}<span style="color:#ffcc66;font-weight:bold;">$2</span>`);
-  // エメラルド数値を緑に
-  text = text.replace(/(エメラルド )(\+[\d,]+)/g,
-    `$1${SVG_ICONS.emerald}<span style="color:#58d68d;font-weight:bold;">$2</span>`);
-  // HP回復を黄緑に（全タイプ共通）
-  text = text.replace(/(HP\+\d+|HP \+\d+)/g,
-    '<span style="color:#aaff66;font-weight:bold;">$1</span>');
-  // 単独のスクラップ数値（マイナス時など、+なしのもの）をオレンジに
-  text = text.replace(/スクラップ ([\d,]+)(?![\d])/g,
-    'スクラップ <span style="color:#ffcc66;font-weight:bold;">$1</span>');
+
+  // 2. ダメージ：「N ダメージ」を1セットで赤に
+  text = text.replace(/(\d+ ダメージ)/g,
+    `<span style="color:${COLORS.damage};font-weight:bold;">$1</span>`);
+  // 2b. 毒ダメージは「毒ダメージ N」と数値が後ろに来る特殊パターン
+  text = text.replace(/(毒ダメージ \d+)/g,
+    `<span style="color:${COLORS.damage};font-weight:bold;">$1</span>`);
+
+  // 3. HP回復：「HP+N」「HP +N」を緑に
+  text = text.replace(/(HP\s*\+\d+)/g,
+    `<span style="color:${COLORS.heal};font-weight:bold;">$1</span>`);
+
+  // 4a. スクラップ符号付き：「スクラップ +N」「スクラップ -N」を黄に。
+  //     SVGアイコンは「スクラップ」と数値の間に挿入する（B採用）。
+  text = text.replace(/(スクラップ )([+\-][\d,]+)/g,
+    `<span style="color:${COLORS.scrap};font-weight:bold;">$1</span>${SVG_ICONS.scrap}<span style="color:${COLORS.scrap};font-weight:bold;">$2</span>`);
+  // 4b. スクラップ単独数値（符号なし）：「スクラップ N」を黄に。SVGも挿入。
+  text = text.replace(/(スクラップ )([\d,]+)(?![\d,])/g,
+    `<span style="color:${COLORS.scrap};font-weight:bold;">$1</span>${SVG_ICONS.scrap}<span style="color:${COLORS.scrap};font-weight:bold;">$2</span>`);
+  // 4c. 「スクラップを N 落とした／ばらまいた」など、数値が文の途中に来るパターン
+  //     → 「スクラップを N」までを黄にする
+  text = text.replace(/(スクラップを )([\d,]+)/g,
+    `<span style="color:${COLORS.scrap};font-weight:bold;">$1$2</span>`);
+
+  // 5. エメラルド：「エメラルド +N」など。SVGアイコンは数値の前に挿入。
+  text = text.replace(/(エメラルド )([+\-]?[\d,]+)/g,
+    `$1${SVG_ICONS.emerald}<span style="color:${COLORS.emerald};font-weight:bold;">$2</span>`);
+
+  // 6. バフ付与：「採掘力UP！（Nターン）」など。「採掘力UP」～「（Nターン）」全体をシアン。
+  text = text.replace(/(採掘力UP！?（\d+ターン）)/g,
+    `<span style="color:${COLORS.buff};font-weight:bold;">$1</span>`);
+  text = text.replace(/(🛡️\s*ガード\s*\+\d+回)/g,
+    `<span style="color:${COLORS.buff};font-weight:bold;">$1</span>`);
+
+  // 7. デバフ付与：「毒を受けた（Nターン）」「採掘量低下（Nターン）」など。
+  text = text.replace(/(毒を受けた（\d+ターン）)/g,
+    `<span style="color:${COLORS.debuff};font-weight:bold;">$1</span>`);
+  text = text.replace(/(採掘量低下（\d+ターン）)/g,
+    `<span style="color:${COLORS.debuff};font-weight:bold;">$1</span>`);
+  // 7b. 毒ダメージは「ダメージ」マッチで既に赤になっている。そちらに任せる。
+  // 7c. デバフ解消「毒が治った」は良いこと扱いで緑に。
+  text = text.replace(/(毒が治った)/g,
+    `<span style="color:${COLORS.heal};font-weight:bold;">$1</span>`);
+
+  // 8. 階層変化：「N階に落ちた」「N階まで戻ってしまった」「N階へ降り立った」を青に。
+  //    数値だけでなく単位（階）込みで色付け。
+  text = text.replace(/(\d+階に落ちた)/g,
+    `<span style="color:${COLORS.floor};font-weight:bold;">$1</span>`);
+  text = text.replace(/(\d+階まで戻ってしまった)/g,
+    `<span style="color:${COLORS.floor};font-weight:bold;">$1</span>`);
+  text = text.replace(/(\d+階へ降り立った)/g,
+    `<span style="color:${COLORS.floor};font-weight:bold;">$1</span>`);
+
   return text;
 }
 
@@ -2218,7 +2287,7 @@ ${relicsHTML}
         : "";
       ceText.innerHTML =
         floorBadgeHTML(state.floor) +
-`<div style="font-size:26px;color:#0ff;">採掘者DAIGO</div>
+`<div style="font-size:26px;color:#fff;">採掘者DAIGO</div>
 <div style="font-size:22px;color:#fff;margin-top:6px;">『${tipText}』</div>
 ${friendHTML}
 `;
@@ -2230,9 +2299,9 @@ ${friendHTML}
       let pct = Math.round((state.hp / state.maxHp) * 100);
       ceText.innerHTML =
         floorBadgeHTML(state.floor) +
-`<div style="font-size:26px;color:#60a5fa;">深い縦穴</div>
+`<div style="font-size:26px;color:#fff;">深い縦穴だ！</div>
 <div style="font-size:22px;color:#fff;margin-top:6px;">向こう側にジャンプ出来れば近道になりそうだけど…</div>
-<div style="font-size:20px;color:#aaa;margin-top:4px;">ジャンプ成功率：<span style="color:#60a5fa;">${pct}%</span></div>
+<div style="font-size:20px;color:#aaa;margin-top:4px;">ジャンプ成功率：<span style="color:${COLORS.floor};">${pct}%</span></div>
 `;
       // ボタンは下のswitchで描画するのでここではスキップ
     } else
@@ -2242,15 +2311,15 @@ ${friendHTML}
       if(r.success){
         ceText.innerHTML =
           floorBadgeHTML(state.floor) +
-`<div style="font-size:26px;color:#60a5fa;">ジャンプ成功！</div>
-<div style="font-size:22px;color:#fff;margin-top:6px;">一気に<span style="color:#60a5fa;">${r.targetFloor}</span>階へ降り立った</div>
+`<div style="font-size:26px;color:#fff;">ジャンプ成功！</div>
+<div style="font-size:22px;color:#fff;margin-top:6px;">一気に<span style="color:${COLORS.floor};font-weight:bold;">${r.targetFloor}階</span>へ降り立った</div>
 `;
       } else {
         ceText.innerHTML =
           floorBadgeHTML(state.floor) +
-`<div style="font-size:26px;color:#f55;">ジャンプ失敗…</div>
-<div style="font-size:22px;color:#fff;margin-top:6px;">落下して <span style="color:#f55;">${r.dmg}</span> ダメージ</div>
-<div style="font-size:22px;color:#fff;margin-top:6px;"><span style="color:#f55;">${r.targetFloor}</span>階に落ちた</div>
+`<div style="font-size:26px;color:#fff;">ジャンプ失敗…</div>
+<div style="font-size:22px;color:#fff;margin-top:6px;">落下して <span style="color:${COLORS.damage};font-weight:bold;">${r.dmg} ダメージ</span></div>
+<div style="font-size:22px;color:#fff;margin-top:6px;"><span style="color:${COLORS.floor};font-weight:bold;">${r.targetFloor}階</span>に落ちた</div>
 `;
       }
       // ボタンは下のswitchで描画するのでここではスキップ
@@ -2260,7 +2329,7 @@ ${friendHTML}
       let price = Math.max(1, Math.floor(state.scrap * 0.2));
       ceText.innerHTML =
         floorBadgeHTML(state.floor) +
-`<div style="font-size:26px;color:#a855f7;">謎の商人</div>
+`<div style="font-size:26px;color:#fff;">謎の商人</div>
 <div style="font-size:22px;color:#fff;margin-top:6px;">『やあ、${state.name}さん。何か入り用かい？』</div>
 <div style="font-size:20px;color:#aaa;margin-top:4px;">ポーション：${SVG_ICONS.scrap}<span style="color:#ffcc66;">${price.toLocaleString()}</span></div>
 `;
@@ -3268,7 +3337,7 @@ const LIGHT_EVENTS = [
     fn: () => {
       playSE("select");
       applyPoison(2);
-      addLog("有毒ガスが充満している！ 毒2ターン", "damage");
+      addLog("有毒ガスが充満している！ 毒を受けた（2ターン）", "damage");
     }
   },
   {
@@ -3842,7 +3911,7 @@ function batForce(){
     let actual = damage(d);
     playSE("damage");
     applyPoison(3);
-    addLog(`コウモリに襲われた！ ${actual} ダメージ＋毒3ターン`, "sub");
+    addLog(`コウモリに襲われた！ ${actual} ダメージ＋毒を受けた（3ターン）`, "sub");
   }
   checkDeath();
   if(state.mode !== "dead") state.mode = "explore";
