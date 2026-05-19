@@ -1,5 +1,5 @@
 // ============================================
-// icons.js  (for v12.42+)
+// icons.js  (for v13.10+)
 // ============================================
 // Nikotaya Mining Roguelike のSVGアイコン定義ファイル。
 // SVG_ICONS オブジェクトを定義する。index.html 本体より
@@ -445,6 +445,50 @@ const SVG_ICONS = {
         <circle cx="10" cy="110" r="3"/>
         <circle cx="105" cy="85" r="3"/>
       </g>
+    </g>
+  </svg>`,
+
+  // v13.10：コンテナアイコン（旧📦絵文字を置換）
+  // にこたゃ作のSVGをサイズ規格に合わせて既存形式に揃えたもの。
+  // defs内のidは他SVGとの衝突を避けるため container- プレフィックス付き。
+  container: `<svg viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
+    <defs>
+      <path id="container-box-lid" d="M 25 60 C 25 52 115 52 115 60 L 115 68 L 25 68 Z"/>
+      <path id="container-box-base" d="M 25 68 L 115 68 L 110 112 L 30 112 Z"/>
+    </defs>
+    <g transform="translate(0, 10)">
+      <!-- 影 -->
+      <ellipse cx="70" cy="115" rx="45" ry="8" fill="#18181b"/>
+
+      <!-- 1. ダークグレーの太フチ（背景分離） -->
+      <g fill="#27272a" stroke="#27272a" stroke-width="12" stroke-linejoin="round" stroke-linecap="round">
+        <use href="#container-box-lid"/>
+        <use href="#container-box-base"/>
+      </g>
+
+      <!-- 2. 本体と蓋（くすんだ茶色の木材） -->
+      <use href="#container-box-base" fill="#78350f" stroke="#18181b" stroke-width="4" stroke-linejoin="round"/>
+      <use href="#container-box-lid"  fill="#92400e" stroke="#18181b" stroke-width="4" stroke-linejoin="round"/>
+
+      <!-- 3. 木目（シンプルな横線） -->
+      <path d="M 32 82 L 108 82 M 35 96 L 105 96 M 30 58 L 110 58" stroke="#451a03" stroke-width="3" stroke-linecap="round"/>
+
+      <!-- 4. 鉄の補強枠（グレー） -->
+      <rect x="40" y="54" width="12" height="56" fill="#71717a" stroke="#18181b" stroke-width="3"/>
+      <circle cx="46" cy="62" r="1.5" fill="#18181b"/>
+      <circle cx="46" cy="104" r="1.5" fill="#18181b"/>
+
+      <rect x="88" y="54" width="12" height="56" fill="#71717a" stroke="#18181b" stroke-width="3"/>
+      <circle cx="94" cy="62" r="1.5" fill="#18181b"/>
+      <circle cx="94" cy="104" r="1.5" fill="#18181b"/>
+
+      <!-- 5. 簡素な錠前（四角いプレートと丸穴） -->
+      <rect x="62" y="58" width="16" height="14" rx="2" fill="#a1a1aa" stroke="#18181b" stroke-width="3"/>
+      <circle cx="70" cy="65" r="2.5" fill="#18181b"/>
+      <line x1="70" y1="66" x2="70" y2="69" stroke="#18181b" stroke-width="2" stroke-linecap="round"/>
+
+      <!-- 6. わずかなハイライト -->
+      <path d="M 28 55 C 45 52 95 52 112 55" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
     </g>
   </svg>`,
 

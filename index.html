@@ -607,7 +607,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.09</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.10</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -1964,7 +1964,7 @@ function getEmoji(text, type){
   if(type==="loss")        return "🕳️";
   if(type==="sub")         return "";
   if(text.includes("採掘開始"))     return SVG_ICONS.pickaxe;
-  if(text.includes("コンテナ"))     return "📦";
+  if(text.includes("コンテナ"))     return SVG_ICONS.container;
   if(text.includes("鉱脈"))         return SVG_ICONS.vein;
   if(text.includes("キノコ"))       return SVG_ICONS.mushroom;
   if(text.includes("帰還"))         return "🏠";
