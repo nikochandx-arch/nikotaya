@@ -607,7 +607,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.08</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.09</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -737,7 +737,15 @@ const COLORS = {
   buff:     "#22d3ee",  // バフ付与（採掘力UP等）
   debuff:   "#c084fc",  // デバフ付与（毒・採掘量低下等）
   floor:    "#60a5fa",  // 階層変化（縦穴・キノコ錯乱戻り等）
+  playerName: "#0ff",   // プレイヤー名強調（ステータス表示の色と同じ）
 };
+
+// プレイヤー名を太字＋指定色で強調するヘルパー。
+// 商人セリフ・陽キャセリフなど、プレイヤー名を画面に出すときに使う。
+// 色は COLORS.playerName を参照しているので、一括変更したい時はここを変えればOK。
+function playerNameHTML(){
+  return `<span style="color:${COLORS.playerName};font-weight:bold;">${state.name}</span>`;
+}
 
 // ============================================
 // 採掘便り（Cloudflare連携）
@@ -1100,6 +1108,13 @@ const ITEM_DEF = {
   guard3: {
     name: "ヘルメット",
     desc: "🛡️ガードを3回付与",
+    usableModes: null
+  },
+  beyaku: {
+    // v13.09：商人の上得意客向け（購入20回以上）解禁アイテム。
+    // 採掘力UP 10T と 脆弱 10T を同時付与する両刃の薬。
+    name: "ベーヤク",
+    desc: "採掘力UP（10ターン）と 💔脆弱（10ターン）を付与",
     usableModes: null
   }
 };
@@ -1915,6 +1930,9 @@ function colorizeLog(text, type){
     `<span style="color:${COLORS.debuff};">$1</span><span style="color:${COLORS.debuff};font-weight:bold;">$2</span><span style="color:${COLORS.debuff};">$3</span>`);
   text = text.replace(/(採掘量低下（)(\d+)(ターン）)/g,
     `<span style="color:${COLORS.debuff};">$1</span><span style="color:${COLORS.debuff};font-weight:bold;">$2</span><span style="color:${COLORS.debuff};">$3</span>`);
+  // 7d. 「脆弱（Nターン）」もデバフ色付け（v13.09でベーヤクから付与可能に）
+  text = text.replace(/(脆弱（)(\d+)(ターン）)/g,
+    `<span style="color:${COLORS.debuff};">$1</span><span style="color:${COLORS.debuff};font-weight:bold;">$2</span><span style="color:${COLORS.debuff};">$3</span>`);
   // 7c. デバフ解消「毒が治った」は良いこと扱いで緑（数値なしなので太字なし）。
   text = text.replace(/(毒が治った)/g,
     `<span style="color:${COLORS.heal};">$1</span>`);
@@ -2355,12 +2373,21 @@ ${friendHTML}
     } else
     if(state.mode === "event_merchant"){
       ceIcon.innerHTML = SVG_ICONS.merchant.replace("width:1em;height:1em;","width:2em;height:2em;");
-      let price = Math.max(1, Math.floor(state.scrap * 0.2));
+      // 段階別セリフ（getMerchantTier）に応じて切り替え
+      // 商品の価格はボタンに表示されるので、メイン画面の価格表示は廃止（v13.09）
+      const tier = getMerchantTier();
+      let line;
+      if(tier === 1){
+        line = `『やあ、${playerNameHTML()}さん。何か入り用かい？』`;
+      } else if(tier === 2){
+        line = `『${playerNameHTML()}さん毎度。いい物揃えてるよ』`;
+      } else {
+        line = `『とっておきの品ばかりだよ。${playerNameHTML()}さんは常連さんだからね』`;
+      }
       ceText.innerHTML =
         floorBadgeHTML(state.floor) +
 `<div style="font-size:26px;color:#fff;">謎の商人</div>
-<div style="font-size:22px;color:#fff;margin-top:6px;">『やあ、${state.name}さん。何か入り用かい？』</div>
-<div style="font-size:20px;color:#aaa;margin-top:4px;">ポーション：${SVG_ICONS.scrap}<span style="color:#ffcc66;">${price.toLocaleString()}</span></div>
+<div style="font-size:22px;color:#fff;margin-top:6px;">${line}</div>
 `;
       // ボタンは下のswitchで描画するのでここではスキップ
     } else
@@ -2380,7 +2407,7 @@ ${friendHTML}
       ceText.innerHTML =
         floorBadgeHTML(state.floor) +
 `<div style="font-size:26px;color:#facc15;">陽キャ</div>
-<div style="font-size:22px;color:#fff;margin-top:6px;">『${state.name}さん、今ちょっと懐が寂しくて…</div>
+<div style="font-size:22px;color:#fff;margin-top:6px;">『${playerNameHTML()}さん、今ちょっと懐が寂しくて…</div>
 <div style="font-size:22px;color:#fff;">いくらか融通してもらえませんか？』</div>
 <div style="font-size:20px;color:#aaa;margin-top:4px;">必要：${SVG_ICONS.scrap}<span style="color:#ffcc66;">${YOUKI_COST.toLocaleString()}</span></div>
 `;
@@ -3866,6 +3893,16 @@ function applyItemEffect(item){
     applyBuffById("guard", 3);
     playSE("select");
     addLog("ヘルメットを装着！ 🛡️ ガード +3回", "sub");
+  } else if(item.effect === "beyaku"){
+    // v13.09：ベーヤク = 採掘力UP 10T + 脆弱 10T
+    // 強力なバフだが代償としてダメージ増幅デバフが付く両刃の薬。
+    // ログは3行構成：見出し + 各効果（subで）
+    applyBuffById("miningUp", 10);
+    applyBuffById("fragile", 10);
+    playSE("select");
+    addLog("ベーヤクを使った！", "scrap");
+    addLog("採掘力UP！（10ターン）", "sub");
+    addLog("脆弱（10ターン）", "sub");
   }
 }
 
@@ -4080,31 +4117,74 @@ function renderGoddessEvent(){
 }
 
 // --- 商人イベント ---
+// 商人解禁段階（永続累計stats.merchantBuysから判定）
+// 段階1: 0-9回 → ポーションのみ
+// 段階2: 10-19回 → ポーション+毒消し草
+// 段階3: 20回以上 → ポーション+毒消し草+ベーヤク
+function getMerchantTier(){
+  const c = state.stats.merchantBuys || 0;
+  if(c >= 20) return 3;
+  if(c >= 10) return 2;
+  return 1;
+}
+
+// 商人の取扱商品（id→ポーション/毒消し草/ベーヤク）の価格を計算
+// 「割合価格と最低値で高い方をとる」方式（v13.09〜）
+//   - ポーション：20% / 最低10
+//   - 毒消し草 ：30% / 最低100
+//   - ベーヤク ：40% / 最低1000
+function getMerchantPrice(itemId){
+  const rate = { hp3: 0.2, antidote: 0.3, beyaku: 0.4 }[itemId];
+  const min  = { hp3: 10,  antidote: 100, beyaku: 1000 }[itemId];
+  const ratePrice = Math.floor(state.scrap * rate);
+  return Math.max(min, ratePrice);
+}
+
 function renderMerchantEvent(){
-  let price = Math.max(1, Math.floor(state.scrap * 0.2));
-  let canBuy = state.scrap >= price && state.items.length < 5;
-  let b = document.createElement("button");
-  b.innerHTML = `ポーション<br><span style="font-size:22px;">${SVG_ICONS.scrap}<span style="color:#ffcc66;">${price.toLocaleString()}</span></span>`;
-  let s = canBuy ? BTN_STYLES.risk : BTN_STYLES.skip;
-  b.style.borderColor = s.color;
-  b.style.color       = s.color;
-  b.style.background  = s.bg;
-  b.style.boxShadow   = `0 0 10px ${s.color}66`;
-  b.style.opacity     = canBuy ? "1" : "0.4";
-  b.disabled          = !canBuy;
-  if(canBuy) b.onclick = () => { playSE("coin"); buyFromMerchant(price); };
-  document.getElementById("actions").appendChild(b);
+  const tier = getMerchantTier();
+  // 取扱リスト（段階ごと）
+  const lineup = [
+    { id: "hp3",      name: "ポーション" }
+  ];
+  if(tier >= 2) lineup.push({ id: "antidote", name: "毒消し草" });
+  if(tier >= 3) lineup.push({ id: "beyaku",   name: "ベーヤク" });
+
+  // 各商品ボタンを追加
+  for(const it of lineup){
+    const price = getMerchantPrice(it.id);
+    const canBuy = state.scrap >= price && state.items.length < 5;
+    const b = document.createElement("button");
+    b.innerHTML =
+      `${it.name}<br>` +
+      `<span style="font-size:22px;">${SVG_ICONS.scrap}` +
+      `<span style="color:#ffcc66;">${price.toLocaleString()}</span></span>`;
+    const s = canBuy ? BTN_STYLES.risk : BTN_STYLES.skip;
+    b.style.borderColor = s.color;
+    b.style.color       = s.color;
+    b.style.background  = s.bg;
+    b.style.boxShadow   = `0 0 10px ${s.color}66`;
+    b.style.opacity     = canBuy ? "1" : "0.4";
+    b.disabled          = !canBuy;
+    if(canBuy){
+      // クロージャでitのidを束縛
+      const itemId = it.id;
+      b.onclick = () => { playSE("coin"); buyFromMerchant(itemId, price); };
+    }
+    document.getElementById("actions").appendChild(b);
+  }
   btn("いらない", ignoreMerchant, "skip");
 }
 
-function buyFromMerchant(price){
+function buyFromMerchant(itemId, price){
   state.scrap -= price;
   state.runStats.merchantBuys++;
-  let newItem = { name: "ポーション", effect: "hp3" };
+  // アイテム名を ITEM_DEF から引いて確実に同期させる
+  const def = ITEM_DEF[itemId];
+  const newItem = { name: def ? def.name : "?", effect: itemId };
   if(state.items.length < 5){
     state.items.push(newItem);
     saveAll();
-    addLog(`ポーションを ${price.toLocaleString()} で購入した`, "sub");
+    addLog(`${newItem.name}を ${price.toLocaleString()} で購入した`, "sub");
   }
   state.mode = "explore";
   render();
