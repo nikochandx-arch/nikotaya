@@ -621,7 +621,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.15</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.16</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -1834,6 +1834,20 @@ function getHpCost()      { return Math.floor(50  + state.upgrades.hp    * state
 function getPowerCost()   { return Math.floor(100 + state.upgrades.power * state.upgrades.power * 3); }
 function getPotionHealCost() { return Math.floor(1500 * Math.pow(1.55, state.upgrades.potionHeal)); }
 function getPotionHealValue(){ return 3 + state.upgrades.potionHeal; }
+
+// --- 加算ヘルパー（v13.16） ---
+// スクラップ・エメラルドの加算は必ずこれを経由する。
+// 「state.xxx と state.runStats.xxx を両方加算」のような対の処理を
+// 1箇所に閉じ込めることで、加算漏れ・統計記録漏れを構造的に防ぐ。
+// 将来「総獲得スクラップ統計」などを増やしたいときも、ここに1行足せば全箇所に反映される。
+// 注：減算（買い物などでの消費）は今回は対象外。今後必要に応じてヘルパー化する。
+function gainScrap(amount){
+  state.scrap += amount;
+}
+function gainEmerald(amount){
+  state.emerald = (state.emerald || 0) + amount;
+  state.runStats.emerald += amount;
+}
 
 // --- HP処理 ---
 // 諸盾の紋（gamble_shield）など、ダメージ値を変動させる紋があるため、
@@ -3515,7 +3529,7 @@ const LIGHT_EVENTS = [
       if(Math.random() < 0.5){
         // 金モグラ
         let gain = Math.floor(state.scrap / 2);
-        state.scrap += gain;
+        gainScrap(gain);
         state.runStats.goldenMole++;
         addLog(`金モグラだ！ スクラップ +${gain.toLocaleString()}`, "scrap");
       } else {
@@ -3763,12 +3777,11 @@ function proceedAfterTick(){
         let penalty = Math.floor(g * 0.3);
         g -= penalty;
       }
-      state.scrap += g;
+      gainScrap(g);
       // エメラルドドロップ判定
       let dropRate = getEmeraldDropRate();
       if(dropRate > 0 && Math.random() < dropRate){
-        state.emerald++;
-        state.runStats.emerald++;
+        gainEmerald(1);
         playSE("emerald");
         addLog(`採掘した スクラップ +${g.toLocaleString()} エメラルド +1`, "scrap");
       } else {
@@ -3781,7 +3794,7 @@ function proceedAfterTick(){
       // 高HP（75%以上）時：15%の確率で採掘ボーナス
       if(EVENT_COND().highHp && Math.random() < 0.15){
         let bonus = Math.max(1, Math.floor(g * 0.3));
-        state.scrap += bonus;
+        gainScrap(bonus);
         addLog(`採掘の調子が良い！追加 スクラップ +${bonus.toLocaleString()}`, "sub");
       }
     })();
@@ -3810,7 +3823,7 @@ function openChest(){
   if(r < 0.60){
     // スクラップ 60%
     let g = calcScrap() * 3;
-    state.scrap += g;
+    gainScrap(g);
     addLog(`資源を発見！ スクラップ +${g.toLocaleString()}`, "sub");
     checkDeath();
     if(state.mode !== "dead") state.mode = "explore";
@@ -4306,7 +4319,7 @@ function pickupGrave(){
     // スクラップ報酬（故人の所持スクラップ1%）
     const scrapDrop = Math.floor((letter.scrap || 0) * 0.01);
     if(scrapDrop > 0){
-      state.scrap += scrapDrop;
+      gainScrap(scrapDrop);
       playSE("coin");
       addLog(`スクラップ ${scrapDrop} を手に入れた！`, "scrap", SVG_ICONS.grave);
     } else {
@@ -4385,7 +4398,7 @@ function digVein(){
   } else {
     // 成功（前回獲得量以上を保証）
     let g = Math.max(state.veinLastGain, Math.floor(calcScrap() * getMiningMultiplier() * p.mult));
-    state.scrap += g;
+    gainScrap(g);
     state.veinLastGain = g;
     // エメラルドドロップ判定（1回目=depth0は0%、2回目以降は倍率適用）
     const veinEmeraldMult = [0, 1.0, 1.5, 2.0];
@@ -4394,8 +4407,7 @@ function digVein(){
     let gotEmerald = emeraldRate > 0 && Math.random() < emeraldRate;
     state.veinLastEmerald = gotEmerald;
     if(gotEmerald){
-      state.emerald++;
-      state.runStats.emerald++;
+      gainEmerald(1);
       playSE("emerald");
       addLog(`鉱脈を掘り当てた！ スクラップ +${g.toLocaleString()} エメラルド +1`, "sub");
     } else {
