@@ -621,7 +621,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.18</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.19</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -2637,11 +2637,19 @@ ${friendHTML}
           crestHTML += `<div class="crest-empty">EMPTY</div>`;
         }
       }
-      // v13.15：アイテムボタンを紋スロット右側に追加。
-      // 紋スロット5枠（画面幅の約3分の2）の右、空いた領域に配置。
+      // 紋スロット5枠の右、空いた領域にアイテムモーダルボタンを配置。
       // タップで openItemMenu() を呼びアイテムモーダルを開く。
-      // CSSのフォントサイズで実際の表示サイズが決まる（width:1em の SVG が1em表示）。
-      crestHTML += `<div class="item-button" onclick="openItemMenu()" style="margin-left:auto;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:64px;line-height:1;">${SVG_ICONS.itemButton}</div>`;
+      // 満タン時イベント中（event_item_full）は、actionsエリアでの選択経路と
+      // モーダル経由の二重操作を防ぐためロックする（グレーアウト + タップ無効）。
+      const itemBtnLocked = state.mode === "event_item_full";
+      const itemBtnStyle =
+        `margin-left:auto;display:flex;align-items:center;justify-content:center;` +
+        `font-size:64px;line-height:1;` +
+        (itemBtnLocked
+          ? `opacity:0.3;pointer-events:none;cursor:default;`
+          : `cursor:pointer;`);
+      const itemBtnOnclick = itemBtnLocked ? "" : ` onclick="openItemMenu()"`;
+      crestHTML += `<div class="item-button"${itemBtnOnclick} style="${itemBtnStyle}">${SVG_ICONS.itemButton}</div>`;
       crestEl.innerHTML = crestHTML;
     }
   }
@@ -2860,6 +2868,9 @@ function buildItemRowHTML(item, index, opts){
 // 採掘中・ホーム・コンテナ後など、resultモード以外ならいつでも開ける。
 function openItemMenu(){
   if(state.mode === "result") return;
+  // 満タン時イベント中はactionsエリアでの選択経路と二重操作になるためロック。
+  // render()側でもボタンを無効化しているが、多層防御として明示的に弾く。
+  if(state.mode === "event_item_full") return;
   showModal(buildItemMenuHTML(), { alertOnly: true });
 }
 
