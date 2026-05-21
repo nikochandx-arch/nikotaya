@@ -621,7 +621,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.17</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.18</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -2711,6 +2711,39 @@ function btn(t, f, style="main", seName="select"){
   document.getElementById("actions").appendChild(b);
 }
 
+// 価格付き・状態依存のボタンを actions エリアに追加するヘルパー。
+// 「価格表示＋通貨アイコン＋払えない時グレーアウト」のパターン用。
+//   opts.label    : ボタンに表示するメインテキスト
+//   opts.price    : 価格（数値）
+//   opts.canPay   : 払えるかどうか（false なら disabled + skip スタイル）
+//   opts.payStyle : canPay=true 時のスタイル（BTN_STYLES のキー: risk/special など）
+//   opts.onClick  : 押下時の関数（canPay=true のときだけ仕込む）
+//   opts.seName   : 押下時SE（既定 "select"、null を渡すと自動再生なし）
+// 通貨アイコンはスクラップ固定。エメラルド通貨のイベントが必要になったら拡張する。
+function btnWithPrice(opts){
+  const b = document.createElement("button");
+  b.innerHTML =
+    `${opts.label}<br>` +
+    `<span style="font-size:22px;">${SVG_ICONS.scrap}` +
+    `<span style="color:#ffcc66;">${opts.price.toLocaleString()}</span></span>`;
+  const s = opts.canPay ? BTN_STYLES[opts.payStyle] : BTN_STYLES.skip;
+  b.style.borderColor = s.color;
+  b.style.color       = s.color;
+  b.style.background  = s.bg;
+  b.style.boxShadow   = `0 0 10px ${s.color}66`;
+  b.style.opacity     = opts.canPay ? "1" : "0.4";
+  b.disabled          = !opts.canPay;
+  if(opts.canPay){
+    if(opts.seName === null){
+      b.onclick = opts.onClick;
+    } else {
+      const se = opts.seName || "select";
+      b.onclick = () => { playSE(se); opts.onClick(); };
+    }
+  }
+  document.getElementById("actions").appendChild(b);
+}
+
 // --- 紋一覧トグル ---
 let relicPrevMode = "home";
 
@@ -4133,25 +4166,14 @@ function cancelSwap(){
 //   ・「無視する」（一礼して通り過ぎる。同階に戻っても沈黙）
 function renderGoddessEvent(){
   const price = getGoddessPrice(state.floor);
-  const canHeal = state.scrap >= price;
-
-  // 「回復してほしい」ボタン（商人のポーションボタンと同じスタイル）
-  let healBtn = document.createElement("button");
-  healBtn.innerHTML = `回復祈願<br><span style="font-size:22px;">${SVG_ICONS.scrap}<span style="color:#ffcc66;">${price.toLocaleString()}</span></span>`;
-  let s = canHeal ? BTN_STYLES.special : BTN_STYLES.skip;
-  healBtn.style.borderColor = s.color;
-  healBtn.style.color       = s.color;
-  healBtn.style.background  = s.bg;
-  healBtn.style.boxShadow   = `0 0 10px ${s.color}66`;
-  healBtn.style.opacity     = canHeal ? "1" : "0.4";
-  healBtn.disabled          = !canHeal;
-  if(canHeal) healBtn.onclick = () => { playSE("select"); goddessHeal(); };
-  document.getElementById("actions").appendChild(healBtn);
-
-  // 「無視する」
+  btnWithPrice({
+    label: "回復祈願",
+    price: price,
+    canPay: state.scrap >= price,
+    payStyle: "special",
+    onClick: goddessHeal,
+  });
   btn("無視する", ignoreGoddess, "skip");
-
-  // 「帰還したい」（旧「ホームに帰りたい」）
   btn("帰還したい", confirmGoddessReturn, "danger");
 }
 
@@ -4191,25 +4213,15 @@ function renderMerchantEvent(){
   // 各商品ボタンを追加
   for(const it of lineup){
     const price = getMerchantPrice(it.id);
-    const canBuy = state.scrap >= price && state.items.length < 5;
-    const b = document.createElement("button");
-    b.innerHTML =
-      `${it.name}<br>` +
-      `<span style="font-size:22px;">${SVG_ICONS.scrap}` +
-      `<span style="color:#ffcc66;">${price.toLocaleString()}</span></span>`;
-    const s = canBuy ? BTN_STYLES.risk : BTN_STYLES.skip;
-    b.style.borderColor = s.color;
-    b.style.color       = s.color;
-    b.style.background  = s.bg;
-    b.style.boxShadow   = `0 0 10px ${s.color}66`;
-    b.style.opacity     = canBuy ? "1" : "0.4";
-    b.disabled          = !canBuy;
-    if(canBuy){
-      // クロージャでitのidを束縛
-      const itemId = it.id;
-      b.onclick = () => { playSE("coin"); buyFromMerchant(itemId, price); };
-    }
-    document.getElementById("actions").appendChild(b);
+    const itemId = it.id;  // クロージャ用に固定
+    btnWithPrice({
+      label: it.name,
+      price: price,
+      canPay: state.scrap >= price && state.items.length < 5,
+      payStyle: "risk",
+      onClick: () => buyFromMerchant(itemId, price),
+      seName: "coin",
+    });
   }
   btn("いらない", ignoreMerchant, "skip");
 }
