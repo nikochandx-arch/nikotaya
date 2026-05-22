@@ -1,5 +1,5 @@
 // ============================================
-// icons.js  (for v13.20+)
+// icons.js  (for v13.22+)
 // ============================================
 // Nikotaya Mining Roguelike のSVGアイコン定義ファイル。
 // SVG_ICONS オブジェクトを定義する。index.html 本体より
@@ -519,8 +519,9 @@ const SVG_ICONS = {
   </svg>`,
 
   // アイテムボタン用SVG（紋スロット横に配置）。
-  // バッグ（鞄）デザイン。viewBoxは200x130だが、style指定で1emサイズに収める。
-  itemButton: `<svg viewBox="0 0 200 130" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
+  // バッグ（鞄）デザイン。サイズは .item-button CSS クラス側で制御するため、
+  // SVG タグ自体には width/height を指定せず、viewBox のみ。
+  itemButton: `<svg viewBox="0 0 200 130" xmlns="http://www.w3.org/2000/svg" style="display:block;">
     <defs>
       <rect id="bag-main" x="30" y="40" width="140" height="80" rx="15"/>
       <path id="bag-lid" d="M 25 45 Q 100 25 175 45 L 168 85 Q 100 110 32 85 Z"/>
