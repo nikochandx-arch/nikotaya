@@ -242,6 +242,21 @@ color: rgba(0, 255, 0, 0.3);
 font-size: 14px;
 }
 
+/* アイテムボタン：紋カードと縦サイズを合わせる。
+   バッグSVG（viewBox 200×130）の比率に合わせて横長。
+   高さは flex stretch で紋カードと自動的に揃う。 */
+.item-button {
+margin-left: auto;
+aspect-ratio: 200 / 130;
+display: flex;
+align-items: center;
+justify-content: center;
+}
+.item-button svg {
+height: 100%;
+width: 100%;
+}
+
 #log.relic-scroll { scrollbar-gutter: stable; padding-right: 12px; }
 #log.relic-scroll::-webkit-scrollbar { width: 4px; }
 #log.relic-scroll::-webkit-scrollbar-track { background: transparent; margin-right: 4px; }
@@ -2641,13 +2656,11 @@ ${friendHTML}
       // タップで openItemMenu() を呼びアイテムモーダルを開く。
       // 満タン時イベント中（event_item_full）は、actionsエリアでの選択経路と
       // モーダル経由の二重操作を防ぐためロックする（グレーアウト + タップ無効）。
+      // サイズ・レイアウトは .item-button クラスに集約。
       const itemBtnLocked = state.mode === "event_item_full";
-      const itemBtnStyle =
-        `margin-left:auto;display:flex;align-items:center;justify-content:center;` +
-        `font-size:64px;line-height:1;` +
-        (itemBtnLocked
-          ? `opacity:0.3;pointer-events:none;cursor:default;`
-          : `cursor:pointer;`);
+      const itemBtnStyle = itemBtnLocked
+        ? `opacity:0.3;pointer-events:none;cursor:default;`
+        : `cursor:pointer;`;
       const itemBtnOnclick = itemBtnLocked ? "" : ` onclick="openItemMenu()"`;
       crestHTML += `<div class="item-button"${itemBtnOnclick} style="${itemBtnStyle}">${SVG_ICONS.itemButton}</div>`;
       crestEl.innerHTML = crestHTML;
