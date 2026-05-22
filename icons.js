@@ -518,142 +518,29 @@ const SVG_ICONS = {
     </g>
   </svg>`,
 
-  // v13.15：アイテムボタン用SVG。
-  // ドット絵スタイル（shape-rendering: crispEdges でピクセル感維持）。
-  // 紋スロット横に配置されるボタンとして使う。
-  // SVG内の <style> はクラスベースだが、SVG内スコープに閉じている。
-  itemButton: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;" shape-rendering="crispEdges">
+  // アイテムボタン用SVG（紋スロット横に配置）。
+  // バッグ（鞄）デザイン。viewBoxは200x130だが、style指定で1emサイズに収める。
+  itemButton: `<svg viewBox="0 0 200 130" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
     <defs>
-      <style>
-        .ib-c-black   { fill: #000000; }
-        .ib-glass-0 { fill: #ffffff; }
-        .ib-glass-1 { fill: #e3ffff; }
-        .ib-glass-2 { fill: #a3effe; }
-        .ib-glass-3 { fill: #5bc2e2; }
-        .ib-glass-4 { fill: #2389ad; }
-        .ib-glass-5 { fill: #0e5072; }
-        .ib-glass-6 { fill: #04253a; }
-        .ib-liq-0 { fill: #ffffff; }
-        .ib-liq-1 { fill: #fff585; }
-        .ib-liq-2 { fill: #ffd000; }
-        .ib-liq-3 { fill: #e59000; }
-        .ib-liq-4 { fill: #a54b00; }
-        .ib-liq-5 { fill: #631e00; }
-        .ib-cork-0 { fill: #e5b085; }
-        .ib-cork-1 { fill: #b27343; }
-        .ib-cork-2 { fill: #7c411a; }
-        .ib-cork-3 { fill: #441c04; }
-        .ib-txt-bg { fill: #f5dfbf; }
-        .ib-txt-fg { fill: #3a1e05; }
-        .ib-aur-0 { fill: #ffffff; }
-        .ib-aur-1 { fill: #fff585; }
-        .ib-aur-2 { fill: #ffd000; }
-      </style>
+      <rect id="bag-main" x="30" y="40" width="140" height="80" rx="15"/>
+      <path id="bag-lid" d="M 25 45 Q 100 25 175 45 L 168 85 Q 100 110 32 85 Z"/>
+      <rect id="bag-belt1" x="55" y="50" width="16" height="45" rx="4"/>
+      <rect id="bag-belt2" x="129" y="50" width="16" height="45" rx="4"/>
     </defs>
-    <g fill="#000000" opacity="0.45">
-      <rect x="18" y="58" width="28" height="4"/>
-      <rect x="20" y="57" width="24" height="1"/>
-      <rect x="22" y="62" width="20" height="1"/>
+    <g fill="#27272a" stroke="#27272a" stroke-width="12" stroke-linejoin="round" stroke-linecap="round">
+      <use href="#bag-main"/>
+      <use href="#bag-lid"/>
+      <use href="#bag-belt1"/>
+      <use href="#bag-belt2"/>
     </g>
-    <g class="ib-c-black">
-      <rect x="28" y="2" width="8" height="8"/>
-      <rect x="24" y="9" width="16" height="3"/>
-      <rect x="26" y="12" width="12" height="7"/>
-      <rect x="24" y="19" width="16" height="2"/>
-      <rect x="21" y="21" width="22" height="2"/>
-      <rect x="19" y="23" width="26" height="2"/>
-      <rect x="17" y="25" width="30" height="2"/>
-      <rect x="15" y="27" width="34" height="31"/>
-      <rect x="19" y="58" width="26" height="1"/>
-    </g>
-    <g>
-      <rect x="29" y="3" width="6" height="2" class="ib-cork-0"/>
-      <rect x="29" y="5" width="4" height="2" class="ib-cork-1"/>
-      <rect x="33" y="5" width="2" height="2" class="ib-cork-2"/>
-      <rect x="29" y="7" width="2" height="2" class="ib-cork-2"/>
-      <rect x="31" y="7" width="4" height="2" class="ib-cork-3"/>
-    </g>
-    <rect x="25" y="10" width="14" height="1" class="ib-glass-1"/>
-    <rect x="25" y="11" width="14" height="1" class="ib-glass-3"/>
-    <rect x="27" y="12" width="10" height="7" class="ib-glass-5"/>
-    <rect x="27" y="12" width="2" height="7" class="ib-glass-2"/>
-    <rect x="29" y="12" width="1" height="7" class="ib-glass-1"/>
-    <rect x="34" y="12" width="3" height="7" class="ib-glass-6"/>
-    <g>
-      <rect x="25" y="19" width="14" height="1" class="ib-glass-2"/>
-      <rect x="22" y="21" width="20" height="1" class="ib-glass-2"/>
-      <rect x="20" y="23" width="24" height="1" class="ib-glass-4"/>
-      <rect x="18" y="25" width="28" height="1" class="ib-glass-5"/>
-      <rect x="16" y="27" width="32" height="1" class="ib-glass-6"/>
-      <rect x="22" y="20" width="3" height="1" class="ib-glass-0"/>
-      <rect x="19" y="22" width="3" height="1" class="ib-glass-0"/>
-      <rect x="17" y="24" width="3" height="1" class="ib-glass-0"/>
-      <rect x="16" y="26" width="2" height="1" class="ib-glass-0"/>
-    </g>
-    <g>
-      <rect x="16" y="28" width="32" height="29" class="ib-liq-5"/>
-      <path d="M16,28 H34 V42 H48 V54 H28 V57 H16 Z" class="ib-liq-4"/>
-      <path d="M16,28 H24 V34 H32 V44 H44 V52 H16 Z" class="ib-liq-3"/>
-      <path d="M16,28 H18 V50 H16 Z" class="ib-glass-2"/>
-      <path d="M17,29 H23 V32 H21 V42 H17 Z" class="ib-liq-2"/>
-      <path d="M17,31 H19 V40 H17 Z" class="ib-liq-1"/>
-      <path d="M17,32 H18 V36 H17 Z" class="ib-liq-0"/>
-      <rect x="46" y="28" width="2" height="29" class="ib-glass-6"/>
-      <rect x="45" y="28" width="1" height="29" class="ib-glass-5"/>
-      <rect x="16" y="28" width="1" height="29" class="ib-glass-0" opacity="0.6"/>
-      <rect x="17" y="28" width="1" height="29" class="ib-glass-3" opacity="0.3"/>
-    </g>
-    <g>
-      <rect x="21" y="36" width="2" height="2" class="ib-liq-0"/>
-      <rect x="29" y="39" width="1" height="1" class="ib-liq-0"/>
-      <rect x="36" y="30" width="2" height="2" class="ib-liq-1"/>
-      <rect x="25" y="30" width="1" height="1" class="ib-liq-0"/>
-      <rect x="42" y="34" width="2" height="2" class="ib-liq-1"/>
-      <rect x="34" y="47" width="1" height="1" class="ib-liq-0"/>
-      <rect x="19" y="43" width="2" height="1" class="ib-liq-0"/>
-      <polygon points="28,54 30,52 32,54 30,56" class="ib-glass-1"/>
-      <polygon points="35,53 36,51 37,53 36,55" class="ib-liq-1"/>
-      <polygon points="21,52 22,50 23,52 22,54" class="ib-liq-2"/>
-    </g>
-    <g>
-      <rect x="20" y="35" width="24" height="11" fill="#000"/>
-      <rect x="21" y="36" width="22" height="9" class="ib-txt-bg"/>
-      <rect x="23" y="38" width="1" height="5" class="ib-txt-fg"/>
-      <rect x="25" y="38" width="5" height="1" class="ib-txt-fg"/>
-      <rect x="27" y="39" width="1" height="4" class="ib-txt-fg"/>
-      <rect x="31" y="38" width="4" height="5" class="ib-txt-fg"/>
-      <rect x="32" y="39" width="3" height="1" class="ib-txt-bg"/>
-      <rect x="32" y="41" width="3" height="1" class="ib-txt-bg"/>
-      <rect x="36" y="38" width="1" height="5" class="ib-txt-fg"/>
-      <rect x="40" y="38" width="1" height="5" class="ib-txt-fg"/>
-      <rect x="37" y="39" width="1" height="1" class="ib-txt-fg"/>
-      <rect x="39" y="39" width="1" height="1" class="ib-txt-fg"/>
-      <rect x="38" y="40" width="1" height="1" class="ib-txt-fg"/>
-    </g>
-    <g>
-      <rect x="19" y="57" width="26" height="1" class="ib-glass-3"/>
-      <rect x="22" y="57" width="10" height="1" class="ib-glass-1"/>
-      <rect x="39" y="56" width="7" height="1" class="ib-glass-5"/>
-      <rect x="19" y="28" width="1" height="27" class="ib-glass-1" opacity="0.65"/>
-      <rect x="20" y="28" width="1" height="15" class="ib-glass-2" opacity="0.4"/>
-      <rect x="44" y="28" width="1" height="27" class="ib-glass-6" opacity="0.5"/>
-    </g>
-    <g>
-      <rect x="12" y="16" width="2" height="2" class="ib-aur-0"/>
-      <polygon points="50,22 51,20 52,22 51,24" class="ib-aur-2"/>
-      <rect x="24" y="6" width="1" height="1" class="ib-aur-0"/>
-      <rect x="42" y="14" width="1" height="1" class="ib-aur-1"/>
-      <rect x="10" y="48" width="1" height="1" class="ib-aur-1"/>
-      <g transform="translate(11, 32)">
-        <rect x="1" y="0" width="1" height="3" class="ib-aur-1"/>
-        <rect x="0" y="1" width="3" height="1" class="ib-aur-1"/>
-        <rect x="1" y="1" width="1" height="1" class="ib-aur-0"/>
-      </g>
-      <g transform="translate(49, 42)">
-        <rect x="1" y="0" width="1" height="3" class="ib-aur-2"/>
-        <rect x="0" y="1" width="3" height="1" class="ib-aur-2"/>
-        <rect x="1" y="1" width="1" height="1" class="ib-aur-0"/>
-      </g>
+    <g stroke="#18181b" stroke-width="4" stroke-linejoin="round">
+      <use href="#bag-main" fill="#92400e"/>
+      <use href="#bag-lid" fill="#d97706"/>
+      <path d="M 35 48 Q 100 33 165 48" fill="none" stroke="#fcd34d" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+      <use href="#bag-belt1" fill="#78350f"/>
+      <use href="#bag-belt2" fill="#78350f"/>
+      <rect x="51" y="75" width="24" height="14" rx="2" fill="#eab308"/>
+      <rect x="125" y="75" width="24" height="14" rx="2" fill="#eab308"/>
     </g>
   </svg>`,
 };
