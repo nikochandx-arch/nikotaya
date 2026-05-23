@@ -650,7 +650,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.24</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.25</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -2630,14 +2630,12 @@ ${friendHTML}
       break;
   }
 
-  // 紋枠（採掘中のみ表示。ただし紋選択中はメイン画面で紋UIを表示するため非表示）
+  // 紋枠（採掘中は常に表示。装備中の紋は紋選択時の判断材料にもなる）
   let crestEl = document.getElementById("crest-container");
   if(crestEl){
     const inRun = state.mode !== "home" && state.mode !== "result";
-    // v13.24：紋選択中は新規紋3枚をメイン画面に出すので、装備中の5枠は隠す
-    const hideForRelicPick = state.mode === "event_relic_pick";
-    crestEl.style.display = (inRun && !hideForRelicPick) ? "flex" : "none";
-    if(inRun && !hideForRelicPick){
+    crestEl.style.display = inRun ? "flex" : "none";
+    if(inRun){
       let crestHTML = "";
       let unlockedSlots = getRelicSlotCount();
       for(let i = 0; i < 5; i++){
