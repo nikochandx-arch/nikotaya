@@ -236,9 +236,12 @@ padding-left: 12px;
 #crest-container {
 /* v13.14：5枠を画面幅の約3分の2に縮め、左寄せ。
    justify-content を flex-start にして左詰めし、左右に同じ
-   padding（16px）を持たせる。各カードは flex で約 13.3% の幅。 */
+   padding（16px）を持たせる。各カードは flex で約 13.3% の幅。
+   v13.27：直下に .crest-slots-wrap（5枠を内包）と .item-button が並ぶ構造に変更。
+   5枠を1つのまとまりとして扱えるようにし、紋入れ替えイベント時にネオン枠で囲めるようにした。 */
 display: flex;
 justify-content: flex-start;
+align-items: center;
 gap: 8px;
 margin-top: 8px;
 padding: 0 16px;
@@ -246,23 +249,50 @@ width: 100%;
 box-sizing: border-box;
 }
 
+/* 紋スロット5枠の内包ラッパー。
+   旧の #crest-container 直下の flex レイアウトをこちらに移管。
+   サイズ感を維持するため、ラッパー幅は「アイテムボタン幅と gap を除いた残り」で
+   flex:1 を取り、中の .crest-card は wrap 幅基準で5等分する。 */
+.crest-slots-wrap {
+display: flex;
+gap: 8px;
+flex: 1 1 auto;
+min-width: 0;
+border: 2px solid transparent;
+border-radius: 8px;
+padding: 4px;
+margin: -4px;
+transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* 紋入れ替えイベント中の視線誘導枠：シアン実線＋発光。 */
+.crest-slots-wrap.swap-active {
+border-color: #0ff;
+box-shadow: 0 0 16px rgba(0, 255, 255, 0.7), inset 0 0 8px rgba(0, 255, 255, 0.3);
+}
+
 .crest-card {
-/* flex:0 0 13.3% で「成長しない・縮まない・基本幅13.3%」。
-   gap 込みで5枠分が画面幅の約3分の2に収まる。 */
-flex: 0 0 13.3%;
+/* ラッパー内で5枠を均等配置：(100% - gap*4) / 5 = wrap幅基準で20%弱。
+   gap が 8px なので、4つの gap が wrap 幅から引かれる。 */
+flex: 0 0 calc((100% - 32px) / 5);
 min-width: 0;
 aspect-ratio: 100 / 140;
 cursor: pointer;
 transition: transform 0.2s, filter 0.2s;
 }
 
+/* hover/active 時の持ち上がり演出はマウス系デバイスに限定。
+   タッチデバイスではタップ後に :active 状態が残って持ち上がりが解除されない問題があるため、
+   スマホでは isActive (JS制御の activeCrestId) 由来の持ち上がりのみに統一する。 */
+@media (hover: hover) {
 .crest-card:active, .crest-card:hover {
-transform: translateY(-8px);
-filter: drop-shadow(0 0 8px rgba(0, 255, 0, 0.6));
+  transform: translateY(-8px);
+  filter: drop-shadow(0 0 8px rgba(0, 255, 0, 0.6));
+}
 }
 
 .crest-empty {
-flex: 0 0 13.3%;
+flex: 0 0 calc((100% - 32px) / 5);
 aspect-ratio: 100 / 140;
 border: 1px dashed rgba(0, 255, 0, 0.3);
 border-radius: 6px;
@@ -289,6 +319,47 @@ justify-content: center;
 .item-button svg {
 height: 100%;
 width: 100%;
+}
+
+/* 紋フキダシ本体。
+   位置は JS（toggleCrestTooltip）で動的設定（タップした紋スロットの真上に出す）。
+   --tooltip-color：枠線色（紋ごとに JS で設定）
+   --arrow-x      ：下端の三角矢印の横位置（タップした紋カードの中心 X、JS設定） */
+.crest-tooltip-box {
+position: relative;
+background: #2d2d2d;
+border: 2px solid var(--tooltip-color, #0f0);
+border-radius: 10px;
+padding: 14px 20px;
+font-size: 24px;
+color: var(--tooltip-color, #0f0);
+text-align: center;
+box-shadow: 0 0 16px rgba(0, 255, 0, 0.5);
+}
+
+/* 下向き三角矢印（2層構造で枠線付きを表現）。
+   ::before は枠線色の三角（外側）、::after は背景色の三角（内側、1px小さい）。 */
+.crest-tooltip-box::before,
+.crest-tooltip-box::after {
+content: "";
+position: absolute;
+left: var(--arrow-x, 50%);
+width: 0;
+height: 0;
+border-left: 10px solid transparent;
+border-right: 10px solid transparent;
+transform: translateX(-50%);
+pointer-events: none;
+}
+.crest-tooltip-box::before {
+bottom: -10px;
+border-top: 10px solid var(--tooltip-color, #0f0);
+}
+.crest-tooltip-box::after {
+bottom: -7px;
+border-left-width: 9px;
+border-right-width: 9px;
+border-top: 9px solid #2d2d2d;
 }
 
 #log.relic-scroll { scrollbar-gutter: stable; padding-right: 12px; }
@@ -670,7 +741,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.26</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.27</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -717,7 +788,7 @@ line-height: 1.3;
     </div>
   </div>
 </div>
-<div id="crest-tooltip" style="display:none;position:fixed;bottom:180px;left:0;right:0;margin:0 auto;width:fit-content;max-width:90vw;z-index:100;pointer-events:none;"></div>
+<div id="crest-tooltip" style="display:none;position:fixed;z-index:100;pointer-events:none;"></div>
 <div id="tent-tooltip" style="display:none;position:fixed;bottom:180px;left:0;right:0;margin:0 auto;width:fit-content;max-width:90vw;z-index:100;pointer-events:none;"></div>
 
 <div id="bottom">
@@ -2621,13 +2692,16 @@ ${friendHTML}
     const inRun = state.mode !== "home" && state.mode !== "result";
     crestEl.style.display = inRun ? "flex" : "none";
     if(inRun){
-      let crestHTML = "";
+      // 紋スロット5枠は .crest-slots-wrap で1つのまとまりとして扱う。
+      // swap中はラッパーにネオン枠を付ける（CSS .swap-active）。
+      const wrapClass = (state.mode === "event_relic_swap") ? "crest-slots-wrap swap-active" : "crest-slots-wrap";
+      let slotsHTML = "";
       let unlockedSlots = getRelicSlotCount();
       for(let i = 0; i < 5; i++){
         let isLocked = i >= unlockedSlots;
         let relic = state.relics[i];
         if(isLocked){
-          crestHTML += `<div class="crest-empty" style="border-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.3);font-size:36px;">🔒</div>`;
+          slotsHTML += `<div class="crest-empty" style="border-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.3);font-size:36px;">🔒</div>`;
           continue;
         }
         if(relic){
@@ -2640,7 +2714,7 @@ ${friendHTML}
             if(state.mode === "event_relic_swap"){
               swapClass = (state.selectedSwapIndex === i) ? " swap-selected" : " swap-mode";
             }
-            crestHTML += `<div class="crest-card${swapClass}" onclick="toggleCrestTooltip('${c.id}', ${i})"
+            slotsHTML += `<div class="crest-card${swapClass}" onclick="toggleCrestTooltip('${c.id}', ${i})"
               style="position:relative;filter:drop-shadow(0 0 5px rgba(${c.rgb},0.5));${isActive && !swapClass ? "transform:translateY(-8px);" : ""}">
               <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
                 <rect x="2" y="2" width="96" height="136" rx="6" fill="#222" stroke="${c.color}" stroke-width="2"/>
@@ -2648,10 +2722,10 @@ ${friendHTML}
               </svg>
             </div>`;
           } else {
-            crestHTML += `<div class="crest-empty">?</div>`;
+            slotsHTML += `<div class="crest-empty">?</div>`;
           }
         } else {
-          crestHTML += `<div class="crest-empty">EMPTY</div>`;
+          slotsHTML += `<div class="crest-empty">EMPTY</div>`;
         }
       }
       // 紋スロット5枠の右、空いた領域にアイテムモーダルボタンを配置。
@@ -2664,8 +2738,9 @@ ${friendHTML}
         ? `opacity:0.3;pointer-events:none;cursor:default;`
         : `cursor:pointer;`;
       const itemBtnOnclick = itemBtnLocked ? "" : ` onclick="openItemMenu()"`;
-      crestHTML += `<div class="item-button"${itemBtnOnclick} style="${itemBtnStyle}">${SVG_ICONS.itemButton}</div>`;
-      crestEl.innerHTML = crestHTML;
+      crestEl.innerHTML =
+        `<div class="${wrapClass}">${slotsHTML}</div>` +
+        `<div class="item-button"${itemBtnOnclick} style="${itemBtnStyle}">${SVG_ICONS.itemButton}</div>`;
     }
   }
 
@@ -4099,26 +4174,60 @@ function batForce(){
 // --- 紋フキダシトグル ---
 // index は紋スロット内のインデックス。紋入れ替え（event_relic_swap）中は
 // この index を state.selectedSwapIndex に反映し、入れ替え対象を選択する。
-// 通常時（探索中など）は index は無視され、フキダシ表示の切り替えのみ行う。
+// 通常時（探索中など）は index は選択処理では使わないが、フキダシの位置計算
+// （タップした紋スロットの真上に表示）に常時使う。
 function toggleCrestTooltip(id, index){
   state.activeCrestId = state.activeCrestId === id ? null : id;
-  let tooltipEl = document.getElementById("crest-tooltip");
-  if(state.activeCrestId){
-    let c = CREST_MASTER.find(m => m.id === state.activeCrestId);
-    if(c && tooltipEl){
-      tooltipEl.style.display = "block";
-      tooltipEl.innerHTML = `<div style="background:#2d2d2d;border:2px solid ${c.color};border-radius:10px;
-        padding:14px 20px;font-size:24px;color:${c.color};text-align:center;
-        box-shadow:0 0 16px rgba(${c.rgb},0.5);">${c.desc}</div>`;
-    }
-  } else {
-    if(tooltipEl) tooltipEl.style.display = "none";
-  }
   // 紋入れ替えモード時は選択中スロットも更新（フキダシ閉じる時は null に戻す）
   if(state.mode === "event_relic_swap"){
     state.selectedSwapIndex = state.activeCrestId ? index : null;
   }
+  // 先に再描画して紋スロットの位置を確定させる（持ち上がりなどの transform が反映された後で位置計算する）
   render();
+
+  let tooltipEl = document.getElementById("crest-tooltip");
+  if(state.activeCrestId){
+    let c = CREST_MASTER.find(m => m.id === state.activeCrestId);
+    if(c && tooltipEl){
+      // フキダシ本体（クラスベース。色は CSS変数 --tooltip-color で渡す）
+      tooltipEl.innerHTML = `<div class="crest-tooltip-box" style="--tooltip-color:${c.color};box-shadow:0 0 16px rgba(${c.rgb},0.5);">${c.desc}</div>`;
+      tooltipEl.style.display = "block";
+      // 位置計算：タップした紋カードの真上にフキダシを配置。
+      // .crest-slots-wrap の index 番目の子要素を取得。
+      // ロック中スロット（🔒）も子要素数にカウントされるので、index でそのまま参照可能。
+      let wrapEl = document.querySelector(".crest-slots-wrap");
+      let slotEl = wrapEl ? wrapEl.children[index] : null;
+      if(slotEl){
+        const cardRect = slotEl.getBoundingClientRect();
+        const cardCenterX = cardRect.left + cardRect.width / 2;
+        // フキダシ実寸を取得するため、一旦画面外に置いた上で寸法を取る
+        tooltipEl.style.left = "-9999px";
+        tooltipEl.style.top  = "0px";
+        const tipRect = tooltipEl.getBoundingClientRect();
+        const tipW = tipRect.width;
+        const tipH = tipRect.height;
+        // 横位置：紋カード中心を基準にフキダシ中央を合わせる。
+        // 画面端で見切れないよう 8px マージンで clamp。
+        const margin = 8;
+        let leftPx = cardCenterX - tipW / 2;
+        leftPx = Math.max(margin, Math.min(window.innerWidth - tipW - margin, leftPx));
+        // 縦位置：紋カード上端の少し上（矢印分の余白12pxを取る）。
+        const arrowGap = 12;
+        const topPx = cardRect.top - tipH - arrowGap;
+        tooltipEl.style.left = leftPx + "px";
+        tooltipEl.style.top  = topPx + "px";
+        // 矢印の横位置：紋カード中心 X からフキダシ左端 X を引いた相対座標。
+        // CSS変数 --arrow-x で疑似要素の left に渡す。
+        const arrowX = cardCenterX - leftPx;
+        const box = tooltipEl.querySelector(".crest-tooltip-box");
+        if(box){
+          box.style.setProperty("--arrow-x", arrowX + "px");
+        }
+      }
+    }
+  } else {
+    if(tooltipEl) tooltipEl.style.display = "none";
+  }
 }
 
 // --- 紋獲得イベント ---
