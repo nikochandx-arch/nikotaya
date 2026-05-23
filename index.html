@@ -145,12 +145,29 @@ flex: 1;
 padding-left: 28px;
 }
 
+/* 紋選択モード時のメイン画面：
+   通常の300px固定 + 横並び(アイコン+テキスト) から、
+   画面の残り全部を使い + 縦並びにする。
+   紋カード3枚を画面幅フル活用で配置するため。 */
+#current-event.relic-pick-mode {
+height: auto;
+flex: 1 1 auto;
+flex-direction: column;
+overflow-y: auto;
+}
+/* 紋選択モード時はアイコン枠を撤廃（タイトル行に絵文字組み込み） */
+#current-event.relic-pick-mode #current-event-icon {
+display: none;
+}
+#current-event.relic-pick-mode #current-event-text {
+padding-left: 0;
+width: 100%;
+}
+
 #log {
-/* v13.12：ログ領域を縮小。
-   小さい画面で「アイテム見たくてスクロールしようとしたらログのスクロールになった」
-   問題への対処。max-height を 250px → 150px に縮めて、画面下の要素へ手が届きやすくする。
-   紋選択モード（#log.relic-pick-mode）では max-height: none に解除されるので、
-   紋カードの描画には影響しない。 */
+/* ログ領域。max-height で固定し、超過分はスクロール。
+   画面下の要素（紋スロット・採掘ボタン）へ手が届きやすくするため
+   150px に縮めている。 */
 flex: 0 1 150px;
 min-height: 60px;
 max-height: 150px;
@@ -158,12 +175,6 @@ overflow-y: auto;
 overflow-x: hidden;
 padding: 0 16px 12px;
 font-size: 24px;
-}
-
-#log.relic-pick-mode {
-max-height: none;
-flex: 1 1 auto;
-overflow-y: visible;
 }
 
 #actions {
@@ -639,7 +650,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.23</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.24</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -2136,6 +2147,9 @@ function render(){
     ce.style.maxHeight = "";
     logEl.style.maxHeight = "";
     logEl.style.display = "";
+    // 紋選択モードのクラスを一旦外す。event_relic_pick の時は
+    // renderRelicPickUI() 内で再度 add される。
+    ce.classList.remove("relic-pick-mode");
   }
   document.getElementById("status").innerHTML =
     `<span style="color:${hpColor}">HP:${state.hp}/${state.maxHp}</span> | ${SVG_ICONS.scrap}:<span style="color:#ffcc66;">${state.scrap.toLocaleString()}</span> | ${SVG_ICONS.emerald}:<span style="color:#58d68d;">${(state.emerald || 0).toLocaleString()}</span> | 現在地:${state.floor}階`;
@@ -2330,31 +2344,9 @@ ${relicsHTML}
           veinStatusHTML;
       }
     } else
-    // 紋選択イベント専用表示
+    // 紋選択イベント専用表示：renderRelicPickUI に切り出し済み
     if(state.mode === "event_relic_pick"){
-      ceIcon.innerText = "💎";
-      let pickTitle = state.floor === 15
-        ? '<div style="font-size:22px;color:#ffcc66;line-height:1.5;">深淵に挑みし者よ…<br>紋をその身に纏い、奈落を目指せ</div>'
-        : '<div style="font-size:24px;color:#0ff;">紋を選べ！</div>';
-      ceText.innerHTML =
-        floorBadgeHTML(state.floor) + pickTitle;
-
-      // ログエリアに紋カード＋効果説明を表示
-      // v13.13：カード自体をタップで選択できるように onclick + cursor:pointer 追加。
-      let relicHTML = `<div style="display:flex;gap:8px;padding:8px 4px;height:100%;box-sizing:border-box;overflow:hidden;">` +
-        state.relicChoices.map(c => `
-        <div onclick="pickRelicById('${c.id}')" style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;padding:8px 4px;border:1px solid ${c.color};border-radius:10px;background:rgba(${c.rgb},0.06);gap:8px;overflow:hidden;cursor:pointer;transition:transform 0.15s, box-shadow 0.15s;" onmousedown="this.style.transform='translateY(2px)';" onmouseup="this.style.transform='';" onmouseleave="this.style.transform='';" ontouchstart="this.style.transform='translateY(2px)';this.style.boxShadow='0 0 16px ${c.color}cc';" ontouchend="this.style.transform='';this.style.boxShadow='';">
-          <div style="color:${c.color};font-size:20px;font-weight:bold;text-align:center;word-break:break-all;">${c.name}</div>
-          <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;filter:drop-shadow(0 0 8px rgba(${c.rgb},0.6));">
-            <rect x="2" y="2" width="96" height="136" rx="6" fill="#222" stroke="${c.color}" stroke-width="2"/>
-            <g style="color:${c.color};">${c.svg}</g>
-          </svg>
-          <div style="color:#ccc;font-size:16px;text-align:center;line-height:1.6;word-break:break-word;overflow-wrap:break-word;">${c.desc}</div>
-        </div>`).join("") +
-        `</div>`;
-      logEl.classList.add("relic-scroll");
-      logEl.classList.add("relic-pick-mode");
-      logEl.innerHTML = relicHTML;
+      renderRelicPickUI(ce, ceText, ceIcon);
     } else
     // 紋入れ替え選択
     if(state.mode === "event_relic_swap"){
@@ -2515,8 +2507,10 @@ ${friendHTML}
     } // end DAIGOチェック
   }
 
-  // --- 履歴ログ：relic_pick・relic_swap中はログエリアを紋表示に使うためスキップ ---
-  if(state.mode !== "event_relic_pick" && state.mode !== "event_relic_swap"){
+  // --- 履歴ログ：relic_swap中はログエリアを紋表示に使うためスキップ ---
+  // v13.24：紋選択（event_relic_pick）はメイン画面に紋UIを移したので
+  // ログ領域は通常通り履歴を表示する。swapは現状維持。
+  if(state.mode !== "event_relic_swap"){
     // バフデバフ行を生成（v13.11でログ内→外側 #buff-container へ分離）
     // ログをスクロールしても状態バーが画面から消えないようにするため。
     let buffRow = "";
@@ -2554,7 +2548,6 @@ ${friendHTML}
       });
     });
     logEl.classList.remove("relic-scroll");
-    logEl.classList.remove("relic-pick-mode");
     logEl.innerHTML = logHTML;
   }
 
@@ -2637,12 +2630,14 @@ ${friendHTML}
       break;
   }
 
-  // 紋枠（採掘中のみ表示）
+  // 紋枠（採掘中のみ表示。ただし紋選択中はメイン画面で紋UIを表示するため非表示）
   let crestEl = document.getElementById("crest-container");
   if(crestEl){
     const inRun = state.mode !== "home" && state.mode !== "result";
-    crestEl.style.display = inRun ? "flex" : "none";
-    if(inRun){
+    // v13.24：紋選択中は新規紋3枚をメイン画面に出すので、装備中の5枠は隠す
+    const hideForRelicPick = state.mode === "event_relic_pick";
+    crestEl.style.display = (inRun && !hideForRelicPick) ? "flex" : "none";
+    if(inRun && !hideForRelicPick){
       let crestHTML = "";
       let unlockedSlots = getRelicSlotCount();
       for(let i = 0; i < 5; i++){
@@ -4176,6 +4171,41 @@ function skipRelic(){
   state.relicChoices = [];
   state.mode = "explore";
   render();
+}
+
+// 紋選択画面の描画。render() から呼び出される。
+// メイン画面（#current-event）を主役として使い、その中に
+// タイトル行 + 紋カード3枚を縦に配置する。
+// ログ領域は普段通りログを表示する（紋UIには使わない）。
+// 引数: ce=current-event要素, ceText=テキスト領域, ceIcon=アイコン領域
+function renderRelicPickUI(ce, ceText, ceIcon){
+  // メイン画面を紋選択モードに切り替え（高さフル活用・縦並び・アイコン枠撤廃）
+  ce.classList.add("relic-pick-mode");
+
+  // アイコン枠はCSSで非表示にするが、念のためクリア
+  ceIcon.innerHTML = "";
+
+  // タイトル行：フロアバッジ + 「💎 紋を選べ！」（15階は特殊文言）
+  let pickTitle = state.floor === 15
+    ? '<div style="font-size:24px;color:#ffcc66;line-height:1.5;margin-bottom:16px;">💎 深淵に挑みし者よ…<br>紋をその身に纏い、奈落を目指せ</div>'
+    : '<div style="font-size:28px;color:#0ff;margin-bottom:16px;">💎 紋を選べ！</div>';
+
+  // 紋カード3枚：横並びで画面幅をフル活用。
+  // カード自体に onclick を仕込んでタップで選択（pickRelicById）。
+  let cardsHTML =
+    `<div style="display:flex;gap:10px;width:100%;align-items:stretch;">` +
+    state.relicChoices.map(c => `
+    <div onclick="pickRelicById('${c.id}')" style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;padding:14px 8px;border:2px solid ${c.color};border-radius:12px;background:rgba(${c.rgb},0.08);gap:12px;cursor:pointer;transition:transform 0.15s, box-shadow 0.15s;" onmousedown="this.style.transform='translateY(2px)';" onmouseup="this.style.transform='';" onmouseleave="this.style.transform='';" ontouchstart="this.style.transform='translateY(2px)';this.style.boxShadow='0 0 16px ${c.color}cc';" ontouchend="this.style.transform='';this.style.boxShadow='';">
+      <div style="color:${c.color};font-size:22px;font-weight:bold;text-align:center;word-break:break-all;line-height:1.3;">${c.name}</div>
+      <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:120px;height:auto;filter:drop-shadow(0 0 8px rgba(${c.rgb},0.6));">
+        <rect x="2" y="2" width="96" height="136" rx="6" fill="#222" stroke="${c.color}" stroke-width="2"/>
+        <g style="color:${c.color};">${c.svg}</g>
+      </svg>
+      <div style="color:#ddd;font-size:18px;text-align:center;line-height:1.6;word-break:break-word;overflow-wrap:break-word;">${c.desc}</div>
+    </div>`).join("") +
+    `</div>`;
+
+  ceText.innerHTML = floorBadgeHTML(state.floor) + pickTitle + cardsHTML;
 }
 
 // v13.13：入れ替え対象のカード自体をタップで選択する形式に変更。
