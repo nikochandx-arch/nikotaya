@@ -145,23 +145,43 @@ flex: 1;
 padding-left: 28px;
 }
 
-/* 紋選択モード時のメイン画面：
+/* 紋選択／紋入れ替えモード時のメイン画面：
    通常の300px固定 + 横並び(アイコン+テキスト) から、
    画面の残り全部を使い + 縦並びにする。
-   紋カード3枚を画面幅フル活用で配置するため。 */
-#current-event.relic-pick-mode {
+   紋カードを画面幅フル活用で配置するため。 */
+#current-event.relic-pick-mode,
+#current-event.relic-swap-mode {
 height: auto;
 flex: 1 1 auto;
 flex-direction: column;
 overflow-y: auto;
 }
-/* 紋選択モード時はアイコン枠を撤廃（タイトル行に絵文字組み込み） */
-#current-event.relic-pick-mode #current-event-icon {
+/* 紋選択／紋入れ替えモード時はアイコン枠を撤廃（タイトル行に絵文字組み込み） */
+#current-event.relic-pick-mode #current-event-icon,
+#current-event.relic-swap-mode #current-event-icon {
 display: none;
 }
-#current-event.relic-pick-mode #current-event-text {
+#current-event.relic-pick-mode #current-event-text,
+#current-event.relic-swap-mode #current-event-text {
 padding-left: 0;
 width: 100%;
+}
+
+/* 紋入れ替えモード時、紋スロット全体をタップ可能と認識させるための演出。
+   全スロットに swap-mode クラスを付与し、ゆっくり脈打つ発光をかける。 */
+@keyframes crest-swap-pulse {
+0%   { filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.4)); }
+50%  { filter: drop-shadow(0 0 14px rgba(0, 255, 255, 0.9)); }
+100% { filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.4)); }
+}
+.crest-card.swap-mode {
+animation: crest-swap-pulse 1.4s ease-in-out infinite;
+}
+/* swap中に選択中のスロットは持ち上げ＋強発光で他と差別化 */
+.crest-card.swap-selected {
+transform: translateY(-8px);
+animation: none;
+filter: drop-shadow(0 0 16px rgba(0, 255, 255, 1));
 }
 
 #log {
@@ -650,7 +670,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.25</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.26</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -996,6 +1016,7 @@ let state = {
   relicChoices:     [],
   pendingRelic:     null,
   activeCrestId:    null,
+  selectedSwapIndex: null,
   veinDepth:        0,
   veinLastGain:     0,
   veinLastEmerald:  false,
@@ -2147,9 +2168,11 @@ function render(){
     ce.style.maxHeight = "";
     logEl.style.maxHeight = "";
     logEl.style.display = "";
-    // 紋選択モードのクラスを一旦外す。event_relic_pick の時は
-    // renderRelicPickUI() 内で再度 add される。
+    // 紋選択／入れ替えモードのクラスを一旦外す。
+    // event_relic_pick の時は renderRelicPickUI() 内で、
+    // event_relic_swap の時は renderRelicSwapUI() 内で再度 add される。
     ce.classList.remove("relic-pick-mode");
+    ce.classList.remove("relic-swap-mode");
   }
   document.getElementById("status").innerHTML =
     `<span style="color:${hpColor}">HP:${state.hp}/${state.maxHp}</span> | ${SVG_ICONS.scrap}:<span style="color:#ffcc66;">${state.scrap.toLocaleString()}</span> | ${SVG_ICONS.emerald}:<span style="color:#58d68d;">${(state.emerald || 0).toLocaleString()}</span> | 現在地:${state.floor}階`;
@@ -2348,49 +2371,9 @@ ${relicsHTML}
     if(state.mode === "event_relic_pick"){
       renderRelicPickUI(ce, ceText, ceIcon);
     } else
-    // 紋入れ替え選択
+    // 紋入れ替え選択：renderRelicSwapUI に切り出し済み
     if(state.mode === "event_relic_swap"){
-      ceIcon.innerText = "🔄";
-      let pr = state.pendingRelic;
-      ceText.innerHTML =
-        floorBadgeHTML(state.floor) +
-        `<div style="font-size:22px;color:#0ff;margin-bottom:4px;">新たな紋を発見！</div>
-        <div style="font-size:20px;color:#fff;">スロットが埋まっている。どれと入れ替える？</div>`;
-
-      // ログエリアに新規紋＋装備中紋の一覧を表示
-      // v13.13：装備中カード自体をタップで入れ替え選択できるように。
-      let newCard = `
-        <div style="margin-bottom:8px;font-size:18px;color:#aaa;letter-spacing:1px;">▼ 新しい紋</div>
-        <div style="display:flex;align-items:center;gap:16px;padding:12px;margin-bottom:12px;border:2px solid ${pr.color};border-radius:10px;background:rgba(${pr.rgb},0.1);">
-          <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" style="width:56px;height:78px;flex-shrink:0;filter:drop-shadow(0 0 6px rgba(${pr.rgb},0.6));">
-            <rect x="2" y="2" width="96" height="136" rx="6" fill="#222" stroke="${pr.color}" stroke-width="2"/>
-            <g style="color:${pr.color};">${pr.svg}</g>
-          </svg>
-          <div style="flex:1;">
-            <div style="color:${pr.color};font-size:24px;font-weight:bold;">${pr.name}</div>
-            <div style="color:#ccc;font-size:19px;margin-top:4px;">${pr.desc}</div>
-          </div>
-        </div>
-        <div style="margin-bottom:8px;font-size:18px;color:#aaa;letter-spacing:1px;">▼ 装備中（タップで入れ替え）</div>`;
-
-      let equippedCards = state.relics.map((r, i) => {
-        let c = CREST_MASTER.find(m => m.id === r.id);
-        if(!c) return "";
-        return `
-        <div onclick="swapRelic(${i})" style="display:flex;align-items:center;gap:16px;padding:12px;margin:6px 0;border:1px solid ${c.color};border-radius:10px;background:rgba(${c.rgb},0.05);opacity:0.85;cursor:pointer;transition:transform 0.15s, box-shadow 0.15s;" onmousedown="this.style.transform='translateY(2px)';" onmouseup="this.style.transform='';" onmouseleave="this.style.transform='';" ontouchstart="this.style.transform='translateY(2px)';this.style.boxShadow='0 0 16px ${c.color}cc';" ontouchend="this.style.transform='';this.style.boxShadow='';">
-          <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" style="width:48px;height:67px;flex-shrink:0;">
-            <rect x="2" y="2" width="96" height="136" rx="6" fill="#222" stroke="${c.color}" stroke-width="2"/>
-            <g style="color:${c.color};">${c.svg}</g>
-          </svg>
-          <div style="flex:1;">
-            <div style="color:${c.color};font-size:22px;font-weight:bold;">${c.name}</div>
-            <div style="color:#aaa;font-size:18px;margin-top:4px;">${c.desc}</div>
-          </div>
-        </div>`;
-      }).join("");
-
-      logEl.classList.add("relic-scroll");
-      logEl.innerHTML = newCard + equippedCards;
+      renderRelicSwapUI(ce, ceText, ceIcon);
     } else
     // DAIGOイベントは専用表示
     if(state.mode === "event_daigo"){
@@ -2507,10 +2490,12 @@ ${friendHTML}
     } // end DAIGOチェック
   }
 
-  // --- 履歴ログ：relic_swap中はログエリアを紋表示に使うためスキップ ---
+  // --- 履歴ログ ---
   // v13.24：紋選択（event_relic_pick）はメイン画面に紋UIを移したので
-  // ログ領域は通常通り履歴を表示する。swapは現状維持。
-  if(state.mode !== "event_relic_swap"){
+  // ログ領域は通常通り履歴を表示する。
+  // v13.26：紋入れ替え（event_relic_swap）も同様にメイン画面主役に変更したため、
+  // ログ領域は通常通り履歴を表示する。
+  {
     // バフデバフ行を生成（v13.11でログ内→外側 #buff-container へ分離）
     // ログをスクロールしても状態バーが画面から消えないようにするため。
     let buffRow = "";
@@ -2649,8 +2634,14 @@ ${friendHTML}
           let c = CREST_MASTER.find(m => m.id === relic.id);
           if(c){
             let isActive = state.activeCrestId === c.id;
-            crestHTML += `<div class="crest-card" onclick="toggleCrestTooltip('${c.id}')"
-              style="position:relative;filter:drop-shadow(0 0 5px rgba(${c.rgb},0.5));${isActive ? "transform:translateY(-8px);" : ""}">
+            // 紋入れ替えイベント中（event_relic_swap）は全スロットを pulse 発光させ、
+            // 選択中スロットは別クラスで強調する。
+            let swapClass = "";
+            if(state.mode === "event_relic_swap"){
+              swapClass = (state.selectedSwapIndex === i) ? " swap-selected" : " swap-mode";
+            }
+            crestHTML += `<div class="crest-card${swapClass}" onclick="toggleCrestTooltip('${c.id}', ${i})"
+              style="position:relative;filter:drop-shadow(0 0 5px rgba(${c.rgb},0.5));${isActive && !swapClass ? "transform:translateY(-8px);" : ""}">
               <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
                 <rect x="2" y="2" width="96" height="136" rx="6" fill="#222" stroke="${c.color}" stroke-width="2"/>
                 <g style="color:${c.color};">${c.svg}</g>
@@ -4106,7 +4097,10 @@ function batForce(){
 }
 
 // --- 紋フキダシトグル ---
-function toggleCrestTooltip(id){
+// index は紋スロット内のインデックス。紋入れ替え（event_relic_swap）中は
+// この index を state.selectedSwapIndex に反映し、入れ替え対象を選択する。
+// 通常時（探索中など）は index は無視され、フキダシ表示の切り替えのみ行う。
+function toggleCrestTooltip(id, index){
   state.activeCrestId = state.activeCrestId === id ? null : id;
   let tooltipEl = document.getElementById("crest-tooltip");
   if(state.activeCrestId){
@@ -4119,6 +4113,10 @@ function toggleCrestTooltip(id){
     }
   } else {
     if(tooltipEl) tooltipEl.style.display = "none";
+  }
+  // 紋入れ替えモード時は選択中スロットも更新（フキダシ閉じる時は null に戻す）
+  if(state.mode === "event_relic_swap"){
+    state.selectedSwapIndex = state.activeCrestId ? index : null;
   }
   render();
 }
@@ -4206,11 +4204,69 @@ function renderRelicPickUI(ce, ceText, ceIcon){
   ceText.innerHTML = floorBadgeHTML(state.floor) + pickTitle + cardsHTML;
 }
 
-// v13.13：入れ替え対象のカード自体をタップで選択する形式に変更。
-// 以前は装備中紋ごとに選択ボタンがあったが、カード側に onclick を仕込んだので不要。
-// 「やめる」だけ残す。
+// 紋入れ替えイベント（event_relic_swap）のメイン画面描画。
+// 上部に新規紋1枚を表示し、下部に「⬇ 入れ替える紋をスロットからタップ」の誘導文。
+// 装備中5枚は再描画せず、既存の紋スロットをタップ式選択UIとして再利用する
+// （実際の選択処理は toggleCrestTooltip と state.selectedSwapIndex で連動）。
+function renderRelicSwapUI(ce, ceText, ceIcon){
+  // メイン画面を紋入れ替えモードに切り替え（pickと同じレイアウト思想）
+  ce.classList.add("relic-swap-mode");
+
+  // アイコン枠はCSSで非表示にするが、念のためクリア
+  ceIcon.innerHTML = "";
+
+  let pr = state.pendingRelic;
+
+  // タイトル行
+  let swapTitle = '<div style="font-size:28px;color:#0ff;margin-bottom:16px;">💎 新たな紋を発見！</div>';
+
+  // 新規紋カード1枚：pickと同じカード形式で、画面幅を活用して中央寄せ。
+  // 紋カード3枚分のレイアウトと統一感を持たせるため、最大幅を制限。
+  let newCardHTML = `
+    <div style="display:flex;justify-content:center;width:100%;margin-bottom:16px;">
+      <div style="flex:1;max-width:280px;display:flex;flex-direction:column;align-items:center;padding:14px 8px;border:2px solid ${pr.color};border-radius:12px;background:rgba(${pr.rgb},0.08);gap:12px;">
+        <div style="color:${pr.color};font-size:22px;font-weight:bold;text-align:center;word-break:break-all;line-height:1.3;">${pr.name}</div>
+        <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:120px;height:auto;filter:drop-shadow(0 0 8px rgba(${pr.rgb},0.6));">
+          <rect x="2" y="2" width="96" height="136" rx="6" fill="#222" stroke="${pr.color}" stroke-width="2"/>
+          <g style="color:${pr.color};">${pr.svg}</g>
+        </svg>
+        <div style="color:#ddd;font-size:18px;text-align:center;line-height:1.6;word-break:break-word;overflow-wrap:break-word;">${pr.desc}</div>
+      </div>
+    </div>`;
+
+  // 誘導文：紋スロットへの動線を明示
+  let guideHTML = '<div style="font-size:20px;color:#fff;text-align:center;line-height:1.5;">⬇ 入れ替える紋をスロットからタップ</div>';
+
+  ceText.innerHTML = floorBadgeHTML(state.floor) + swapTitle + newCardHTML + guideHTML;
+}
+
+// 紋入れ替え時のアクションエリア：
+// 「入れ替え」と「やめる」を横並び。入れ替えは紋未選択時グレーアウト＆無効。
 function renderRelicSwapEvent(){
+  // 「入れ替え」ボタン（直接生成。state依存でdisable切替）
+  let confirmBtn = document.createElement("button");
+  confirmBtn.innerText = "入れ替え";
+  let s = BTN_STYLES.special || BTN_STYLES.main;
+  confirmBtn.style.borderColor = s.color;
+  confirmBtn.style.color       = s.color;
+  confirmBtn.style.background  = s.bg;
+  confirmBtn.style.boxShadow   = `0 0 10px ${s.color}66`;
+  if(state.selectedSwapIndex === null){
+    confirmBtn.style.opacity = "0.4";
+    confirmBtn.disabled = true;
+  } else {
+    confirmBtn.onclick = () => { playSE("select"); confirmSwap(); };
+  }
+  document.getElementById("actions").appendChild(confirmBtn);
+
   btn("やめる", cancelSwap, "skip");
+}
+
+// 「入れ替え」ボタン押下時の処理。state.selectedSwapIndex を index として
+// 既存の swapRelic を呼ぶ。
+function confirmSwap(){
+  if(state.selectedSwapIndex === null) return;
+  swapRelic(state.selectedSwapIndex);
 }
 
 function swapRelic(index){
@@ -4218,6 +4274,10 @@ function swapRelic(index){
   state.relics[index] = state.pendingRelic;
   addLog(`『${old.name}』を外し、『${state.pendingRelic.name}』を装備した`, "sub");
   state.pendingRelic = null;
+  state.selectedSwapIndex = null;
+  state.activeCrestId = null;
+  let tooltipEl = document.getElementById("crest-tooltip");
+  if(tooltipEl) tooltipEl.style.display = "none";
   state.mode = "explore";
   render();
 }
@@ -4225,6 +4285,10 @@ function swapRelic(index){
 function cancelSwap(){
   addLog(`『${state.pendingRelic.name}』を見送った`, "sub");
   state.pendingRelic = null;
+  state.selectedSwapIndex = null;
+  state.activeCrestId = null;
+  let tooltipEl = document.getElementById("crest-tooltip");
+  if(tooltipEl) tooltipEl.style.display = "none";
   state.mode = "explore";
   render();
 }
