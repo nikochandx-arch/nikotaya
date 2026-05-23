@@ -68,13 +68,16 @@ outline: none;
 
 #buff-container {
 /* v13.14：左右padding を #log と揃え、下に余白をつけて
-   ログがビタ付けになる問題を解消。 */
+   ログがビタ付けになる問題を解消。
+   境界線は内側の状態行ではなく container 自体に持たせ、
+   画面右端まで伸びるようにする（padding の外側に線が引かれる）。 */
 display: flex;
 flex-wrap: wrap;
 gap: 8px;
-padding: 0 16px;
-margin-bottom: 12px;
+padding: 0 16px 8px;
+margin-bottom: 6px;
 min-height: 0;
+border-bottom: 1px solid rgba(0,255,80,0.15);
 }
 
 .buff-badge {
@@ -741,7 +744,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.31</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.32</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -839,7 +842,7 @@ const RUN_STATS_FIELDS  = [
   "floors", "scrap", "damage", "potions", "goddess",
   "goldenMole", "thiefMole", "daigo",
   "chests", "poisonTurns", "mushrooms", "veinClears",
-  "batScrap", "merchantBuys", "youki",
+  "batScrap", "merchantBuys", "youki", "beyaku",
 ];
 const STATS_ONLY_FIELDS = [
   "runs", "deaths", "emerald",
@@ -2091,14 +2094,11 @@ function colorizeLog(text, type){
   text = text.replace(/(毒が治った)/g,
     `<span style="color:${COLORS.heal};">$1</span>`);
 
-  // 8. 階層変化：「N階に落ちた」「N階まで戻ってしまった」「N階へ降り立った」を青。
-  //    数値部分「N階」のうち、太字は数値「N」だけ。
-  text = text.replace(/(\d+)(階に落ちた)/g,
-    `<span style="color:${COLORS.floor};font-weight:bold;">$1</span><span style="color:${COLORS.floor};">$2</span>`);
-  text = text.replace(/(\d+)(階まで戻ってしまった)/g,
-    `<span style="color:${COLORS.floor};font-weight:bold;">$1</span><span style="color:${COLORS.floor};">$2</span>`);
-  text = text.replace(/(\d+)(階へ降り立った)/g,
-    `<span style="color:${COLORS.floor};font-weight:bold;">$1</span><span style="color:${COLORS.floor};">$2</span>`);
+  // 8. 階層変化：「N階に落ちた」「N階まで戻ってしまった」「N階へ降り立った」の
+  //    色付け範囲は「N階」までに限定。動詞部分（に落ちた／まで戻ってしまった／へ降り立った）は白。
+  //    太字は数値「N」だけ。
+  text = text.replace(/(\d+)(階)(に落ちた|まで戻ってしまった|へ降り立った)/g,
+    `<span style="color:${COLORS.floor};font-weight:bold;">$1</span><span style="color:${COLORS.floor};">$2</span>$3`);
 
   return text;
 }
@@ -2577,9 +2577,9 @@ ${friendHTML}
         let unit = b.consumeOn === "use" ? "回" : "T";
         return `<span class="buff-badge ${cls}">${b.name} : ${b.turns}${unit}</span>`;
       }).join("");
-      buffRow = `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px 0 8px;border-bottom:1px solid rgba(0,255,80,0.15);margin-bottom:6px;font-size:22px;color:rgba(0,255,80,0.5);">状態：${badges}</div>`;
+      buffRow = `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px 0;font-size:22px;color:rgba(0,255,80,0.5);">状態：${badges}</div>`;
     } else {
-      buffRow = `<div style="padding:6px 0 8px;border-bottom:1px solid rgba(0,255,80,0.15);margin-bottom:6px;font-size:22px;color:rgba(0,255,80,0.5);">状態：正常</div>`;
+      buffRow = `<div style="padding:6px 0;font-size:22px;color:rgba(0,255,80,0.5);">状態：正常</div>`;
     }
     // 状態バーは #log の外（ステータスバー直下）に固定表示
     document.getElementById("buff-container").innerHTML = buffRow;
@@ -2772,6 +2772,7 @@ ${friendHTML}
   <div>鉱脈を掘りきった回数：<span style="color:#fff;">${s.veinClears.toLocaleString()} 回</span></div>
   <div>受けたダメージ累計：<span style="color:#f55;">${s.damage.toLocaleString()}</span></div>
   <div>飲んだポーション数：<span style="color:#fff;">${s.potions.toLocaleString()} 個</span></div>
+  <div>使ったベーヤク数：<span style="color:#fff;">${s.beyaku.toLocaleString()} 個</span></div>
   <div>女神像に会った回数：<span style="color:#fff;">${s.goddess.toLocaleString()} 回</span></div>
   <div>金モグラに会った回数：<span style="color:#fff;">${s.goldenMole.toLocaleString()} 回</span></div>
   <div>泥棒モグラに会った回数：<span style="color:#fff;">${s.thiefMole.toLocaleString()} 回</span></div>
@@ -4083,6 +4084,7 @@ function applyItemEffect(item){
     applyBuffById("miningUp", 10);
     applyBuffById("fragile", 10);
     playSE("select");
+    state.runStats.beyaku++;
     addLog("ベーヤクを使った！", "scrap");
     addLog("採掘力UP！（10ターン）", "sub");
     addLog("脆弱（10ターン）", "sub");
