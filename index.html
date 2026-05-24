@@ -738,7 +738,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.42</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.43</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -2407,38 +2407,9 @@ ${relicsHTML}
       iconEl.innerHTML = emoji;
     }
 
-    // 鉱脈イベント専用表示
+    // 鉱脈イベント専用表示：renderVeinUI に切り出し済み
     if(state.mode === "event_vein"){
-      let depth = state.veinDepth;
-      let p = VEIN_PARAMS[Math.min(depth, 3)];
-      let hasSkilldig = state.relics.some(r => r.id === "skilldig");
-      let hasGambleShield = state.relics.some(r => r.id === "gamble_shield");
-      let displayCollapse = hasSkilldig ? [0.20, 0.30, 0.40, 0.50][Math.min(depth, 3)] : p.collapse;
-      iconEl.innerHTML = SVG_ICONS.vein.replace("width:1em;height:1em;", "width:2em;height:2em;");
-      let tier = Math.floor((state.floor - 1) / 10) + 1;
-      let dmg = tier * p.dmgCoef;
-      let dmgDisplay = hasGambleShield ? `0 or ${dmg * 2}` : `${dmg}`;
-      let skilldigNote = hasSkilldig ? `<span style="color:#0ff;font-size:20px;">（巧掘の紋が効いている）</span>` : "";
-      // エメラルド表示：直前の掘りでエメラルドを得た場合（veinDepth >= 1 かつ state.veinLastEmerald）
-      let emeraldNote = state.veinLastEmerald
-        ? ` <span style="color:#58d68d;">${SVG_ICONS.emerald}+1</span>`
-        : "";
-      let veinStatusHTML = `<div style="margin-top:6px;font-size:22px;line-height:1.3;">` +
-        `<div><span style="color:#ffcc66;">崩落確率：</span><span style="color:#f55;font-weight:bold;">${displayCollapse*100}%</span>${skilldigNote ? " " + skilldigNote : ""}</div>` +
-        `<div><span style="color:#ffcc66;">想定ダメージ：</span><span style="color:#f55;font-weight:bold;">${dmgDisplay}</span></div>` +
-        `<div><span style="color:#ffcc66;">獲得倍率：</span><span style="color:#58d68d;font-weight:bold;">×${p.mult}</span></div>` +
-        `</div>`;
-      if(depth === 0){
-        ceText.innerHTML =
-          floorBadgeHTML(state.floor) +
-          `<div style="font-size:26px;">鉱脈だ！だけど地盤が脆そうだ…</div>` +
-          veinStatusHTML;
-      } else {
-        ceText.innerHTML =
-          floorBadgeHTML(state.floor) +
-          `<div style="font-size:26px;">${depth}回掘った <span style="color:#ffcc66;">スクラップ+${state.veinLastGain.toLocaleString()}</span>${emeraldNote}　やめるなら今のうち…</div>` +
-          veinStatusHTML;
-      }
+      renderVeinUI(ce, ceText, ceIcon);
     } else
     // 紋選択イベント専用表示：renderRelicPickUI に切り出し済み
     if(state.mode === "event_relic_pick"){
@@ -2533,6 +2504,17 @@ ${relicsHTML}
           `いくらか融通してもらえませんか？』`,
         ],
         sub: `必要：${SVG_ICONS.scrap}<span style="color:#ffcc66;">${YOUKI_COST.toLocaleString()}</span>`,
+      });
+      // ボタンは下のswitchで描画するのでここではスキップ
+    } else
+    // コウモリイベント
+    if(state.mode === "event_bat"){
+      let lost = calcBatLost();
+      renderPersonEvent(ce, ceText, ceIcon, {
+        icon: "🦇",
+        title: "コウモリの群れだ！",
+        body: "音を立てて気を逸らせば安全に通れそうだけど…",
+        sub: `必要：${SVG_ICONS.scrap}<span style="color:#ffcc66;">${lost.toLocaleString()}</span>`,
       });
       // ボタンは下のswitchで描画するのでここではスキップ
     } else {
@@ -4122,11 +4104,10 @@ function calcBatLost(){
 
 function renderBatEvent(){
   let a = document.getElementById("actions");
-  let lost = calcBatLost();
 
-  // 「音を立てて気をそらす」ボタン
+  // 「音を立てる」ボタン
   let distractBtn = document.createElement("button");
-  distractBtn.innerHTML = `音を立てて気をそらす<br><span style="font-size:22px;color:#ffcc66;">スクラップ -${lost}</span>`;
+  distractBtn.innerText = "音を立てる";
   let riskS = BTN_STYLES.risk;
   let skipS = BTN_STYLES.skip;
   if(state.scrap <= 0){
@@ -4395,6 +4376,42 @@ function renderPersonEvent(ce, ceText, ceIcon, opts){
   let extrasHTML = opts.extras || "";
 
   ceText.innerHTML = floorBadgeHTML(state.floor) + titleHTML + bodyHTML + subHTML + extrasHTML;
+}
+
+// 鉱脈イベントの描画ヘルパー。
+// 鉱脈は人物系と構造が異なる（ステータス枠を持つ）ため、専用ヘルパーとして分離。
+// 見た目・挙動は分離前と完全に同一。
+function renderVeinUI(ce, ceText, ceIcon){
+  let depth = state.veinDepth;
+  let p = VEIN_PARAMS[Math.min(depth, 3)];
+  let hasSkilldig = state.relics.some(r => r.id === "skilldig");
+  let hasGambleShield = state.relics.some(r => r.id === "gamble_shield");
+  let displayCollapse = hasSkilldig ? [0.20, 0.30, 0.40, 0.50][Math.min(depth, 3)] : p.collapse;
+  ceIcon.innerHTML = SVG_ICONS.vein.replace("width:1em;height:1em;", "width:2em;height:2em;");
+  let tier = Math.floor((state.floor - 1) / 10) + 1;
+  let dmg = tier * p.dmgCoef;
+  let dmgDisplay = hasGambleShield ? `0 or ${dmg * 2}` : `${dmg}`;
+  let skilldigNote = hasSkilldig ? `<span style="color:#0ff;font-size:20px;">（巧掘の紋が効いている）</span>` : "";
+  // エメラルド表示：直前の掘りでエメラルドを得た場合（veinDepth >= 1 かつ state.veinLastEmerald）
+  let emeraldNote = state.veinLastEmerald
+    ? ` <span style="color:#58d68d;">${SVG_ICONS.emerald}+1</span>`
+    : "";
+  let veinStatusHTML = `<div style="margin-top:6px;font-size:22px;line-height:1.3;">` +
+    `<div><span style="color:#ffcc66;">崩落確率：</span><span style="color:#f55;font-weight:bold;">${displayCollapse*100}%</span>${skilldigNote ? " " + skilldigNote : ""}</div>` +
+    `<div><span style="color:#ffcc66;">想定ダメージ：</span><span style="color:#f55;font-weight:bold;">${dmgDisplay}</span></div>` +
+    `<div><span style="color:#ffcc66;">獲得倍率：</span><span style="color:#58d68d;font-weight:bold;">×${p.mult}</span></div>` +
+    `</div>`;
+  if(depth === 0){
+    ceText.innerHTML =
+      floorBadgeHTML(state.floor) +
+      `<div style="font-size:26px;">鉱脈だ！だけど地盤が脆そうだ…</div>` +
+      veinStatusHTML;
+  } else {
+    ceText.innerHTML =
+      floorBadgeHTML(state.floor) +
+      `<div style="font-size:26px;">${depth}回掘った <span style="color:#ffcc66;">スクラップ+${state.veinLastGain.toLocaleString()}</span>${emeraldNote}　やめるなら今のうち…</div>` +
+      veinStatusHTML;
+  }
 }
 
 // 紋入れ替え時のアクションエリア：
