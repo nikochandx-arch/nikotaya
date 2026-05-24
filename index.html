@@ -738,7 +738,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.39</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.40</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -2450,52 +2450,51 @@ ${relicsHTML}
     } else
     // DAIGOイベントは専用表示
     if(state.mode === "event_daigo"){
-      ceIcon.innerText = "👤";
       let tipText = entry.tip || "…";
       let friendHTML = entry.friendHeal
         ? `<div style="font-size:22px;color:#aaff66;margin-top:8px;">💚 友誼の紋が輝いた！ HP +${entry.friendHeal} 回復</div>`
         : "";
-      ceText.innerHTML =
-        floorBadgeHTML(state.floor) +
-`<div style="font-size:26px;color:#fff;">採掘者DAIGO</div>
-<div style="font-size:22px;color:#fff;margin-top:6px;">『${tipText}』</div>
-${friendHTML}
-`;
+      renderPersonEvent(ce, ceText, ceIcon, {
+        icon: "👤",
+        title: "採掘者DAIGO",
+        body: `『${tipText}』`,
+        extras: friendHTML,
+      });
       // ボタンは下のswitchで描画するのでここではスキップ
     } else
-    // 商人イベントは専用表示
+    // 縦穴ジャンプ前
     if(state.mode === "event_pitjump"){
-      ceIcon.innerHTML = SVG_ICONS.pitJump.replace("width:1em;height:1em;","width:2em;height:2em;");
       let pct = Math.round((state.hp / state.maxHp) * 100);
-      ceText.innerHTML =
-        floorBadgeHTML(state.floor) +
-`<div style="font-size:26px;color:#fff;">深い縦穴だ！</div>
-<div style="font-size:22px;color:#fff;margin-top:6px;">向こう側にジャンプ出来れば近道になりそうだけど…</div>
-<div style="font-size:20px;color:#aaa;margin-top:4px;">ジャンプ成功率：<span style="color:${COLORS.floor};">${pct}%</span></div>
-`;
+      renderPersonEvent(ce, ceText, ceIcon, {
+        icon: SVG_ICONS.pitJump.replace("width:1em;height:1em;","width:2em;height:2em;"),
+        title: "深い縦穴だ！",
+        body: "向こう側にジャンプ出来れば近道になりそうだけど…",
+        sub: `ジャンプ成功率：<span style="color:${COLORS.floor};">${pct}%</span>`,
+      });
       // ボタンは下のswitchで描画するのでここではスキップ
     } else
     if(state.mode === "event_pitjump_result"){
-      ceIcon.innerHTML = SVG_ICONS.pitJump.replace("width:1em;height:1em;","width:2em;height:2em;");
       let r = state.pitJumpResult || {};
+      let pitIcon = SVG_ICONS.pitJump.replace("width:1em;height:1em;","width:2em;height:2em;");
       if(r.success){
-        ceText.innerHTML =
-          floorBadgeHTML(state.floor) +
-`<div style="font-size:26px;color:#fff;">ジャンプ成功！</div>
-<div style="font-size:22px;color:#fff;margin-top:6px;">一気に<span style="color:${COLORS.floor};font-weight:bold;">${r.targetFloor}</span><span style="color:${COLORS.floor};">階</span>へ降り立った</div>
-`;
+        renderPersonEvent(ce, ceText, ceIcon, {
+          icon: pitIcon,
+          title: "ジャンプ成功！",
+          body: `一気に<span style="color:${COLORS.floor};font-weight:bold;">${r.targetFloor}</span><span style="color:${COLORS.floor};">階</span>へ降り立った`,
+        });
       } else {
-        ceText.innerHTML =
-          floorBadgeHTML(state.floor) +
-`<div style="font-size:26px;color:#fff;">ジャンプ失敗…</div>
-<div style="font-size:22px;color:#fff;margin-top:6px;">落下して <span style="color:${COLORS.damage};font-weight:bold;">${r.dmg}</span><span style="color:${COLORS.damage};"> ダメージ</span></div>
-<div style="font-size:22px;color:#fff;margin-top:6px;"><span style="color:${COLORS.floor};font-weight:bold;">${r.targetFloor}</span><span style="color:${COLORS.floor};">階</span>に落ちた</div>
-`;
+        renderPersonEvent(ce, ceText, ceIcon, {
+          icon: pitIcon,
+          title: "ジャンプ失敗…",
+          body: [
+            `落下して <span style="color:${COLORS.damage};font-weight:bold;">${r.dmg}</span><span style="color:${COLORS.damage};"> ダメージ</span>`,
+            `<span style="color:${COLORS.floor};font-weight:bold;">${r.targetFloor}</span><span style="color:${COLORS.floor};">階</span>に落ちた`,
+          ],
+        });
       }
       // ボタンは下のswitchで描画するのでここではスキップ
     } else
     if(state.mode === "event_merchant"){
-      ceIcon.innerHTML = SVG_ICONS.merchant.replace("width:1em;height:1em;","width:2em;height:2em;");
       // 段階別セリフ（getMerchantTier）に応じて切り替え
       // 商品の価格はボタンに表示されるので、メイン画面の価格表示は廃止（v13.09）
       const tier = getMerchantTier();
@@ -2507,33 +2506,34 @@ ${friendHTML}
       } else {
         line = `『とっておきの品ばかりだよ。${playerNameHTML()}さんは常連さんだからね』`;
       }
-      ceText.innerHTML =
-        floorBadgeHTML(state.floor) +
-`<div style="font-size:26px;color:#fff;">謎の商人</div>
-<div style="font-size:22px;color:#fff;margin-top:6px;">${line}</div>
-`;
+      renderPersonEvent(ce, ceText, ceIcon, {
+        icon: SVG_ICONS.merchant.replace("width:1em;height:1em;","width:2em;height:2em;"),
+        title: "謎の商人",
+        body: line,
+      });
       // ボタンは下のswitchで描画するのでここではスキップ
     } else
     // 採掘便りの墓イベント：誰かが倒れた形跡を発見
     if(state.mode === "event_grave"){
-      ceIcon.innerHTML = SVG_ICONS.grave.replace("width:1em;height:1em;","width:2em;height:2em;");
-      ceText.innerHTML =
-        floorBadgeHTML(state.floor) +
-`<div style="font-size:24px;color:#fff;margin-top:6px;">誰かが倒れた形跡がある…</div>
-<div style="font-size:22px;color:#aaa;margin-top:4px;">傍らに何か落ちている</div>
-`;
+      renderPersonEvent(ce, ceText, ceIcon, {
+        icon: SVG_ICONS.grave.replace("width:1em;height:1em;","width:2em;height:2em;"),
+        title: "誰かが倒れた形跡がある…",
+        body: "傍らに何か落ちている",
+      });
       // ボタンは下のswitchで描画するのでここではスキップ
     } else
     // 陽キャイベントは専用表示
     if(state.mode === "event_youki"){
-      ceIcon.innerHTML = SVG_ICONS.youki.replace("width:1em;height:1em;","width:2em;height:2em;");
-      ceText.innerHTML =
-        floorBadgeHTML(state.floor) +
-`<div style="font-size:26px;color:#facc15;">陽キャ</div>
-<div style="font-size:22px;color:#fff;margin-top:6px;">『${playerNameHTML()}さん、今ちょっと懐が寂しくて…</div>
-<div style="font-size:22px;color:#fff;">いくらか融通してもらえませんか？』</div>
-<div style="font-size:20px;color:#aaa;margin-top:4px;">必要：${SVG_ICONS.scrap}<span style="color:#ffcc66;">${YOUKI_COST.toLocaleString()}</span></div>
-`;
+      renderPersonEvent(ce, ceText, ceIcon, {
+        icon: SVG_ICONS.youki.replace("width:1em;height:1em;","width:2em;height:2em;"),
+        title: "陽キャ",
+        titleColor: "#facc15",
+        body: [
+          `『${playerNameHTML()}さん、今ちょっと懐が寂しくて…`,
+          `いくらか融通してもらえませんか？』`,
+        ],
+        sub: `必要：${SVG_ICONS.scrap}<span style="color:#ffcc66;">${YOUKI_COST.toLocaleString()}</span>`,
+      });
       // ボタンは下のswitchで描画するのでここではスキップ
     } else {
 
@@ -4352,6 +4352,43 @@ function renderRelicSwapUI(ce, ceText, ceIcon){
   let guideHTML = '<div style="font-size:20px;color:#fff;text-align:center;line-height:1.5;">⬇ 入れ替える紋をスロットからタップ</div>';
 
   ceText.innerHTML = floorBadgeHTML(state.floor) + swapTitle + newCardHTML + guideHTML;
+}
+
+// 人物系イベント（DAIGO・縦穴ジャンプ・商人・墓・陽キャなど）の共通描画ヘルパー。
+// タイトル + 本文（複数行可）+ 補足 + 追加要素の構造を1関数で組み立てる。
+// 本文の行間：1行目だけタイトルとの間に margin-top:6px、2行目以降は詰める（行間なし）。
+// 引数:
+//   ce      : current-event要素
+//   ceText  : テキスト領域
+//   ceIcon  : アイコン領域
+//   opts    : { icon, title, titleColor, body, sub, extras }
+//     - icon       : アイコンHTML（絵文字 or SVG文字列、SVGは2em化済みのものを渡す）
+//     - title      : タイトル文字列
+//     - titleColor : タイトル文字色（省略時 "#fff"）
+//     - body       : 本文（string または string[]）
+//     - sub        : 補足行（省略可、20px・グレー）
+//     - extras     : 追加要素HTML（省略可、DAIGOの友誼回復メッセージ等）
+function renderPersonEvent(ce, ceText, ceIcon, opts){
+  ceIcon.innerHTML = opts.icon || "";
+
+  let titleColor = opts.titleColor || "#fff";
+  let titleHTML = `<div style="font-size:26px;color:${titleColor};">${opts.title}</div>`;
+
+  // 本文を配列化（複数行と単一文字列の両対応）
+  let bodyArr = Array.isArray(opts.body) ? opts.body : (opts.body ? [opts.body] : []);
+  let bodyHTML = bodyArr.map((line, i) => {
+    // 1行目だけタイトルとの間に隙間、2行目以降は詰める
+    let mt = i === 0 ? "margin-top:6px;" : "";
+    return `<div style="font-size:22px;color:#fff;${mt}">${line}</div>`;
+  }).join("");
+
+  let subHTML = opts.sub
+    ? `<div style="font-size:20px;color:#aaa;margin-top:4px;">${opts.sub}</div>`
+    : "";
+
+  let extrasHTML = opts.extras || "";
+
+  ceText.innerHTML = floorBadgeHTML(state.floor) + titleHTML + bodyHTML + subHTML + extrasHTML;
 }
 
 // 紋入れ替え時のアクションエリア：
