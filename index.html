@@ -58,7 +58,6 @@ border: 2px solid #0f0;
 font-size: 26px;
 font-family: monospace;
 border-radius: 12px;
-box-shadow: 0 0 10px rgba(0, 255, 0, 0.4);
 outline: none;
 -webkit-tap-highlight-color: transparent;
 }
@@ -134,7 +133,6 @@ align-items: flex-start;
 gap: 16px;
 border-radius: 10px;
 position: relative;
-box-shadow: inset 0 0 20px rgba(0,255,80,0.03);
 }
 
 #current-event-icon {
@@ -417,7 +415,7 @@ background: transparent;
 font-family: inherit;
 font-weight: bold;
 }
-.modal-yes { border: 2px solid #0f0; color: #0f0; background: rgba(0,255,0,0.1) !important; box-shadow: 0 0 10px rgba(0,255,0,0.3); }
+.modal-yes { border: 2px solid #0f0; color: #0f0; background: rgba(0,255,0,0.1) !important; }
 .modal-no  { border: 2px solid #aaa; color: #aaa; }
 
 /* — 羊皮紙テーマ（採掘便りなど読み物系モーダル用） — */
@@ -524,7 +522,7 @@ margin-bottom: 2px;
 font-size: 24px;
 color: #00ff50;
 line-height: 1.2;
-text-shadow: 0 0 10px rgba(0,255,80,0.4);
+text-shadow: 0 0 4px rgba(0,255,80,0.4);
 }
 
 .stat-value .stat-sub {
@@ -532,9 +530,9 @@ font-size: 16px;
 color: rgba(0,255,80,0.5);
 }
 
-.stat-value.val-scrap   { color: #ffcc66; text-shadow: 0 0 8px rgba(255,204,102,0.4); }
-.stat-value.val-emerald { color: #58d68d; text-shadow: 0 0 8px rgba(88,214,141,0.4); }
-.stat-value.val-floor   { color: #fff;    text-shadow: 0 0 8px rgba(255,255,255,0.25); }
+.stat-value.val-scrap   { color: #ffcc66; text-shadow: 0 0 4px rgba(255,204,102,0.4); }
+.stat-value.val-emerald { color: #58d68d; text-shadow: 0 0 4px rgba(88,214,141,0.4); }
+.stat-value.val-floor   { color: #fff;    text-shadow: 0 0 4px rgba(255,255,255,0.25); }
 
 .hp-bar-wrap {
 margin-top: 4px;
@@ -618,13 +616,13 @@ padding: 2px 14px;
 font-size: 28px;
 color: #ffffff;
 letter-spacing: 2px;
-text-shadow: 0 0 10px rgba(255,255,255,0.5);
+text-shadow: 0 0 5px rgba(255,255,255,0.5);
 margin-bottom: 8px;
 line-height: 1.4;
 }
-.floor-badge.floor-goddess  { color: #aef; border-color: rgba(170,238,255,0.5); text-shadow: 0 0 10px rgba(170,238,255,0.6); }
-.floor-badge.floor-return   { color: #ff9; border-color: rgba(255,255,153,0.5); text-shadow: 0 0 10px rgba(255,255,153,0.6); }
-.floor-badge.floor-relic    { color: #f9f; border-color: rgba(255,153,255,0.5); text-shadow: 0 0 10px rgba(255,153,255,0.6); }
+.floor-badge.floor-goddess  { color: #aef; border-color: rgba(170,238,255,0.5); text-shadow: 0 0 5px rgba(170,238,255,0.6); }
+.floor-badge.floor-return   { color: #ff9; border-color: rgba(255,255,153,0.5); text-shadow: 0 0 5px rgba(255,255,153,0.6); }
+.floor-badge.floor-relic    { color: #f9f; border-color: rgba(255,153,255,0.5); text-shadow: 0 0 5px rgba(255,153,255,0.6); }
 
 /* ── 前回採掘ログ（羊皮紙） ── */
 .parchment {
@@ -738,7 +736,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.46</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.47</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -2697,7 +2695,7 @@ ${relicsHTML}
               swapClass = (state.selectedSwapIndex === i) ? " swap-selected" : " swap-mode";
             }
             slotsHTML += `<div class="crest-card${swapClass}" onclick="toggleCrestTooltip('${c.id}', ${i})"
-              style="position:relative;filter:drop-shadow(0 0 5px rgba(${c.rgb},0.5));${isActive && !swapClass ? "transform:translateY(-8px);" : ""}">
+              style="position:relative;filter:drop-shadow(0 0 3px rgba(${c.rgb},0.5));${isActive && !swapClass ? "transform:translateY(-8px);" : ""}">
               <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
                 <rect x="2" y="2" width="96" height="136" rx="6" fill="#222" stroke="${c.color}" stroke-width="2"/>
                 <g style="color:${c.color};">${c.svg}</g>
