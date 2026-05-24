@@ -738,7 +738,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.44</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.45</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -2509,12 +2509,10 @@ ${relicsHTML}
     } else
     // コウモリイベント
     if(state.mode === "event_bat"){
-      let lost = calcBatLost();
       renderPersonEvent(ce, ceText, ceIcon, {
         icon: "🦇",
         title: "コウモリの群れだ！",
         body: "音を立てて気を逸らせば安全に通れそうだけど…",
-        sub: `必要：${SVG_ICONS.scrap}<span style="color:#ffcc66;">${lost.toLocaleString()}</span>`,
       });
       // ボタンは下のswitchで描画するのでここではスキップ
     } else {
@@ -4104,10 +4102,11 @@ function calcBatLost(){
 
 function renderBatEvent(){
   let a = document.getElementById("actions");
+  let lost = calcBatLost();
 
   // 「音を立てる」ボタン
   let distractBtn = document.createElement("button");
-  distractBtn.innerText = "音を立てる";
+  distractBtn.innerHTML = `音を立てる<br><span style="font-size:22px;color:#ffcc66;">${SVG_ICONS.scrap}-${lost.toLocaleString()}</span>`;
   let riskS = BTN_STYLES.risk;
   let skipS = BTN_STYLES.skip;
   if(state.scrap <= 0){
