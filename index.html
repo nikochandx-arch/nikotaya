@@ -65,8 +65,7 @@ transition: box-shadow 0.15s, transform 0.08s !important;
 #log div { margin-bottom: 6px; color: #fff; }
 
 #buff-container {
-/* v13.14：左右padding を #log と揃え、下に余白をつけて
-   ログがビタ付けになる問題を解消。
+/* 左右padding を #log と揃え、下に余白をつける。
    境界線は内側の状態行ではなく container 自体に持たせ、
    画面右端まで伸びるようにする（padding の外側に線が引かれる）。 */
 display: flex;
@@ -99,7 +98,7 @@ border: 1px solid #f55;
 background: rgba(255, 85, 85, 0.1);
 }
 /* ログ全体に色を付けるクラスは廃止。
-   色は colorizeLog 内で対象部分のみ span で付与する方針（v13.05〜）。
+   色は colorizeLog 内で対象部分のみ span で付与する方針。
    .log-damage / .log-loss などのクラス名は引き続き付与されるが、CSSで色は指定しない。 */
 .log-damage { }
 .log-scrap { }
@@ -237,11 +236,11 @@ padding-left: 12px;
 
 /* — 紋（装備品）枠のスタイル — */
 #crest-container {
-/* v13.14：5枠を画面幅の約3分の2に縮め、左寄せ。
+/* 5枠を画面幅の約3分の2に縮め、左寄せ。
    justify-content を flex-start にして左詰めし、左右に同じ
    padding（16px）を持たせる。各カードは flex で約 13.3% の幅。
-   v13.27：直下に .crest-slots-wrap（5枠を内包）と .item-button が並ぶ構造に変更。
-   5枠を1つのまとまりとして扱えるようにし、紋入れ替えイベント時にネオン枠で囲めるようにした。 */
+   直下に .crest-slots-wrap（5枠を内包）と .item-button が並ぶ構造。
+   5枠を1つのまとまりとして扱い、紋入れ替えイベント時にネオン枠で囲めるようにしている。 */
 display: flex;
 justify-content: flex-start;
 align-items: center;
@@ -728,7 +727,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.49</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.50</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -755,12 +754,12 @@ line-height: 1.3;
       <div class="stat-value val-floor" id="sg-floor">—</div>
     </div>
   </div>
-  <!-- 状態バー（v13.11でログ内から外に出した）。
+  <!-- 状態バー。
        ログをスクロールしても画面上から消えないよう、#log の外側で
        ステータスバー直下に固定表示する。 -->
   <div id="buff-container"></div>
   <div id="log"></div>
-  <!-- 紋スロット（v13.13でログと採掘ボタンの間に移動）。
+  <!-- 紋スロット。
        表示制御は render() で行い、採掘中のみ表示される。 -->
   <div id="crest-container" style="display:none;"></div>
 </div>
@@ -850,7 +849,7 @@ function makeRunStats(){
 const SAVE_VERSION = 7;
 
 // ============================================
-// 表示色のルール（v13.04で整理）
+// 表示色のルール
 // ============================================
 // 「色＝意味」の対応をプレイヤーに直感的に伝えるためのルール。
 // 数値だけでなく、できる限り「数値＋単位」「効果名＋ターン数」をひとまとめにして色付ける。
@@ -1121,9 +1120,7 @@ const BUFF_DEF = {
     consumeOn: "turn",
     effects: {},
     onTurn: () => {
-      // v13.07：毒ダメージ HP10% → 7% に弱体化。
-      // 同時に毒ターンも各イベントで増やしてあり、総ダメージはほぼ据え置き。
-      // 狙いは「毒関連の紋・イベントへの下地作り」。
+      // 毒ダメージは最大HPの7%。
       let d = Math.max(1, Math.floor(state.maxHp * 0.07));
       // 毒で死なない：HP1を必ず残す
       // （damage関数内にも同じ保証があるが、ここでも明示的にクリップしておく）
@@ -1137,7 +1134,7 @@ const BUFF_DEF = {
     }
   },
   fragile: {
-    // v13.08：脆弱デバフ。
+    // 脆弱デバフ。
     // 受ける物理ダメージを ×1.5 に増幅する（毒など非物理ダメには適用しない）。
     // 諸盾の紋（×2）と重複時は乗算（最終×3.0）。
     // ガード発動時はダメ0なのでそもそも倍率関係なし。
@@ -1246,7 +1243,7 @@ const ITEM_DEF = {
     usableModes: null
   },
   beyaku: {
-    // v13.09：商人の上得意客向け（購入20回以上）解禁アイテム。
+    // 商人の上得意客向け（購入20回以上）解禁アイテム。
     // 採掘力UP 10T と 脆弱 10T を同時付与する両刃の薬。
     name: "ベーヤク",
     desc: "採掘力UP（10ターン）と 💔脆弱（10ターン）を付与",
@@ -1951,7 +1948,7 @@ function getPowerCost()   { return Math.floor(100 + state.upgrades.power * state
 function getPotionHealCost() { return Math.floor(1500 * Math.pow(1.55, state.upgrades.potionHeal)); }
 function getPotionHealValue(){ return 3 + state.upgrades.potionHeal; }
 
-// --- 加算ヘルパー（v13.16） ---
+// --- 加算ヘルパー ---
 // スクラップ・エメラルドの加算は必ずこれを経由する。
 // 「state.xxx と state.runStats.xxx を両方加算」のような対の処理を
 // 1箇所に閉じ込めることで、加算漏れ・統計記録漏れを構造的に防ぐ。
@@ -1981,7 +1978,7 @@ function damage(d, nonPhysical=false){
       d = d * 2;
     }
   }
-  // 💔 脆弱：物理ダメージを ×1.5（端数切り上げ）に増幅（v13.08）
+  // 💔 脆弱：物理ダメージを ×1.5（端数切り上げ）に増幅。
   // 諸盾とは乗算で重複（諸盾×2 × 脆弱×1.5 = ×3.0）
   // 非物理ダメ（毒など）には適用しない
   // ガード発動なら d=0 になるので倍率は事実上無視される（順序的に正しい）
@@ -2022,7 +2019,7 @@ function damage(d, nonPhysical=false){
 function heal(v)  { state.hp = Math.min(state.maxHp, state.hp + v); }
 
 // --- ログテキスト色付け ---
-// 色ルール（v13.05）：
+// 色ルール：
 //   ・色は「数値＋単位」「効果名＋ターン数」のひとまとまりに当てる。
 //   ・太字（font-weight:bold）は「数値部分」のみに当てる。
 //     例：「2 ダメージ」→ 全体に赤、太字は「2」だけ。
@@ -2079,7 +2076,7 @@ function colorizeLog(text, type){
     `<span style="color:${COLORS.debuff};">$1</span><span style="color:${COLORS.debuff};font-weight:bold;">$2</span><span style="color:${COLORS.debuff};">$3</span>`);
   text = text.replace(/(採掘量低下（)(\d+)(ターン）)/g,
     `<span style="color:${COLORS.debuff};">$1</span><span style="color:${COLORS.debuff};font-weight:bold;">$2</span><span style="color:${COLORS.debuff};">$3</span>`);
-  // 7d. 「脆弱（Nターン）」もデバフ色付け（v13.09でベーヤクから付与可能に）
+  // 7d. 「脆弱（Nターン）」もデバフ色付け
   text = text.replace(/(脆弱（)(\d+)(ターン）)/g,
     `<span style="color:${COLORS.debuff};">$1</span><span style="color:${COLORS.debuff};font-weight:bold;">$2</span><span style="color:${COLORS.debuff};">$3</span>`);
   // 7c. デバフ解消「毒が治った」は良いこと扱いで緑（数値なしなので太字なし）。
@@ -2244,7 +2241,7 @@ function render(){
   renderStatusGrid();
 
   // 状態バーは下のログ描画ブロックで内容を埋める。
-  // ここでは紋選択モード等で前回内容が残らないよう一旦クリア（v13.11）。
+  // ここでは紋選択モード等で前回内容が残らないよう一旦クリア。
   document.getElementById("buff-container").innerHTML = "";
 
   document.getElementById("storage").innerHTML =
@@ -2456,8 +2453,8 @@ ${relicsHTML}
       // ボタンは下のswitchで描画するのでここではスキップ
     } else
     if(state.mode === "event_merchant"){
-      // 段階別セリフ（getMerchantTier）に応じて切り替え
-      // 商品の価格はボタンに表示されるので、メイン画面の価格表示は廃止（v13.09）
+      // 段階別セリフ（getMerchantTier）に応じて切り替え。
+      // 商品の価格はボタンに表示されるので、メイン画面の価格表示はなし。
       const tier = getMerchantTier();
       let line;
       if(tier === 1){
@@ -2509,7 +2506,6 @@ ${relicsHTML}
 
     let eventHTML = floorBadgeHTML(state.floor);
     entry.lines.forEach((line, i) => {
-      // type別の行全体色付けは廃止（v13.06）。
       // 色は colorizeLog 内の span で対象部分のみ付与する方針。
       // 例外：dividerは全体白、subは全体グレー（地の文の通常色）。
       let color = "";
@@ -2534,13 +2530,11 @@ ${relicsHTML}
   }
 
   // --- 履歴ログ ---
-  // v13.24：紋選択（event_relic_pick）はメイン画面に紋UIを移したので
-  // ログ領域は通常通り履歴を表示する。
-  // v13.26：紋入れ替え（event_relic_swap）も同様にメイン画面主役に変更したため、
-  // ログ領域は通常通り履歴を表示する。
+  // 紋選択／紋入れ替え時もログ領域は通常通り履歴を表示する
+  // （紋UIはメイン画面側に表示されているため）。
   {
-    // バフデバフ行を生成（v13.11でログ内→外側 #buff-container へ分離）
-    // ログをスクロールしても状態バーが画面から消えないようにするため。
+    // バフデバフ行を生成（#buff-container は #log の外側にあり、
+    // ログをスクロールしても状態バーが画面から消えないようにするため別領域）。
     let buffRow = "";
     if(state.buffs.length > 0){
       let badges = state.buffs.map(b => {
@@ -3547,7 +3541,7 @@ const LIGHT_EVENTS = [
   },
   {
     id: "gas", name: "有毒ガス", weight: 3,
-    // v13.07：30階以下（30階含む）では発生しないように制限。
+    // 30階以下（30階含む）では発生しないように制限。
     // 序盤プレイヤーは毒消し草を持っていないことが多く、回避不能毒は理不尽になりやすいため。
     // キノコ毒は「食べる」、コウモリ毒は「払う/無視」の選択肢があるので
     // 「選択不能な毒」だけを序盤から除外する。
@@ -4057,7 +4051,7 @@ function applyItemEffect(item){
     playSE("select");
     addLog("ヘルメットを装着！ 🛡️ ガード +3回", "sub");
   } else if(item.effect === "beyaku"){
-    // v13.09：ベーヤク = 採掘力UP 10T + 脆弱 10T
+    // ベーヤク = 採掘力UP 10T + 脆弱 10T
     // 強力なバフだが代償としてダメージ増幅デバフが付く両刃の薬。
     // ログは3行構成：見出し + 各効果（subで）
     applyBuffById("miningUp", 10);
@@ -4143,7 +4137,6 @@ function batForce(){
     let d = Math.ceil(state.maxHp * 0.1);
     let actual = damage(d);
     playSE("damage");
-    // v13.07：毒ターン 3T → 4T に変更
     applyPoison(4);
     addLog(`気づかれた！ ${actual} ダメージ`, "sub");
     addLog(`毒を受けた（4ターン）`, "sub");
@@ -4213,9 +4206,8 @@ function toggleCrestTooltip(id, index){
 }
 
 // --- 紋獲得イベント ---
-// v13.13：紋カード自体をタップで選択する形式に変更。
-// 以前は下に「紋A」「紋B」「紋C」の選択ボタンがあったが、カード自体に
-// onclick を仕込んだのでボタン群は不要に。「どれも選ばない」だけ残す。
+// 紋カード自体をタップで選択する形式。
+// メイン画面側のカードに onclick を仕込んでおり、ここでは「どれも選ばない」ボタンだけ表示する。
 function renderRelicPickEvent(){
   let a = document.getElementById("actions");
   a.style.flexWrap = "wrap";
@@ -4230,7 +4222,7 @@ function renderRelicPickEvent(){
   a.appendChild(skipRow);
 }
 
-// v13.13：紋カードのonclickから呼ぶヘルパー。
+// 紋カードのonclickから呼ぶヘルパー。
 // onclick属性に直接オブジェクトは渡せないので、idで参照してpickRelicに渡す。
 function pickRelicById(id){
   const crest = state.relicChoices.find(c => c.id === id);
@@ -4495,7 +4487,7 @@ function getMerchantTier(){
 }
 
 // 商人の取扱商品（id→ポーション/毒消し草/ベーヤク）の価格を計算
-// 「割合価格と最低値で高い方をとる」方式（v13.09〜）
+// 「割合価格と最低値で高い方をとる」方式
 //   - ポーション：20% / 最低10
 //   - 毒消し草 ：30% / 最低100
 //   - ベーヤク ：40% / 最低1000
