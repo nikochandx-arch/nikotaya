@@ -727,7 +727,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.50</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.51</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -2422,12 +2422,16 @@ ${relicsHTML}
     } else
     // 縦穴ジャンプ前
     if(state.mode === "event_pitjump"){
-      let pct = Math.round((state.hp / state.maxHp) * 100);
+      let successPct = Math.round((state.hp / state.maxHp) * 100);
+      let failPct = 100 - successPct;
+      let jumpStatusHTML = `<div style="margin-top:6px;font-size:22px;line-height:1.3;">` +
+        `<div><span style="color:#ffcc66;">ジャンプ失敗率：</span><span style="color:#f55;font-weight:bold;">${failPct}%</span></div>` +
+        `</div>`;
       renderPersonEvent(ce, ceText, ceIcon, {
         icon: SVG_ICONS.pitJump.replace("width:1em;height:1em;","width:2em;height:2em;"),
         title: "深い縦穴だ！",
         body: "向こう側にジャンプ出来れば近道になりそうだけど…",
-        sub: `ジャンプ成功率：<span style="color:${COLORS.floor};">${pct}%</span>`,
+        extras: jumpStatusHTML,
       });
       // ボタンは下のswitchで描画するのでここではスキップ
     } else
