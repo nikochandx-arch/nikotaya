@@ -723,7 +723,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.54</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.55</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -2036,8 +2036,9 @@ function damage(d, nonPhysical=false){
       guardActivated = true;
     }
   }
-  // 鋼皮の紋：物理ダメージを2軽減（最低1）。ただしガード発動時はスキップ
-  if(!nonPhysical && !guardActivated && state.relics.some(r => r.id === "steel")){
+  // 鋼皮の紋：物理ダメージを2軽減（最低1）。
+  // ただし「ガード発動時」「諸盾でd=0になった時」は最低1保証もスキップして確実に0ダメージにする
+  if(!nonPhysical && !guardActivated && !shieldNullified && state.relics.some(r => r.id === "steel")){
     d = Math.max(1, d - 2);
   }
   // 非物理ダメージ（毒など）は最終的に「HP1で止まる」保証をかける
