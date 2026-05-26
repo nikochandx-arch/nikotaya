@@ -723,7 +723,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.53</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.54</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -2003,9 +2003,11 @@ function gainEmerald(amount){
 //               （毒・自傷・将来の特殊ダメージなど、防具・盾で防げないダメージ用）
 function damage(d, nonPhysical=false){
   // 諸盾の紋：50%でダメージ無効、50%で2倍（最初に適用）
+  let shieldNullified = false;
   if(state.relics.some(r => r.id === "gamble_shield")){
     if(Math.random() < 0.5){
       d = 0;
+      shieldNullified = true;
     } else {
       d = d * 2;
     }
@@ -2021,11 +2023,11 @@ function damage(d, nonPhysical=false){
       d = Math.ceil(d * mult);
     }
   }
-  // 🛡️ ガードバフ：物理ダメージを完全無効化（諸盾の後、鋼皮の前）
-  // 0ダメでも2倍でも、ダメージイベントが発生した時点で1回消費する仕様
-  // ガード発動時は鋼皮の紋の最低1保証もスキップして、確実に0ダメージにする
+  // 🛡️ ガードバフ：物理ダメージを完全無効化（諸盾の後、鋼皮の前）。
+  // 諸盾の紋でd=0になった場合は「諸盾優先で守られた」扱いで、ガードは消費しない。
+  // ヘルメットは希少（採掘中入手不可・アイテム枠5）なので、諸盾とのシナジーで保険として機能させる。
   let guardActivated = false;
-  if(!nonPhysical){
+  if(!nonPhysical && !shieldNullified){
     let guard = state.buffs.find(b => b.id === "guard");
     if(guard){
       d = 0;
