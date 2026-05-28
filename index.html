@@ -722,7 +722,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.62</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;">Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.63</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -2153,6 +2153,7 @@ function getEmoji(text, type){
   if(text.includes("泥棒モグラ"))      return SVG_ICONS.thiefMole;
   if(text.includes("陽キャ") || text.includes("あざす") || text.includes("お腹痛")) return SVG_ICONS.youki;
   if(text.includes("深い縦穴") || text.includes("ジャンプ") || text.includes("迂回")) return SVG_ICONS.pitJump;
+  if(text.includes("落石"))        return SVG_ICONS.rockfall;
   if(type==="divider")     return text.includes("女神") ? SVG_ICONS.goddess : SVG_ICONS.door;
   if(type==="damage")      return text.includes("毒") ? SVG_ICONS.poison : "💥";
   if(type==="scrap")       return SVG_ICONS.pickaxe;
