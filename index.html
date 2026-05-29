@@ -33,11 +33,24 @@ font-size: 28px;
 margin-top: 8px;
 color: #ff99ff;
 font-size: 28px;
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 8px;
+align-items: stretch;
+}
+
+/* 見出し（▼ショップ / [ 消耗品 ] 等）は3列ぶち抜きで全幅に */
+#shop .shop-head {
+grid-column: 1 / -1;
 }
 
 #shop button {
+/* グリッドセルにフィットさせる。ベースbuttonの flex/max-width/min-width を打ち消す */
 width: 100%;
-margin-top: 8px;
+min-width: 0 !important;
+max-width: none !important;
+flex: none !important;
+margin: 0 !important;
 }
 
 button.nikotaya-press-fx {
@@ -774,7 +787,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.65</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.66</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -1969,15 +1982,15 @@ function buildShopHTML(){
   let descStyle = 'style="font-size:18px;"';
   let itemFullMsg = itemFull ? '<span style="color:#f55;font-size:20px;margin-left:8px;">※持ち物がいっぱい</span>' : "";
   return `
-<div>▼ショップ</div>
-<div style="color:#888;margin:6px 0;">[ 消耗品 ] ${itemFullMsg}</div>
+<div class="shop-head">▼ショップ</div>
+<div class="shop-head" style="color:#888;margin:6px 0;">[ 消耗品 ] ${itemFullMsg}</div>
 <button onclick="buyPotion()" style="${shopStyle}height:auto;padding:12px 8px;${disabledStyle}">ポーション<br><span ${descStyle}>HP+${getPotionHealValue()}</span><br>${priceSpan(1)}</button>
 <button onclick="buyAntidote()" style="${shopStyle}height:auto;padding:12px 8px;${disabledStyle}">毒消し草<br><span ${descStyle}>毒を治す</span><br>${priceSpan(10)}</button>
 ${state.unlockedItems.includes("guard3")
   ? `<button onclick="buyHelmet()" style="${shopStyle}height:auto;padding:12px 8px;${disabledStyle}">ヘルメット<br><span ${descStyle}>🛡️ガード+3回</span><br>${priceSpan(100)}</button>`
   : ""
 }
-<div style="color:#888;margin:6px 0;">[ 永続強化 ]</div>
+<div class="shop-head" style="color:#888;margin:6px 0;">[ 永続強化 ]</div>
 <button onclick="buyHp()" style="${shopStylePerm}height:auto;padding:12px 8px;">最大HP +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getHpCost().toLocaleString())}</button>
 <button onclick="buyPower()" style="${shopStylePerm}height:auto;padding:12px 8px;">採掘力 +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getPowerCost().toLocaleString())}</button>
 <button onclick="buyPotionHeal()" style="${shopStylePerm}height:auto;padding:12px 8px;">ポーション強化<br><span ${descStyle}>回復量+1</span><br>${priceSpan(getPotionHealCost().toLocaleString())}</button>
@@ -2001,12 +2014,12 @@ ${(() => {
   let nextPct = curPct + 5;
   return `<button onclick="buyGoddessHeal()" style="${shopStylePerm}height:auto;padding:12px 8px;">女神回復強化<br><span ${descStyle}>回復量${curPct}%→${nextPct}%</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">${cost}</span></button>`;
 })()}
-<div style="color:#888;margin:6px 0;">[ 解放 ]</div>
+<div class="shop-head" style="color:#888;margin:6px 0;">[ 解放 ]</div>
 ${state.unlockedItems.includes("guard3")
   ? `<button disabled style="${shopStyleUnlock}height:auto;padding:12px 8px;opacity:0.4;">ヘルメット解放<br><span ${descStyle}>購入済み</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">3</span></button>`
   : `<button onclick="buyUnlockHelmet()" style="${shopStyleUnlock}height:auto;padding:12px 8px;">ヘルメット解放<br><span ${descStyle}>消耗品に並ぶ</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">3</span></button>`
 }
-<div style="color:#888;margin:6px 0;">[ 貴重品 ]</div>
+<div class="shop-head" style="color:#888;margin:6px 0;">[ 貴重品 ]</div>
 ${state.upgrades.journal
   ? `<button disabled style="${shopStylePrev}height:auto;padding:12px 8px;opacity:0.4;">採掘便り<br><span ${descStyle}>購入済み</span><br>${priceSpan((15000).toLocaleString())}</button>`
   : `<button onclick="buyJournal()" style="${shopStylePrev}height:auto;padding:12px 8px;">採掘便り<br><span ${descStyle}>他の鉱夫の便りを読む</span><br>${priceSpan((15000).toLocaleString())}</button>`
