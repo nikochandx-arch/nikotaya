@@ -788,7 +788,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.67</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.68</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -1970,6 +1970,49 @@ function checkUnlocks(){
   return newlyUnlocked;
 }
 
+// --- ショップボタン生成ヘルパー ---
+// ショップの各購入ボタンを「購入可／通貨不足／購入済み」の3状態で出し分ける。
+// 通貨不足・購入済みはともに disabled＋グレーアウトで押せなくする。
+//   opts.label    : 商品名
+//   opts.desc     : 説明文（HTML可。空なら &nbsp; で行高を確保）
+//   opts.price    : 価格（数値）
+//   opts.currency : "scrap" | "emerald"（アイコンと価格色の出し分け）
+//   opts.owned    : 所持通貨額（state.totalScrap など）
+//   opts.onClick  : 押下時に呼ぶ関数名の文字列（例 "buyHp()"）
+//   opts.style    : 購入可時のボタンスタイル文字列（border/color/background）
+//   opts.purchased     : 購入済みなら true（最優先でグレーアウト）
+//   opts.purchasedNote : 購入済み時の補足（"5枠"等）。あれば「購入済み（〇〇）」、無ければ「購入済み」
+//   opts.soldPrice     : 購入済み表示時に出す価格（数値）。未指定なら price を使う
+//   opts.extraDisabled : 通貨以外の購入不可条件（消耗品の持ち物満杯など）。true なら購入不可
+function shopButton(opts){
+  const grayStyle = "border-color:#666;color:#666;background:transparent;opacity:0.4;";
+  const padStyle  = "height:auto;padding:12px 8px;";
+  // 価格表示（通貨でアイコン・色を出し分け）
+  const priceHTML = (val) => opts.currency === "emerald"
+    ? `${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">${Number(val).toLocaleString()}</span>`
+    : `${SVG_ICONS.scrap}<span style="color:#ffcc66;font-size:26px;">${Number(val).toLocaleString()}</span>`;
+  const descHTML = opts.desc && opts.desc.length ? opts.desc : "&nbsp;";
+
+  // (3) 購入済み：最優先。disabled＋グレーアウト。文言は「購入済み（補足）」or「購入済み」
+  if(opts.purchased){
+    const note = opts.purchasedNote ? `購入済み（${opts.purchasedNote}）` : "購入済み";
+    const sp   = (opts.soldPrice !== undefined && opts.soldPrice !== null) ? opts.soldPrice : opts.price;
+    return `<button disabled style="${grayStyle}${padStyle}">${opts.label}<br>`
+         + `<span style="font-size:18px;">${note}</span><br>${priceHTML(sp)}</button>`;
+  }
+
+  // (2) 通貨不足 or その他の購入不可条件：disabled＋グレーアウト。文言は通常のまま
+  const cantPay = opts.owned < opts.price;
+  if(cantPay || opts.extraDisabled){
+    return `<button disabled style="${grayStyle}${padStyle}">${opts.label}<br>`
+         + `<span style="font-size:18px;">${descHTML}</span><br>${priceHTML(opts.price)}</button>`;
+  }
+
+  // (1) 購入可：通常ボタン
+  return `<button onclick="${opts.onClick}" style="${opts.style}${padStyle}">${opts.label}<br>`
+       + `<span style="font-size:18px;">${descHTML}</span><br>${priceHTML(opts.price)}</button>`;
+}
+
 // --- ショップHTML生成 ---
 function buildShopHTML(){
   let itemFull = state.items.length >= 5;
@@ -1977,57 +2020,51 @@ function buildShopHTML(){
   let shopStylePerm   = "border-color:#f9c;color:#f9c;background:rgba(255,153,204,0.1);width:100%;"; // 永続強化：ローズ
   let shopStyleUnlock = "border-color:#e9f;color:#e9f;background:rgba(238,153,255,0.1);width:100%;"; // 解放：ラベンダー
   let shopStylePrev   = "border-color:#d9f;color:#d9f;background:rgba(221,153,255,0.1);width:100%;"; // 貴重品：ペリウィンクル
-  let maxStyle  = "border-color:#666;color:#666;background:transparent;opacity:0.5;width:100%;";
-  let disabledStyle = itemFull ? "opacity:0.4;" : "";
-  let priceSpan = (val) => `${SVG_ICONS.scrap}<span style="color:#ffcc66;font-size:26px;">${val}</span>`;
-  let descStyle = 'style="font-size:18px;"';
   let itemFullMsg = itemFull ? '<span style="color:#f55;font-size:20px;margin-left:8px;">※持ち物がいっぱい</span>' : "";
+
+  const sc = state.totalScrap;
+  const em = state.totalEmerald;
+
+  // 永続強化（エメラルド）：購入済みは cost===null
+  const relicCost = getRelicSlotCost();
+  const relicCur  = getRelicSlotCount();
+  const goddessCost = getGoddessHealCost();
+  const goddessPct  = 20 + state.upgrades.goddessHeal * 5;
+
   return `
 <div class="shop-head">▼ショップ</div>
 <div class="shop-head" style="color:#888;margin:6px 0;">[ 消耗品 ] ${itemFullMsg}</div>
-<button onclick="buyPotion()" style="${shopStyle}height:auto;padding:12px 8px;${disabledStyle}">ポーション<br><span ${descStyle}>HP+${getPotionHealValue()}</span><br>${priceSpan(1)}</button>
-<button onclick="buyAntidote()" style="${shopStyle}height:auto;padding:12px 8px;${disabledStyle}">毒消し草<br><span ${descStyle}>毒を治す</span><br>${priceSpan(10)}</button>
+${shopButton({ label:"ポーション", desc:`HP+${getPotionHealValue()}`, price:1,   currency:"scrap", owned:sc, onClick:"buyPotion()",   style:shopStyle, extraDisabled:itemFull })}
+${shopButton({ label:"毒消し草",   desc:"毒を治す",                  price:10,  currency:"scrap", owned:sc, onClick:"buyAntidote()", style:shopStyle, extraDisabled:itemFull })}
 ${state.unlockedItems.includes("guard3")
-  ? `<button onclick="buyHelmet()" style="${shopStyle}height:auto;padding:12px 8px;${disabledStyle}">ヘルメット<br><span ${descStyle}>🛡️ガード+3回</span><br>${priceSpan(100)}</button>`
+  ? shopButton({ label:"ヘルメット", desc:"🛡️ガード+3回", price:100, currency:"scrap", owned:sc, onClick:"buyHelmet()", style:shopStyle, extraDisabled:itemFull })
   : ""
 }
 <div class="shop-head" style="color:#888;margin:6px 0;">[ 永続強化 ]</div>
-<button onclick="buyHp()" style="${shopStylePerm}height:auto;padding:12px 8px;">最大HP +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getHpCost().toLocaleString())}</button>
-<button onclick="buyPower()" style="${shopStylePerm}height:auto;padding:12px 8px;">採掘力 +1<br><span ${descStyle}>&nbsp;</span><br>${priceSpan(getPowerCost().toLocaleString())}</button>
-<button onclick="buyPotionHeal()" style="${shopStylePerm}height:auto;padding:12px 8px;">ポーション強化<br><span ${descStyle}>回復量+1</span><br>${priceSpan(getPotionHealCost().toLocaleString())}</button>
-${(() => {
-  let cost = getRelicSlotCost();
-  let cur = getRelicSlotCount();
-  if(cost === null){
-    let lastCost = RELIC_SLOT_COSTS[RELIC_SLOT_COSTS.length - 1];
-    return `<button disabled style="${shopStylePerm}height:auto;padding:12px 8px;opacity:0.4;">紋スロット拡張<br><span ${descStyle}>購入済み（5枠）</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">${lastCost}</span></button>`;
-  }
-  return `<button onclick="buyRelicSlot()" style="${shopStylePerm}height:auto;padding:12px 8px;">紋スロット拡張<br><span ${descStyle}>${cur}枠 → ${cur+1}枠</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">${cost}</span></button>`;
-})()}
-${(() => {
-  // 女神回復強化（Lv0〜6 / 5%刻み / エメラルド）
-  let cost = getGoddessHealCost();
-  let curPct = 20 + state.upgrades.goddessHeal * 5;
-  if(cost === null){
-    let lastCost = GODDESS_HEAL_COSTS[GODDESS_HEAL_COSTS.length - 1];
-    return `<button disabled style="${shopStylePerm}height:auto;padding:12px 8px;opacity:0.4;">女神回復強化<br><span ${descStyle}>購入済み（${curPct}%）</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">${lastCost}</span></button>`;
-  }
-  let nextPct = curPct + 5;
-  return `<button onclick="buyGoddessHeal()" style="${shopStylePerm}height:auto;padding:12px 8px;">女神回復強化<br><span ${descStyle}>回復量${curPct}%→${nextPct}%</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">${cost}</span></button>`;
-})()}
+${shopButton({ label:"最大HP +1", desc:"", price:getHpCost(),    currency:"scrap", owned:sc, onClick:"buyHp()",    style:shopStylePerm })}
+${shopButton({ label:"採掘力 +1", desc:"", price:getPowerCost(), currency:"scrap", owned:sc, onClick:"buyPower()", style:shopStylePerm })}
+${shopButton({ label:"ポーション強化", desc:"回復量+1", price:getPotionHealCost(), currency:"scrap", owned:sc, onClick:"buyPotionHeal()", style:shopStylePerm })}
+${relicCost === null
+  ? shopButton({ label:"紋スロット拡張", currency:"emerald", purchased:true, purchasedNote:"5枠", soldPrice:RELIC_SLOT_COSTS[RELIC_SLOT_COSTS.length-1], style:shopStylePerm })
+  : shopButton({ label:"紋スロット拡張", desc:`${relicCur}枠 → ${relicCur+1}枠`, price:relicCost, currency:"emerald", owned:em, onClick:"buyRelicSlot()", style:shopStylePerm })
+}
+${goddessCost === null
+  ? shopButton({ label:"女神回復強化", currency:"emerald", purchased:true, purchasedNote:`${goddessPct}%`, soldPrice:GODDESS_HEAL_COSTS[GODDESS_HEAL_COSTS.length-1], style:shopStylePerm })
+  : shopButton({ label:"女神回復強化", desc:`回復量${goddessPct}%→${goddessPct+5}%`, price:goddessCost, currency:"emerald", owned:em, onClick:"buyGoddessHeal()", style:shopStylePerm })
+}
 <div class="shop-head" style="color:#888;margin:6px 0;">[ 解放 ]</div>
 ${state.unlockedItems.includes("guard3")
-  ? `<button disabled style="${shopStyleUnlock}height:auto;padding:12px 8px;opacity:0.4;">ヘルメット解放<br><span ${descStyle}>購入済み</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">3</span></button>`
-  : `<button onclick="buyUnlockHelmet()" style="${shopStyleUnlock}height:auto;padding:12px 8px;">ヘルメット解放<br><span ${descStyle}>消耗品に並ぶ</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">3</span></button>`
+  ? shopButton({ label:"ヘルメット解放", currency:"emerald", price:3, purchased:true, style:shopStyleUnlock })
+  : shopButton({ label:"ヘルメット解放", desc:"消耗品に並ぶ", price:3, currency:"emerald", owned:em, onClick:"buyUnlockHelmet()", style:shopStyleUnlock })
 }
 <div class="shop-head" style="color:#888;margin:6px 0;">[ 貴重品 ]</div>
 ${state.upgrades.journal
-  ? `<button disabled style="${shopStylePrev}height:auto;padding:12px 8px;opacity:0.4;">採掘便り<br><span ${descStyle}>購入済み</span><br>${priceSpan((15000).toLocaleString())}</button>`
-  : `<button onclick="buyJournal()" style="${shopStylePrev}height:auto;padding:12px 8px;">採掘便り<br><span ${descStyle}>他の鉱夫の便りを読む</span><br>${priceSpan((15000).toLocaleString())}</button>`
+  ? shopButton({ label:"採掘便り", currency:"scrap", price:15000, purchased:true, style:shopStylePrev })
+  : shopButton({ label:"採掘便り", desc:"他の鉱夫の便りを読む", price:15000, currency:"scrap", owned:sc, onClick:"buyJournal()", style:shopStylePrev })
 }
 ${state.upgrades.tent
-  ? `<button disabled style="${shopStylePrev}height:auto;padding:12px 8px;opacity:0.4;">テント<br><span ${descStyle}>購入済み</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">5</span></button>`
-  : `<button onclick="buyTent()" style="${shopStylePrev}height:auto;padding:12px 8px;">テント<br><span ${descStyle}>採掘を中断できる</span><br>${SVG_ICONS.emerald}<span style="color:#58d68d;font-size:26px;">5</span></button>`
+  ? shopButton({ label:"テント", currency:"emerald", price:5, purchased:true, style:shopStylePrev })
+  : shopButton({ label:"テント", desc:"採掘を中断できる", price:5, currency:"emerald", owned:em, onClick:"buyTent()", style:shopStylePrev })
 }
 `;
 }
