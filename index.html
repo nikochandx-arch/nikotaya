@@ -788,7 +788,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.68</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.69</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="current-event">
@@ -3691,8 +3691,13 @@ function buildEventCtx(){
 // condition を満たすイベントだけを対象に重み付き抽選する。
 // 全件 condition 不一致なら、condition 無しのイベントだけで抽選（fallback）。
 function pickWeightedEvent(events, ctx){
-  let avail = events.filter(e => !e.condition || e.condition(ctx));
-  if(avail.length === 0) avail = events.filter(e => !e.condition);
+  // 階層レンジ判定はここ1か所に集約する。各イベントは minFloor / maxFloor を
+  // 任意で宣言するだけ（どちらもその階を含む）。階層以外の条件は condition に書く。
+  const inFloorRange = e =>
+    (e.minFloor == null || ctx.floor >= e.minFloor) &&
+    (e.maxFloor == null || ctx.floor <= e.maxFloor);
+  let avail = events.filter(e => inFloorRange(e) && (!e.condition || e.condition(ctx)));
+  if(avail.length === 0) avail = events.filter(e => inFloorRange(e) && !e.condition);
   let total = avail.reduce((s, e) => s + e.weight, 0);
   let r = Math.random() * total;
   for(let e of avail){
@@ -3706,6 +3711,8 @@ function pickWeightedEvent(events, ctx){
 const LIGHT_EVENTS = [
   {
     id: "rockfall", name: "落石", weight: 19,
+    // 30階以下では出さない（31階〜）。序盤の初心者救済。落石はダメージが大きく序盤がきついため。
+    minFloor: 31,
     condition: null,
     fn: () => {
       playSE("damage");
@@ -3738,11 +3745,12 @@ const LIGHT_EVENTS = [
   },
   {
     id: "gas", name: "有毒ガス", weight: 3,
-    // 初出階指定あり（31階〜）。
+    // 30階以下では出さない（31階〜）。
     // 序盤プレイヤーは毒消し草を持っていないことが多く、回避不能毒は理不尽になりやすいため。
     // キノコ毒は「食べる」、コウモリ毒は「払う/無視」の選択肢があるので
     // 「選択不能な毒」だけを序盤から除外する。
-    condition: ctx => ctx.floor > 30,
+    minFloor: 31,
+    condition: null,
     fn: () => {
       playSE("select");
       applyPoison(3);
