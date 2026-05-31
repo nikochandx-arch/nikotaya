@@ -192,6 +192,58 @@ padding: 12px 16px 0;
 flex-shrink: 0;
 }
 
+/* 竪坑ストリップ（第1段：器＋自機固定＋階目盛り）。
+   current-event の左に縦カラムを1本置く横並びコンテナ。
+   採掘探索中のみ表示し、それ以外のモードでは renderShaft() 側で空にする。 */
+#event-row {
+display: flex;
+align-items: stretch;
+}
+#shaft {
+flex-shrink: 0;
+width: 52px;
+margin: 10px 0 10px 16px;
+border: 1px solid rgba(0,255,80,0.18);
+border-radius: 10px;
+background: rgba(0,255,80,0.04);
+display: flex;
+flex-direction: column;
+overflow: hidden;
+font-size: 16px;
+color: rgba(200,255,210,0.85);
+}
+/* 竪坑が空（非表示）のときは枠ごと消す */
+#shaft:empty {
+display: none;
+}
+#shaft .shaft-row {
+flex: 1;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 4px;
+border-bottom: 1px solid rgba(0,255,80,0.08);
+text-align: center;
+line-height: 1.1;
+}
+#shaft .shaft-row:last-child { border-bottom: none; }
+/* 自機がいる行を強調 */
+#shaft .shaft-row.shaft-here {
+background: rgba(0,255,80,0.14);
+color: #fff;
+}
+/* 地表/ホーム行（0階より上） */
+#shaft .shaft-row.shaft-surface {
+color: rgba(200,255,210,0.4);
+}
+#shaft .shaft-floor-num { opacity: 0.85; }
+#shaft .shaft-icon svg { width: 1em; height: 1em; vertical-align: middle; }
+/* 横並びにしたぶん、current-event 側の左 margin は shaft が肩代わりする */
+#event-row #current-event {
+flex: 1;
+margin-left: 12px;
+}
+
 #current-event {
 flex-shrink: 0;
 height: 300px;
@@ -788,12 +840,15 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.70</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.71</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
-  <div id="current-event">
-    <div id="current-event-icon"></div>
-    <div id="current-event-text">採掘を開始しよう！</div>
+  <div id="event-row">
+    <div id="shaft"></div>
+    <div id="current-event">
+      <div id="current-event-icon"></div>
+      <div id="current-event-text">採掘を開始しよう！</div>
+    </div>
   </div>
   <div id="status-grid">
     <div class="stat-cell">
@@ -2335,6 +2390,62 @@ function floorBadgeHTML(floor){
 
 // --- 描画 ---
 // --- ステータスグリッド更新 ---
+// 竪坑ストリップを描画する（第1段：器＋自機固定＋階目盛り）。
+// render() から呼ばれる。state.floor を基準に常に10行を組み立て #shaft に書き込む。
+// 自機は常に上から2番目に固定（不変）。表示範囲は floor-1 〜 floor+8。
+// floor-1 が0未満になる浅層では、その行を地表/ホーム表示にする。
+// 確定構造（女神=30の倍数 / 鉄扉=10の倍数かつ非30の倍数 / 紋階=15・51・101…）に
+// アイコンを添える。ランダムイベントは出さない（確定構造のみ＝予感を生み、ネタバレにしない）。
+// 採掘探索中以外のモードでは枠ごと消す（#shaft:empty で display:none）。
+function renderShaft(){
+  const el = document.getElementById("shaft");
+  if(!el) return;
+
+  // 採掘探索中のみ表示。紋選択・入れ替え・帰還・女神・リザルト・ホーム等では出さない。
+  const SHOW_MODES = ["explore", "poison_tick"];
+  if(!SHOW_MODES.includes(state.mode)){
+    el.innerHTML = "";
+    return;
+  }
+
+  const VISIBLE = 10;     // 表示する階数
+  const SELF_ROW = 1;     // 自機の行位置（0始まり＝上から2番目で固定）
+  const top = state.floor - SELF_ROW; // 一番上の行が表す階（負なら地表）
+
+  // 紋階判定（コード本体 isSpecialFloor / isRelicFloor と同じ規則）。
+  // ※消化済み（relicEventFloors / goddessUsedFloors）や紋プール枯渇は第1段では考慮しない。
+  //   「階の規則」をそのまま見せる。消化済み考慮は第3段以降の論点。
+  const isRelicFloor = f => f === 15 || (f > 1 && (f - 1) % 50 === 0);
+
+  let rows = "";
+  for(let i = 0; i < VISIBLE; i++){
+    const f = top + i;
+    const isHere = (i === SELF_ROW);
+
+    if(f < 0){
+      // 地表より上：階が存在しない行
+      rows += `<div class="shaft-row shaft-surface"><span>▲地表</span></div>`;
+      continue;
+    }
+
+    // この階の確定構造アイコン（優先順位：女神 > 鉄扉 > 紋階）
+    let icon = "";
+    if(f > 0 && f % 30 === 0)        icon = `<span class="shaft-icon">${SVG_ICONS.goddess}</span>`;
+    else if(f > 0 && f % 10 === 0)   icon = `<span class="shaft-icon">${SVG_ICONS.door}</span>`;
+    else if(isRelicFloor(f))         icon = `<span class="shaft-icon">◆</span>`;
+
+    // 自機行はピックアックスを添える
+    const self = isHere ? `<span class="shaft-icon">${SVG_ICONS.pickaxe}</span>` : "";
+
+    rows += `<div class="shaft-row${isHere ? " shaft-here" : ""}">`
+          +   `<span class="shaft-floor-num">${f === 0 ? "0" : f}</span>`
+          +   self
+          +   icon
+          + `</div>`;
+  }
+  el.innerHTML = rows;
+}
+
 // HP/SCRAP/EMERALD/FLOOR の値・色・HPバーを更新する。
 // render() から呼ばれる。state を参照し対象DOMに書き込むだけで戻り値はない。
 function renderStatusGrid(){
@@ -2397,6 +2508,9 @@ function render(){
 
   // --- ステータスグリッド更新（デザインリニューアル v2） ---
   renderStatusGrid();
+
+  // --- 竪坑ストリップ更新（第1段：器＋自機固定＋階目盛り） ---
+  renderShaft();
 
   // 状態バーは下のログ描画ブロックで内容を埋める。
   // ここでは紋選択モード等で前回内容が残らないよう一旦クリア。
