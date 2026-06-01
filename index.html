@@ -660,7 +660,7 @@ color: rgba(0,255,80,0.5);
 
 .stat-value.val-scrap   { color: #ffcc66; text-shadow: 0 0 4px rgba(255,204,102,0.4); }
 .stat-value.val-emerald { color: #58d68d; text-shadow: 0 0 4px rgba(88,214,141,0.4); }
-.stat-value.val-floor   { color: #fff;    text-shadow: 0 0 4px rgba(255,255,255,0.25); }
+.stat-value.val-power   { color: #7fd8ff; text-shadow: 0 0 4px rgba(127,216,255,0.4); }
 
 .hp-bar-wrap {
 margin-top: 4px;
@@ -859,7 +859,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.76</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.77</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="event-row">
@@ -877,16 +877,16 @@ line-height: 1.3;
       </div>
     </div>
     <div class="stat-cell">
+      <div class="stat-label">POWER</div>
+      <div class="stat-value val-power" id="sg-power">—</div>
+    </div>
+    <div class="stat-cell">
       <div class="stat-label">SCRAP</div>
       <div class="stat-value val-scrap" id="sg-scrap">—</div>
     </div>
     <div class="stat-cell">
       <div class="stat-label">EMERALD</div>
       <div class="stat-value val-emerald" id="sg-emerald">—</div>
-    </div>
-    <div class="stat-cell">
-      <div class="stat-label">FLOOR</div>
-      <div class="stat-value val-floor" id="sg-floor">—</div>
     </div>
   </div>
   <!-- 状態バー。
@@ -2536,8 +2536,11 @@ function renderStatusGrid(){
   if(sgScrap) sgScrap.textContent = state.scrap.toLocaleString();
   let sgEm = document.getElementById("sg-emerald");
   if(sgEm) sgEm.textContent = (state.emerald || 0).toLocaleString();
-  let sgFloor = document.getElementById("sg-floor");
-  if(sgFloor) sgFloor.textContent = state.floor + "F";
+  let sgPower = document.getElementById("sg-power");
+  // 現状は素の採掘力（state.power）をそのまま表示。
+  // 将来：採掘力UP/ダウン系バフ込みの実効値を出し、素より高ければ色を上げ・低ければ下げる
+  //       （↑↓記号や色変化）を、ここで実効値を計算して反映する想定。差し込み口はここ。
+  if(sgPower) sgPower.textContent = state.power;
 }
 
 function render(){
