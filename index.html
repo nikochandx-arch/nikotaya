@@ -511,6 +511,24 @@ border-right-width: 9px;
 border-top: 9px solid #2d2d2d;
 }
 
+/* +N ポップアップ。spawnPopup() が #popup-layer に1個ずつ生成する。
+   transform(translateY) と opacity だけで動かす＝再レイアウトを起こさずGPU合成で滑らか。
+   上にフワッと上がりながらフェードアウトし、animationend で自身を削除する。 */
+.popup-num {
+position: absolute;
+font-size: 30px;
+font-weight: bold;
+white-space: nowrap;
+text-shadow: 0 0 6px rgba(0,0,0,0.6);
+transform: translate(-50%, 0);
+animation: popup-rise 0.9s ease-out forwards;
+}
+@keyframes popup-rise {
+0%   { opacity: 0; transform: translate(-50%, 0); }
+15%  { opacity: 1; }
+100% { opacity: 0; transform: translate(-50%, -40px); }
+}
+
 #log.relic-scroll { scrollbar-gutter: stable; padding-right: 12px; }
 #log.relic-scroll::-webkit-scrollbar { width: 4px; }
 #log.relic-scroll::-webkit-scrollbar-track { background: transparent; margin-right: 4px; }
@@ -859,7 +877,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.77</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.78</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="event-row">
@@ -976,6 +994,12 @@ line-height: 1.3;
   background:#111; z-index:600; overflow-y:auto; padding:16px; padding-top:80px;">
   <div id="resume-overlay-content"></div>
 </div>
+
+<!-- +N ポップアップ層。画面全体に被せる固定レイヤー。
+     #current-event は overflow-y:auto で中に浮かせると枠で切れるため、
+     クリップされない独立レイヤーをここに1枚置き、spawnPopup() がここへ +N を投げ込む。
+     pointer-events:none で浮いてる数字がタップを邪魔しない。 -->
+<div id="popup-layer" style="position:fixed; inset:0; z-index:120; pointer-events:none; overflow:hidden;"></div>
 
 <!-- SVGアイコン定義（本体スクリプトより先に読み込む） -->
 <script src="icons.js"></script>
@@ -2176,6 +2200,32 @@ function getPowerCost()   { return Math.floor(100 + state.upgrades.power * state
 function getPotionHealCost() { return Math.floor(1500 * Math.pow(1.55, state.upgrades.potionHeal)); }
 function getPotionHealValue(){ return 3 + state.upgrades.potionHeal; }
 
+// --- +N ポップアップ ---
+// 指定したステータスバーのセル（anchorId）の中央上に、+N / -N を1個浮かせて
+// フワッと上がりながら消す演出。値の増減ヘルパー（gainScrap/gainEmerald/damage/heal）から呼ぶ。
+// n=0 や対象セルが画面にない時は何もしない（誤爆・初期化時の暴発を防ぐ）。
+// sign付き文字列を渡す前提（"+120" や "-8"）。色は意味に紐づけて呼び出し側が指定。
+function spawnPopup(text, color, anchorId){
+  const layer  = document.getElementById("popup-layer");
+  const anchor = document.getElementById(anchorId);
+  if(!layer || !anchor) return;
+  const r = anchor.getBoundingClientRect();
+  // セルが画面に出ていない（幅0＝非表示モード等）なら出さない
+  if(r.width === 0 && r.height === 0) return;
+  const el = document.createElement("div");
+  el.className = "popup-num";
+  el.textContent = text;
+  el.style.color = color;
+  // セル中央X（桁数が増えても中央は不動）、上端Yより少し上から開始。
+  // X方向に±10pxジッタ＝連続発火で同じ位置に重なって団子になるのを防ぐ。
+  const jitter = (Math.random() - 0.5) * 20;
+  el.style.left = (r.left + r.width / 2 + jitter) + "px";
+  el.style.top  = (r.top - 4) + "px";
+  // アニメ終了で自身を削除＝DOMに積み残さない（後始末）。
+  el.addEventListener("animationend", () => el.remove());
+  layer.appendChild(el);
+}
+
 // --- 加算ヘルパー ---
 // スクラップ・エメラルドの加算は必ずこれを経由する。
 // 「state.xxx と state.runStats.xxx を両方加算」のような対の処理を
@@ -2184,10 +2234,12 @@ function getPotionHealValue(){ return 3 + state.upgrades.potionHeal; }
 // 注：減算（買い物などでの消費）は今回は対象外。今後必要に応じてヘルパー化する。
 function gainScrap(amount){
   state.scrap += amount;
+  if(amount > 0) spawnPopup("+" + amount.toLocaleString(), "#ffcc66", "sg-scrap");
 }
 function gainEmerald(amount){
   state.emerald = (state.emerald || 0) + amount;
   state.runStats.emerald += amount;
+  if(amount > 0) spawnPopup("+" + amount.toLocaleString(), "#58d68d", "sg-emerald");
 }
 
 // --- HP処理 ---
@@ -2245,9 +2297,15 @@ function damage(d, nonPhysical=false){
   let actual = Math.min(d, state.hp);
   state.hp = Math.max(0, state.hp - d);
   state.runStats.damage += actual;
+  if(d > 0) spawnPopup("-" + d, "#ff5555", "sg-hp");
   return d;
 }
-function heal(v)  { state.hp = Math.min(state.maxHp, state.hp + v); }
+function heal(v)  {
+  const before = state.hp;
+  state.hp = Math.min(state.maxHp, state.hp + v);
+  const gained = state.hp - before;  // 満タンで増えなかった分は出さない
+  if(gained > 0) spawnPopup("+" + gained, "#58d68d", "sg-hp");
+}
 
 // --- ログテキスト色付け ---
 // 色ルール：
