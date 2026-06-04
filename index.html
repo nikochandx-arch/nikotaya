@@ -877,7 +877,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.79</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.80</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="event-row">
@@ -1297,6 +1297,8 @@ let state = {
   veinLastGain:     0,
   veinLastEmerald:  false,
   mushroomBad:      false,
+  path:             null,   // 分かれ道の持続効果（非アクティブ時null / アクティブ時 {routeId, turnsLeft}）
+  pathChoices:      [],      // 分かれ道の選択待ち2択（PATH_ROUTESのid配列・長さ2）
 
   // --- UI状態（セーブ不要） ---
   // 今後のUI状態も state 直下ではなくここに集約する方針。
@@ -1433,6 +1435,14 @@ function consumeBuffUse(id){
 function clearBuffs(){
   state.buffs = [];
   state.moleBlock = -1;
+}
+
+// 分かれ道の持続効果カウンタ。バフ機構とは独立した専用領域（state.path）で管理する。
+// アクティブなら残り階数を1減らし、0になったら効果を解除（null）。
+function tickPath(){
+  if(!state.path) return;
+  state.path.turnsLeft--;
+  if(state.path.turnsLeft <= 0) state.path = null;
 }
 
 // --- 個別バフ付与ラッパー（呼び出し側の可読性のため残す） ---
@@ -2901,6 +2911,11 @@ ${relicsHTML}
         body: "音を立てて気を逸らせば安全に通れそうだけど…",
       });
       // ボタンは下のswitchで描画するのでここではスキップ
+    } else
+    // 分かれ道イベント
+    if(state.mode === "event_path"){
+      renderPathEvent(ce, ceText, ceIcon);
+      // ボタンは下のswitchで描画するのでここではスキップ
     } else {
 
     let eventHTML = floorBadgeHTML(state.floor);
@@ -3033,6 +3048,15 @@ ${relicsHTML}
     case "event_pitjump_result":
       btn("採掘する", proceedPitJump, "main", null);
       break;
+    case "event_path": {
+      // 2択は対等なので同一スタイル（仮 main・実機で調整）。ラベルは各ルートのlabel。
+      let choices = state.pathChoices || [];
+      choices.forEach(id => {
+        let r = PATH_ROUTES[id];
+        btn(r ? r.label : "?", () => choosePath(id), "main");
+      });
+      break;
+    }
     case "event_youki":
       renderYoukiEvent();
       break;
@@ -3470,6 +3494,8 @@ function startRun(){
     state.veinLastGain = 0;
     state.veinLastEmerald = false;
     state.mushroomBad = false;
+    state.path = null;
+    state.pathChoices = [];
     state.activeCrestId = null;
     state.mode  = "explore";
     addLog("採掘開始！");
@@ -3740,7 +3766,9 @@ function suspendRun(){
     mushroomBad: state.mushroomBad,
     veinDepth: state.veinDepth,
     veinLastGain: state.veinLastGain,
-    veinLastEmerald: state.veinLastEmerald
+    veinLastEmerald: state.veinLastEmerald,
+    path: state.path,
+    pathChoices: state.pathChoices
   };
   localStorage.setItem("suspendedRun", JSON.stringify(data));
   // ホームに戻す（ログはクリア）→ そのまま再開オーバーレイを表示
@@ -3803,6 +3831,8 @@ function resumeRun(){
   state.veinDepth = data.veinDepth;
   state.veinLastGain = data.veinLastGain;
   state.veinLastEmerald = data.veinLastEmerald;
+  state.path = data.path ?? null;
+  state.pathChoices = data.pathChoices ?? [];
   state.log = [];
   state.lastResult = null;
   state.activeCrestId = null;
@@ -4101,6 +4131,31 @@ function isSpecialFloor(f){
   return false;
 }
 
+// --- 分かれ道：ルート定義マスタ ---
+// 道が二手に分かれ、選んだ側が effects を duration 階ぶん持続する重イベント。
+// ルート追加＝ここに1エントリ足すだけ（説明文込みで全貌が一覧で見える）。
+// 効果の適用は「効果の種類ごとの汎用フック」で行う方針。ルート個別の処理コードは持たせない
+// （ルート見直し時にコードを追わずに済むように＝スパゲティ化回避）。
+// label: 選択ボタンの文言 / category: plus|minus|neutral（分類を使う選択ロジックは将来）
+// desc: メイン画面に出す説明文（情報提示）/ effects: 効果の種類→値 / duration: 持続階数
+const PATH_ROUTES = {
+  none: { id:"none", label:"変化なし", category:"neutral",
+          desc:"特に何も起こらなさそうだ。", effects:{}, duration:0 },
+};
+
+// 出現可能なルートから重複なしで2個引く。2個に満たなければ不足分を変化なしで埋める。
+// ルートidの配列（長さ2）を返す。
+function pickPathChoices(){
+  const pool = Object.keys(PATH_ROUTES).filter(id => id !== "none");
+  const picked = [];
+  while(picked.length < 2 && pool.length > 0){
+    const i = Math.floor(Math.random() * pool.length);
+    picked.push(pool.splice(i, 1)[0]);
+  }
+  while(picked.length < 2) picked.push("none");
+  return picked;
+}
+
 // --- 重イベント定義 ---
 const HEAVY_EVENTS = [
   {
@@ -4171,6 +4226,16 @@ const HEAVY_EVENTS = [
       addLog("深い縦穴がある。向こう側にジャンプ出来れば近道になりそうだけど…");
     }
   },
+  {
+    id: "path", name: "分かれ道", weight: 10,
+    condition: null,
+    fn: () => {
+      playSE("select");
+      state.pathChoices = pickPathChoices();
+      state.mode = "event_path";
+      addLog("分かれ道だ……");
+    }
+  },
 ];
 
 // --- 階確定イベント ---
@@ -4229,6 +4294,7 @@ function next(){
 
   // バフ・デバフのターン処理（階層上昇時）
   tickBuffs();
+  tickPath();  // 分かれ道の持続効果カウンタ（バフ機構とは独立した専用領域）
   if(state.hp <= 0){ checkDeath(); render(); return; }
 
   // 毒ダメージが発生した場合は中間モードへ。プレイヤーが「進む」ボタンを押すまで
@@ -4822,6 +4888,22 @@ function renderPersonEvent(ce, ceText, ceIcon, opts){
   ceText.innerHTML = floorBadgeHTML(state.floor) + titleHTML + bodyHTML + subHTML + extrasHTML;
 }
 
+// 分かれ道イベントの描画ヘルパー。必ず renderPersonEvent 経由で統一
+// （title 26 / body 22 / sub 20 / フロアバッジ自動。独自 font-size は書かない）。
+// 2択の各ルートの desc を sub に並べて情報提示する（「→」なし・グレー）。
+function renderPathEvent(ce, ceText, ceIcon){
+  let descLines = (state.pathChoices || []).map(id => {
+    let r = PATH_ROUTES[id];
+    return r ? `${r.label}：${r.desc}` : "";
+  }).filter(Boolean).join("<br>");
+  renderPersonEvent(ce, ceText, ceIcon, {
+    icon: "🔀",
+    title: "分かれ道",
+    body: "道が二手に分かれている。どちらへ進む？",
+    sub: descLines,
+  });
+}
+
 // 鉱脈イベントの描画ヘルパー。
 // 鉱脈は人物系と構造が異なる（ステータス枠を持つ）ため、専用ヘルパーとして分離。
 // 見た目・挙動は分離前と完全に同一。
@@ -5383,6 +5465,8 @@ function goHome(){
   if(eventEl) eventEl.style.display = "";
   document.getElementById("log").classList.remove("relic-scroll");
   clearBuffs();
+  state.path = null;
+  state.pathChoices = [];
   state.mode  = "home";
   render();
 }
@@ -5523,6 +5607,23 @@ function pitJumpDetour(){
   applyMiningDown(3);
   addLog("縦穴を迂回した。慎重に進んだが疲れてしまった…", "sub");
   state.mode = "explore";
+  render();
+}
+
+// 分かれ道で片方のルートを選んだときの処理。
+// 持続効果を持つルートは state.path にセット（duration 階ぶん持続）。
+// 効果も持続もないルート（変化なし等 duration 0）は state.path = null のまま。
+function choosePath(routeId){
+  playSE("select");
+  let r = PATH_ROUTES[routeId];
+  if(r && r.duration > 0){
+    state.path = { routeId: r.id, turnsLeft: r.duration };
+  } else {
+    state.path = null;
+  }
+  state.pathChoices = [];
+  state.mode = "explore";
+  addLog(`${r ? r.label : "?"}の道を選んだ。`);
   render();
 }
 
