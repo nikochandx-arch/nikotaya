@@ -877,7 +877,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v13.80</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v14.01</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="event-row">
@@ -4897,7 +4897,7 @@ function renderPathEvent(ce, ceText, ceIcon){
     return r ? `${r.label}：${r.desc}` : "";
   }).filter(Boolean).join("<br>");
   renderPersonEvent(ce, ceText, ceIcon, {
-    icon: "🔀",
+    icon: SVG_ICONS.path.replace("width:1em;height:1em;","width:2em;height:2em;"),
     title: "分かれ道",
     body: "道が二手に分かれている。どちらへ進む？",
     sub: descLines,

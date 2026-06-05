@@ -1,5 +1,5 @@
 // ============================================
-// icons.js  (for v13.63+)
+// icons.js  (for v14.01+)
 // ============================================
 // Nikotaya Mining Roguelike のSVGアイコン定義ファイル。
 // SVG_ICONS オブジェクトを定義する。index.html 本体より
@@ -388,6 +388,37 @@ const SVG_ICONS = {
     </g>
   </svg>`,
 
+  path: `<svg viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
+    <defs>
+      <path id="arrow-right" d="M 50 35 L 110 35 L 125 50 L 110 65 L 50 65 Z"/>
+      <path id="arrow-left" d="M 90 70 L 30 70 L 15 85 L 30 100 L 90 100 Z"/>
+      <g id="pole-parts">
+        <rect x="64" y="20" width="12" height="100" rx="3"/>
+        <ellipse cx="70" cy="118" rx="28" ry="7"/>
+      </g>
+    </defs>
+    <g transform="translate(0, 5)">
+      <g fill="#27272a" stroke="#27272a" stroke-width="12" stroke-linejoin="round" stroke-linecap="round">
+        <use href="#pole-parts"/>
+        <use href="#arrow-left"/>
+        <use href="#arrow-right"/>
+      </g>
+      <ellipse cx="70" cy="118" rx="28" ry="7" fill="#78350f" stroke="#18181b" stroke-width="4.5"/>
+      <rect x="64" y="20" width="12" height="98" rx="3" fill="#451a03" stroke="#18181b" stroke-width="4.5" stroke-linejoin="round"/>
+      <rect x="66" y="23" width="3" height="92" rx="1.5" fill="#78350f" opacity="0.6"/>
+      <use href="#arrow-left" fill="#b45309" stroke="#18181b" stroke-width="4.5" stroke-linejoin="round"/>
+      <use href="#arrow-right" fill="#d97706" stroke="#18181b" stroke-width="4.5" stroke-linejoin="round"/>
+      <circle cx="70" cy="50" r="3.5" fill="#71717a" stroke="#18181b" stroke-width="2"/>
+      <circle cx="70" cy="85" r="3.5" fill="#71717a" stroke="#18181b" stroke-width="2"/>
+      <circle cx="69" cy="49" r="1" fill="#ffffff"/>
+      <circle cx="69" cy="84" r="1" fill="#ffffff"/>
+      <path d="M 55 42 L 105 42 M 55 58 L 95 58" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+      <path d="M 53 38 L 108 38" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+      <path d="M 35 77 L 85 77 M 45 93 L 85 93" stroke="#92400e" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+      <path d="M 32 74 L 87 74" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.3"/>
+    </g>
+  </svg>`,
+
   fallenMiner: `<svg viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
     <g transform="translate(0, 5)">
       <!-- 1. 地面の影 -->
@@ -542,41 +573,6 @@ const SVG_ICONS = {
       <use href="#bag-belt2" fill="#78350f"/>
       <rect x="51" y="75" width="24" height="14" rx="2" fill="#eab308"/>
       <rect x="125" y="75" width="24" height="14" rx="2" fill="#eab308"/>
-    </g>
-  </svg>`,
-  rockfall: `<svg viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
-    <defs>
-      <path id="rf-rock-base" d="M 38 45 L 62 35 L 98 42 L 115 70 L 92 105 L 50 112 L 25 85 L 20 62 Z"/>
-      <g id="rf-drop-lines" stroke-linecap="round">
-        <line x1="45" y1="-30" x2="45" y2="15" stroke-width="9"/>
-        <line x1="95" y1="-30" x2="95" y2="15" stroke-width="9"/>
-        <line x1="20" y1="-15" x2="20" y2="35" stroke-width="7"/>
-        <line x1="120" y1="-10" x2="120" y2="40" stroke-width="7"/>
-        <line x1="10" y1="5" x2="10" y2="55" stroke-width="3"/>
-        <line x1="33" y1="-20" x2="33" y2="25" stroke-width="3"/>
-        <line x1="70" y1="-25" x2="70" y2="10" stroke-width="3"/>
-        <line x1="108" y1="-15" x2="108" y2="30" stroke-width="3"/>
-        <line x1="130" y1="10" x2="130" y2="60" stroke-width="3"/>
-      </g>
-      <g id="rf-debris" stroke-linejoin="round" stroke-linecap="round">
-        <polygon points="122,25 130,40 115,35"/>
-      </g>
-    </defs>
-    <g transform="translate(0, 5)">
-      <g fill="#27272a" stroke="#27272a" stroke-width="12" stroke-linejoin="round" stroke-linecap="round">
-        <use href="#rf-drop-lines"/>
-        <use href="#rf-debris"/>
-        <use href="#rf-rock-base"/>
-      </g>
-      <use href="#rf-drop-lines" stroke="#ffffff"/>
-      <use href="#rf-debris" fill="#4b5563" stroke="#18181b" stroke-width="4"/>
-      <use href="#rf-rock-base" fill="#94a3b8" stroke="#18181b" stroke-width="4.5" stroke-linejoin="round"/>
-      <path d="M 38 45 L 68 75 L 25 85 M 68 75 L 92 105 M 68 75 L 98 42 M 68 75 L 115 70" fill="none" stroke="#18181b" stroke-width="3" stroke-linejoin="round"/>
-      <polygon points="50,112 92,105 68,75" fill="#475569" opacity="0.5" stroke="none"/>
-      <polygon points="115,70 92,105 68,75" fill="#334155" opacity="0.6" stroke="none"/>
-      <path d="M 45 42 L 52 50 L 50 60 M 100 80 L 88 85 L 85 95" fill="none" stroke="#18181b" stroke-width="2.5" stroke-linecap="round"/>
-      <polygon points="38,45 62,35 98,42 68,75" fill="#ffffff" opacity="0.25" stroke="none"/>
-      <path d="M 45 44 L 62 38 L 92 43" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
     </g>
   </svg>`,
 };
