@@ -575,4 +575,39 @@ const SVG_ICONS = {
       <rect x="125" y="75" width="24" height="14" rx="2" fill="#eab308"/>
     </g>
   </svg>`,
+  rockfall: `<svg viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
+    <defs>
+      <path id="rf-rock-base" d="M 38 45 L 62 35 L 98 42 L 115 70 L 92 105 L 50 112 L 25 85 L 20 62 Z"/>
+      <g id="rf-drop-lines" stroke-linecap="round">
+        <line x1="45" y1="-30" x2="45" y2="15" stroke-width="9"/>
+        <line x1="95" y1="-30" x2="95" y2="15" stroke-width="9"/>
+        <line x1="20" y1="-15" x2="20" y2="35" stroke-width="7"/>
+        <line x1="120" y1="-10" x2="120" y2="40" stroke-width="7"/>
+        <line x1="10" y1="5" x2="10" y2="55" stroke-width="3"/>
+        <line x1="33" y1="-20" x2="33" y2="25" stroke-width="3"/>
+        <line x1="70" y1="-25" x2="70" y2="10" stroke-width="3"/>
+        <line x1="108" y1="-15" x2="108" y2="30" stroke-width="3"/>
+        <line x1="130" y1="10" x2="130" y2="60" stroke-width="3"/>
+      </g>
+      <g id="rf-debris" stroke-linejoin="round" stroke-linecap="round">
+        <polygon points="122,25 130,40 115,35"/>
+      </g>
+    </defs>
+    <g transform="translate(0, 5)">
+      <g fill="#27272a" stroke="#27272a" stroke-width="12" stroke-linejoin="round" stroke-linecap="round">
+        <use href="#rf-drop-lines"/>
+        <use href="#rf-debris"/>
+        <use href="#rf-rock-base"/>
+      </g>
+      <use href="#rf-drop-lines" stroke="#ffffff"/>
+      <use href="#rf-debris" fill="#4b5563" stroke="#18181b" stroke-width="4"/>
+      <use href="#rf-rock-base" fill="#94a3b8" stroke="#18181b" stroke-width="4.5" stroke-linejoin="round"/>
+      <path d="M 38 45 L 68 75 L 25 85 M 68 75 L 92 105 M 68 75 L 98 42 M 68 75 L 115 70" fill="none" stroke="#18181b" stroke-width="3" stroke-linejoin="round"/>
+      <polygon points="50,112 92,105 68,75" fill="#475569" opacity="0.5" stroke="none"/>
+      <polygon points="115,70 92,105 68,75" fill="#334155" opacity="0.6" stroke="none"/>
+      <path d="M 45 42 L 52 50 L 50 60 M 100 80 L 88 85 L 85 95" fill="none" stroke="#18181b" stroke-width="2.5" stroke-linecap="round"/>
+      <polygon points="38,45 62,35 98,42 68,75" fill="#ffffff" opacity="0.25" stroke="none"/>
+      <path d="M 45 44 L 62 38 L 92 43" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+    </g>
+  </svg>`,
 };
