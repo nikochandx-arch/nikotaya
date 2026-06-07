@@ -877,7 +877,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v14.03</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v14.04</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="event-row">
@@ -2500,12 +2500,24 @@ function floorBadgeHTML(floor){
 //    → 一周したら赤系に戻る＝循環。無限に潜っても色が尽きない（循環は最優先要件）。
 //  - ティア内（0〜9階目）で明度を 明→暗 へ薄くグラデ。各ティアの10階目が一番暗い＝底に近い感。
 //  - 竪坑は背景なので、マーカー（女神/鉄扉/紋）と数字が読めるよう暗め・低彩度に抑える。
+// 竪坑の特殊区間色。アクティブな分かれ道ルートの階なら、ルート分類に応じた色を返す。
+// グラデなし・やや彩度高め＝②の通常ティア色（低彩度・暗め）より目立たせ「どこまで続く道か」を見せる。
+// plus=好色（緑系）／minus=危険色（赤系）。分類はボタン色とも揃える方針。区間外・neutralは null。
+function getShaftSpecialColor(f){
+  if(!isPathActive(f)) return null;
+  const cat = PATH_ROUTES[state.path.routeId]?.category;
+  if(cat === "minus") return "hsla(0, 70%, 30%, 0.6)";    // 危険色（赤）
+  if(cat === "plus")  return "hsla(135, 65%, 28%, 0.6)";  // 好色（緑）
+  return null;
+}
+
 function shaftFloorColor(f){
   if(f < 0) return null; // 地表行は色なし
 
-  // ① 特殊区間フック（将来用）：将来ここで「この階が特殊区間か」を判定し、
-  //    該当すればグラデなしのやや彩度高めの色を return する想定。今は未登録。
-  //    例）const sp = getShaftSpecialColor(f); if(sp) return sp;
+  // ① 特殊区間フック：アクティブな分かれ道ルートの階を、分類に応じた色で塗る（グラデなし・
+  //    やや彩度高め）。区間外・neutralは null が返り、②の通常ティア色へ落ちる。
+  const sp = getShaftSpecialColor(f);
+  if(sp) return sp;
 
   // ② 通常：ティア循環色 ＋ ティア内明度グラデ
   const tier   = Math.floor((f - 1) / 10);        // 0,1,2,... （1-10階=0）
