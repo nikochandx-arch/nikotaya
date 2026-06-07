@@ -877,7 +877,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v14.04</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v14.05</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="event-row">
@@ -3074,11 +3074,14 @@ ${relicsHTML}
       btn("採掘する", proceedPitJump, "main", null);
       break;
     case "event_path": {
-      // 2択は対等なので同一スタイル（仮 main・実機で調整）。ラベルは各ルートのlabel。
+      // ボタン色で分類を間接表示：plus=緑(main)／minus=赤(danger)／変化なし(neutral)=グレー(skip)。
+      // 竪坑のルート区間色（plus=緑/minus=赤）と整合させている。ラベルは各ルートのlabel。
       let choices = state.pathChoices || [];
       choices.forEach(id => {
         let r = PATH_ROUTES[id];
-        btn(r ? r.label : "?", () => choosePath(id), "main");
+        let cat = r ? r.category : "neutral";
+        let style = cat === "plus" ? "main" : cat === "minus" ? "danger" : "skip";
+        btn(r ? r.label : "?", () => choosePath(id), style);
       });
       break;
     }
@@ -4200,7 +4203,7 @@ const HEAVY_EVENTS = [
     fn: () => { state.mode = "event"; addLog("コンテナを発見した！"); }
   },
   {
-    id: "vein", name: "鉱脈", weight: 40,
+    id: "vein", name: "鉱脈", weight: 35,
     condition: null,
     fn: () => {
       state.veinDepth = 0;
@@ -4263,7 +4266,7 @@ const HEAVY_EVENTS = [
     }
   },
   {
-    id: "path", name: "分かれ道", weight: 10,
+    id: "path", name: "分かれ道", weight: 25,
     // ルートを所有している間は新しい分かれ道を出さない（所有ベース）。区間より手前に戻っても
     // 乗り切る（endFloorを越える）まで抑制し、state.path 1枠の上書き事故を防ぐ。
     condition: () => !isPathOwned(),
