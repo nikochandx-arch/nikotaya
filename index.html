@@ -877,7 +877,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v14.06</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v14.07</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="event-row">
@@ -4177,7 +4177,7 @@ const PATH_ROUTES = {
   none: { id:"none", label:"変化なし", category:"neutral",
           desc:"特に何も起こらなさそうだ。", effects:{}, duration:0 },
   richVein: { id:"richVein", label:"鉱脈の道", category:"plus",
-          desc:"鉱脈の出現率UP", effects:{ eventWeight:{ vein:2 } }, duration:7 },
+          desc:"鉱脈の出現率UP", effects:{ mainInject:[{ ref:"heavy:vein", weight:15 }] }, duration:7 },
 };
 
 // 全ルート（変化なし含む）から重複なしで2個引く＝完全ランダム2引き。変化なしも通常の
@@ -4400,6 +4400,41 @@ function pickMainRef(pool){
   return pool[pool.length - 1].ref;
 }
 
+// 主抽選の差し込みエントリを、現在アクティブなトリガーから集める（保存せず毎回導出＝戻し忘れ無し）。
+// 各エントリ {ref, weight}：ref はティア("mining"/"light"/"heavy") か個別イベント("heavy:vein"等)。
+// 将来は紋などのトリガーもここに push する。
+function getActiveMainInjections(){
+  const out = [];
+  if(isPathActive()){
+    const inj = PATH_ROUTES[state.path.routeId]?.effects?.mainInject;
+    if(Array.isArray(inj)) out.push(...inj);
+  }
+  return out;
+}
+
+// 主抽選プールを組み立てる。基本重み（探知の紋で変化）＋差し込みリストを ref ごとに合算し、
+// 重み0以下は除外（符号付き重みの0クランプ）。[{ref, weight}] を返す。
+function buildMainPool(){
+  const hasDetect = state.relics.some(r => r.id === "detect");
+  const acc = hasDetect
+    ? { mining:30, light:20, heavy:50 }
+    : { mining:40, light:30, heavy:30 };
+  for(const inj of getActiveMainInjections()){
+    acc[inj.ref] = (acc[inj.ref] || 0) + inj.weight;
+  }
+  return Object.keys(acc).map(ref => ({ ref, weight: acc[ref] })).filter(e => e.weight > 0);
+}
+
+// 軽/重イベントを発火し後処理する（通常選択でも差し込み経由でも同じ処理を通す）。
+// 重イベントはサブ画面へ遷移しうるので、モード変化時は render して打ち切る（従来の挙動どおり）。
+function fireLightEvent(ev){ ev.fn(); checkDeath(); render(); }
+function fireHeavyEvent(ev){
+  ev.fn();
+  if(state.mode !== "explore"){ render(); return; }
+  checkDeath();
+  render();
+}
+
 function proceedAfterTick(){
   // mode は "poison_tick" から呼ばれる可能性があるため、必ず通常モードに戻しておく。
   // 各イベントが必要に応じて event_* モードに切り替える。
@@ -4459,10 +4494,7 @@ function proceedAfterTick(){
 
   // --- 主抽選（1段目）：基本重み（採掘/軽/重）の重み付き抽選。確率は従来と同一
   //     （探知の紋ありで 30/20/50、なしで 40/30/30）。差し込みリストは別途追加予定（現状なし）。
-  const hasDetect = state.relics.some(r => r.id === "detect");
-  const mainPool = hasDetect
-    ? [{ ref:"mining", weight:30 }, { ref:"light", weight:20 }, { ref:"heavy", weight:50 }]
-    : [{ ref:"mining", weight:40 }, { ref:"light", weight:30 }, { ref:"heavy", weight:30 }];
+  const mainPool = buildMainPool();
   const picked = pickMainRef(mainPool);
   const ctx  = buildEventCtx();
 
@@ -4471,16 +4503,19 @@ function proceedAfterTick(){
     checkDeath();
     render();
   } else if(picked === "light"){
-    let ev = pickWeightedEvent(LIGHT_EVENTS, ctx);
-    ev.fn();
-    checkDeath();
-    render();
+    fireLightEvent(pickWeightedEvent(LIGHT_EVENTS, ctx));
+  } else if(picked === "heavy"){
+    fireHeavyEvent(pickWeightedEvent(HEAVY_EVENTS, ctx));
   } else {
-    let ev = pickWeightedEvent(HEAVY_EVENTS, ctx);
-    ev.fn();
-    if(state.mode !== "explore"){ render(); return; }
-    checkDeath();
-    render();
+    // 差し込みの個別イベント指定 "light:<id>" / "heavy:<id>" を直接発火（出現条件は素通り）。
+    const [pl, id] = picked.split(":");
+    if(pl === "light"){
+      const ev = LIGHT_EVENTS.find(e => e.id === id);
+      if(ev){ fireLightEvent(ev); } else { checkDeath(); render(); }
+    } else {
+      const ev = HEAVY_EVENTS.find(e => e.id === id);
+      if(ev){ fireHeavyEvent(ev); } else { checkDeath(); render(); }
+    }
   }
 }
 
