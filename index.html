@@ -877,7 +877,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v14.07</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v14.08</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="event-row">
@@ -3075,13 +3075,15 @@ ${relicsHTML}
       break;
     case "event_path": {
       // ボタン色で分類を間接表示：plus=緑(main)／minus=赤(danger)／変化なし(neutral)=グレー(skip)。
-      // 竪坑のルート区間色（plus=緑/minus=赤）と整合させている。ラベルは各ルートのlabel。
+      // 竪坑のルート区間色（plus=緑/minus=赤）と整合させている。
+      // ラベルは「道名＋改行＋（N階）」。継続階数0（変化なし）は階数表記なし。
       let choices = state.pathChoices || [];
-      choices.forEach(id => {
-        let r = PATH_ROUTES[id];
+      choices.forEach(c => {
+        let r = PATH_ROUTES[c.id];
         let cat = r ? r.category : "neutral";
         let style = cat === "plus" ? "main" : cat === "minus" ? "danger" : "skip";
-        btn(r ? r.label : "?", () => choosePath(id), style);
+        let label = (r ? r.label : "?") + (c.dur > 0 ? `\n（${c.dur}階）` : "");
+        btn(label, () => choosePath(c.id, c.dur), style);
       });
       break;
     }
@@ -3860,7 +3862,7 @@ function resumeRun(){
   state.veinLastGain = data.veinLastGain;
   state.veinLastEmerald = data.veinLastEmerald;
   state.path = data.path ?? null;
-  state.pathChoices = data.pathChoices ?? [];
+  state.pathChoices = (data.pathChoices ?? []).map(c => (typeof c === "string") ? { id: c, dur: 0 } : c);
   state.log = [];
   state.lastResult = null;
   state.activeCrestId = null;
@@ -4177,21 +4179,35 @@ const PATH_ROUTES = {
   none: { id:"none", label:"変化なし", category:"neutral",
           desc:"特に何も起こらなさそうだ。", effects:{}, duration:0 },
   richVein: { id:"richVein", label:"鉱脈の道", category:"plus",
-          desc:"鉱脈の出現率UP", effects:{ mainInject:[{ ref:"heavy:vein", weight:15 }] }, duration:7 },
+          desc:"鉱脈の出現率UP", effects:{ mainInject:[{ ref:"heavy:vein", weight:15 }] }, duration:[7,9] },
 };
+
+// ルートの継続階数を確定する。duration が数値ならそのまま、[lo,hi] なら lo〜hi で抽選（両端含む）。
+// 将来：ここでアクティブな紋によるレンジ/値の補正を入れられる（現状なし）。
+function rollRouteDuration(r){
+  if(!r) return 0;
+  let d = r.duration;
+  if(Array.isArray(d)){
+    const lo = d[0], hi = d[1];
+    d = lo + Math.floor(Math.random() * (hi - lo + 1));
+  }
+  return d;
+}
 
 // 全ルート（変化なし含む）から重複なしで2個引く＝完全ランダム2引き。変化なしも通常の
 // 選択肢として出る。プールが2本未満のときだけ不足分を変化なしで埋める（救済フォールバック）。
 // 変化なしのキーは1つなので、2引きで変化なし×2になることは起きない。
-// ルートidの配列（長さ2）を返す。
+// 各選択肢は { id, dur }（dur＝確定済みの継続階数）。dur はこの生成時に確定し、ボタン表示と
+// 選択処理（choosePath）で同じ値を使う。長さ2の配列を返す。
 function pickPathChoices(){
   const pool = Object.keys(PATH_ROUTES);
   const picked = [];
   while(picked.length < 2 && pool.length > 0){
     const i = Math.floor(Math.random() * pool.length);
-    picked.push(pool.splice(i, 1)[0]);
+    const id = pool.splice(i, 1)[0];
+    picked.push({ id, dur: rollRouteDuration(PATH_ROUTES[id]) });
   }
-  while(picked.length < 2) picked.push("none");
+  while(picked.length < 2) picked.push({ id: "none", dur: 0 });
   return picked;
 }
 
@@ -4979,8 +4995,8 @@ function renderPersonEvent(ce, ceText, ceIcon, opts){
 // （title 26 / body 22 / sub 20 / フロアバッジ自動。独自 font-size は書かない）。
 // 2択の各ルートの desc を sub に並べて情報提示する（「→」なし・グレー）。
 function renderPathEvent(ce, ceText, ceIcon){
-  let descLines = (state.pathChoices || []).map(id => {
-    let r = PATH_ROUTES[id];
+  let descLines = (state.pathChoices || []).map(c => {
+    let r = PATH_ROUTES[c.id];
     return r ? `${r.label}：${r.desc}` : "";
   }).filter(Boolean).join("<br>");
   renderPersonEvent(ce, ceText, ceIcon, {
@@ -5701,11 +5717,12 @@ function pitJumpDetour(){
 // 持続効果を持つルートは state.path にセット（この先 duration 階ぶん持続）。
 // 道は「この先の階」に効く＝選んだ次の階（startFloor）から duration 階ぶん（endFloor）。
 // 効果も持続もないルート（変化なし等 duration 0）は state.path = null のまま。
-function choosePath(routeId){
+function choosePath(routeId, dur){
   playSE("select");
   let r = PATH_ROUTES[routeId];
-  if(r && r.duration > 0){
-    state.path = { routeId: r.id, startFloor: state.floor + 1, endFloor: state.floor + r.duration };
+  if(dur == null) dur = rollRouteDuration(r);  // 念のためのフォールバック（通常はボタンから確定値が渡る）
+  if(r && dur > 0){
+    state.path = { routeId: r.id, startFloor: state.floor + 1, endFloor: state.floor + dur };
   } else {
     state.path = null;
   }
