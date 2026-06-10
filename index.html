@@ -877,7 +877,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v14.08</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v14.09</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="event-row">
@@ -1997,7 +1997,7 @@ const CREST_MASTER = [
     </g>` },
   // ⑤ ユーティリティ系（緑）
   { id:"detect",   name:"探知の紋",  category:"ユーティリティ系", color:"#0f0", rgb:"0,255,0",
-    desc:"重イベント出現率+20%", // システム: 重イベントの出現率が50%に上昇
+    desc:"コンテナの出現率アップ", // システム: 主抽選に heavy:container weight5 を差し込み（getActiveMainInjections）
     unlockCond:"50階達成",
     svg:`<g stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(50,70)">
       <circle cx="0" cy="0" r="20" stroke-dasharray="4 4" stroke-width="2"/>
@@ -4425,16 +4425,17 @@ function getActiveMainInjections(){
     const inj = PATH_ROUTES[state.path.routeId]?.effects?.mainInject;
     if(Array.isArray(inj)) out.push(...inj);
   }
+  // 探知の紋：コンテナを主抽選へ直接昇格（重ティアの天井に縛られない）
+  if(state.relics.some(r => r.id === "detect")){
+    out.push({ ref: "heavy:container", weight: 5 });
+  }
   return out;
 }
 
-// 主抽選プールを組み立てる。基本重み（探知の紋で変化）＋差し込みリストを ref ごとに合算し、
+// 主抽選プールを組み立てる。基本重み＋差し込みリストを ref ごとに合算し、
 // 重み0以下は除外（符号付き重みの0クランプ）。[{ref, weight}] を返す。
 function buildMainPool(){
-  const hasDetect = state.relics.some(r => r.id === "detect");
-  const acc = hasDetect
-    ? { mining:30, light:20, heavy:50 }
-    : { mining:40, light:30, heavy:30 };
+  const acc = { mining:40, light:30, heavy:30 };
   for(const inj of getActiveMainInjections()){
     acc[inj.ref] = (acc[inj.ref] || 0) + inj.weight;
   }
@@ -4508,8 +4509,7 @@ function proceedAfterTick(){
     }
   }
 
-  // --- 主抽選（1段目）：基本重み（採掘/軽/重）の重み付き抽選。確率は従来と同一
-  //     （探知の紋ありで 30/20/50、なしで 40/30/30）。差し込みリストは別途追加予定（現状なし）。
+  // --- 主抽選（1段目）：基本重み（採掘40/軽30/重30）＋差し込み（ルート・紋から毎回導出）の重み付き抽選
   const mainPool = buildMainPool();
   const picked = pickMainRef(mainPool);
   const ctx  = buildEventCtx();
