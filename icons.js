@@ -1,5 +1,5 @@
 // ============================================
-// icons.js  (for v14.01+)
+// icons.js  (for v14.10+)
 // ============================================
 // Nikotaya Mining Roguelike のSVGアイコン定義ファイル。
 // SVG_ICONS オブジェクトを定義する。index.html 本体より
@@ -608,6 +608,34 @@ const SVG_ICONS = {
       <path d="M 45 42 L 52 50 L 50 60 M 100 80 L 88 85 L 85 95" fill="none" stroke="#18181b" stroke-width="2.5" stroke-linecap="round"/>
       <polygon points="38,45 62,35 98,42 68,75" fill="#ffffff" opacity="0.25" stroke="none"/>
       <path d="M 45 44 L 62 38 L 92 43" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+    </g>
+  </svg>`,
+  cat: `<svg viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
+    <defs>
+      <g id="catBodyOnly">
+        <ellipse cx="65" cy="82" rx="42" ry="22"/>
+        <circle cx="100" cy="65" r="18"/>
+        <ellipse cx="85" cy="98" rx="8" ry="6"/>
+        <ellipse cx="45" cy="94" rx="10" ry="8"/>
+        <path d="M 88 56 L 82 40 Q 88 38 95 48 Z"/>
+        <path d="M 112 56 L 118 40 Q 112 38 105 48 Z"/>
+      </g>
+      <path id="catTailPath" d="M 33 80 C 18 75, 12 55, 22 45"/>
+    </defs>
+    <g transform="translate(0, 5)">
+      <use href="#catTailPath" fill="none" stroke="#27272a" stroke-width="22" stroke-linecap="round"/>
+      <use href="#catBodyOnly" fill="none" stroke="#27272a" stroke-width="12" stroke-linejoin="round" stroke-linecap="round"/>
+      <use href="#catTailPath" fill="none" stroke="#18181b" stroke-width="15" stroke-linecap="round"/>
+      <use href="#catBodyOnly" fill="#1c1917" stroke="#18181b" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/>
+      <use href="#catTailPath" fill="none" stroke="#1c1917" stroke-width="9" stroke-linecap="round"/>
+      <use href="#catBodyOnly" fill="#1c1917"/>
+      <path d="M 87 63 Q 91 66 95 63" fill="none" stroke="#facc15" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M 105 63 Q 109 66 113 63" fill="none" stroke="#facc15" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M 97 70 Q 100 72 103 70" fill="none" stroke="#a1a1aa" stroke-width="2" stroke-linecap="round"/>
+      <line x1="84" y1="70" x2="76" y2="71" stroke="#52525b" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="84" y1="74" x2="77" y2="77" stroke="#52525b" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="116" y1="70" x2="124" y2="71" stroke="#52525b" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="116" y1="74" x2="123" y2="77" stroke="#52525b" stroke-width="1.8" stroke-linecap="round"/>
     </g>
   </svg>`,
 };

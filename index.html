@@ -877,7 +877,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v14.09</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v14.10</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="event-row">
@@ -2412,6 +2412,7 @@ function getEmoji(text, type){
   if(text.includes("陽キャ") || text.includes("あざす") || text.includes("お腹痛")) return SVG_ICONS.youki;
   if(text.includes("深い縦穴") || text.includes("ジャンプ") || text.includes("迂回")) return SVG_ICONS.pitJump;
   if(text.includes("落石"))        return SVG_ICONS.rockfall;
+  if(text.includes("ねこ") || text.includes("モフモフ") || text.includes("餌のお礼")) return SVG_ICONS.cat;
   if(type==="divider")     return text.includes("女神") ? SVG_ICONS.goddess : SVG_ICONS.door;
   if(type==="damage")      return text.includes("毒") ? SVG_ICONS.poison : "💥";
   if(type==="scrap")       return SVG_ICONS.pickaxe;
@@ -3047,6 +3048,11 @@ ${relicsHTML}
     case "event_mushroom":
       btn("食べる", eatMushroom, "risk");
       btn("無視する", ignoreEvent, "skip");
+      break;
+    case "event_cat":
+      // プラスorプラスの強制2択（無視なし）。両方とも得なのでボタンは緑系で統一
+      btn("モフモフする", catPet, "main");
+      btn("餌をやる", catFeed, "main");
       break;
     case "event_bat":
       renderBatEvent();
@@ -4240,6 +4246,16 @@ const HEAVY_EVENTS = [
     }
   },
   {
+    id: "cat", name: "ねこ", weight: 15,
+    condition: null,
+    fn: () => {
+      playSE("select");
+      state.mode = "event_cat";
+      addLog("ねこだ！");
+      addLog("ねこは寛いでいる", "sub");
+    }
+  },
+  {
     id: "bat", name: "コウモリ", weight: 30,
     condition: null,
     fn: () => {
@@ -5420,6 +5436,27 @@ function eatMushroom(){
   state.mushroomBad = isBad;
   checkDeath();
   if(state.mode !== "dead") state.mode = "explore";
+  render();
+}
+
+// --- 猫イベント（プラスorプラスの2択） ---
+// モフモフする：HP回復 ceil(maxHp×5%)（ceilにより最低1が自動保証）
+function catPet(){
+  let h = Math.ceil(state.maxHp * 0.05);
+  heal(h);
+  playSE("heal");
+  addLog(`モフモフで癒された HP+${h}`, "heal");
+  state.mode = "explore";
+  render();
+}
+
+// 餌をやる：スクラップ獲得（採掘2回分＝calcScrap×採掘倍率×2）
+function catFeed(){
+  let g = Math.floor(calcScrap() * getMiningMultiplier() * 2);
+  gainScrap(g);
+  playSE("coin");
+  addLog(`餌のお礼のようだ スクラップ+${g.toLocaleString()}`, "scrap");
+  state.mode = "explore";
   render();
 }
 
