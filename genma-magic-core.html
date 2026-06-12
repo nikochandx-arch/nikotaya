@@ -1,0 +1,1774 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>始原の魔法核 ― 魔法陣ローグライク</title>
+<style>
+:root{
+  --ink:#0c0a12; --ink2:#141022; --panel:#181426; --panel2:#1f1932;
+  --line:#33294f; --line2:#473a6b;
+  --parch:#e7dcc0; --muted:#9b91b5; --text:#e8e3f3;
+  --rune:#74e0ff; --rune2:#b794ff; --gold:#d8b25e;
+  --hp:#ff6b81; --mp:#6aa6ff; --heal:#62e0a1; --warn:#ffcf6b; --bad:#ff5a6a;
+  --serif: Georgia,"Times New Roman","Hiragino Mincho ProN","Yu Mincho","MS Mincho",serif;
+  --sans: system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+  --mono: ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none;background:var(--ink);color:var(--text);font-family:var(--sans)}
+body{position:fixed;inset:0;touch-action:manipulation}
+#app{position:absolute;inset:0;display:flex;align-items:stretch;justify-content:center}
+.screen{display:none;position:absolute;inset:0;flex-direction:column}
+.screen.active{display:flex}
+button{font-family:var(--sans);color:var(--text);background:linear-gradient(180deg,var(--panel2),var(--panel));
+  border:1px solid var(--line2);border-radius:10px;padding:11px 14px;font-size:15px;cursor:pointer;transition:.12s;
+  letter-spacing:.02em}
+button:hover{border-color:var(--rune2);box-shadow:0 0 0 1px rgba(183,148,255,.25)}
+button:active{transform:translateY(1px)}
+button:disabled{opacity:.4;cursor:default;box-shadow:none;border-color:var(--line)}
+button:focus-visible{outline:2px solid var(--rune);outline-offset:2px}
+.btn-primary{background:linear-gradient(180deg,#2a2247,#1c1733);border-color:var(--rune2);color:#eee}
+.btn-gold{border-color:var(--gold);color:var(--gold)}
+h1,h2,h3{font-family:var(--serif);font-weight:600;letter-spacing:.04em;margin:0}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--rune2);opacity:.85}
+.muted{color:var(--muted)}
+.scroll{overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* ---------- TITLE ---------- */
+#s-title{align-items:center;justify-content:center;text-align:center;padding:24px;
+  background:radial-gradient(1200px 600px at 50% -10%, #1b1530 0%, var(--ink) 60%)}
+.title-sigil{width:min(46vw,210px);height:min(46vw,210px);margin-bottom:10px}
+#s-title h1{font-size:clamp(28px,7vw,46px);color:var(--parch);text-shadow:0 0 18px rgba(116,224,255,.18)}
+#s-title .sub{font-family:var(--serif);font-style:italic;color:var(--muted);margin:6px 0 22px;font-size:clamp(13px,3.4vw,16px)}
+.title-menu{display:flex;flex-direction:column;gap:10px;width:min(86vw,300px)}
+#title-records{margin-top:18px;font-family:var(--mono);font-size:12px;color:var(--muted);line-height:1.7;max-width:min(90vw,360px)}
+
+/* ---------- generic doc pages ---------- */
+.doc{padding:18px;max-width:760px;margin:0 auto;width:100%}
+.doc h2{font-size:24px;color:var(--parch);margin-bottom:4px}
+.doc-body{line-height:1.75;font-size:15px}
+.doc-body h3{color:var(--rune);font-size:16px;margin:18px 0 6px;font-family:var(--sans);letter-spacing:.06em}
+.doc-body p{margin:6px 0;color:#d7d2e6}
+.doc-body code{font-family:var(--mono);background:#221b38;padding:1px 6px;border-radius:5px;color:var(--rune)}
+.topbar{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.topbar .sp{flex:1}
+
+/* ---------- EXPLORE ---------- */
+#s-explore{background:radial-gradient(900px 500px at 50% 120%, #16122a 0%, var(--ink) 70%)}
+.ex-top{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);
+  font-family:var(--mono);font-size:12px;color:var(--muted)}
+.ex-top b{color:var(--parch);font-weight:600}
+.ex-top .sp{flex:1}
+.ex-main{flex:1;display:flex;gap:10px;padding:10px;min-height:0}
+.ex-view{flex:1;display:flex;flex-direction:column;gap:8px;min-width:0}
+#fp{flex:1;width:100%;background:#070611;border:1px solid var(--line);border-radius:12px;min-height:130px;touch-action:none}
+#ex-msg{height:74px;background:rgba(10,8,20,.6);border:1px solid var(--line);border-radius:10px;padding:8px 10px;
+  font-size:12.5px;line-height:1.55;overflow-y:auto}
+.ex-side{width:148px;display:flex;flex-direction:column;gap:8px}
+#map{width:148px;height:148px;background:#080714;border:1px solid var(--line);border-radius:10px}
+.ex-controls{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:6px}
+.ex-controls button{padding:12px 0;font-size:18px;font-family:var(--serif)}
+#btn-fwd{grid-column:2;grid-row:1}
+#btn-left{grid-column:1;grid-row:2}
+#btn-back{grid-column:2;grid-row:2}
+#btn-right{grid-column:3;grid-row:2}
+#ex-party{display:flex;gap:8px;padding:8px 10px;border-top:1px solid var(--line);overflow-x:auto}
+
+/* party cards */
+.pcard{flex:1;min-width:118px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 9px}
+.pcard.dead{opacity:.42;filter:grayscale(.7)}
+.pcard.active{border-color:var(--rune);box-shadow:0 0 0 1px rgba(116,224,255,.4),0 0 16px rgba(116,224,255,.15)}
+.pcard .nm{font-size:12.5px;font-weight:600;display:flex;justify-content:space-between;gap:6px}
+.pcard .cl{font-size:10px;color:var(--muted);font-family:var(--mono)}
+.bar{height:6px;border-radius:4px;background:#241d3a;margin-top:4px;overflow:hidden}
+.bar > i{display:block;height:100%;border-radius:4px;transition:width .25s}
+.bar.hp>i{background:linear-gradient(90deg,#ff5a6a,#ff90a0)}
+.bar.mp>i{background:linear-gradient(90deg,#3f74e0,#7fb0ff)}
+.pcard .vals{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px}
+.tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px;min-height:12px}
+.tag{font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:999px;border:1px solid var(--line2);color:var(--warn)}
+.tag.buff{color:var(--rune);border-color:var(--rune)}
+
+/* ---------- COMBAT ---------- */
+#s-combat{background:radial-gradient(900px 500px at 50% -10%, #241127 0%, var(--ink) 70%)}
+.cb-top{padding:9px 12px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12px;color:var(--muted);display:flex;gap:8px}
+.cb-top .sp{flex:1}
+#cb-enemies{display:flex;gap:8px;padding:10px 12px;flex-wrap:wrap;justify-content:center}
+.ecard{min-width:96px;max-width:150px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center;cursor:pointer;transition:.12s}
+.ecard.sel{border-color:var(--bad);box-shadow:0 0 0 1px rgba(255,90,106,.5),0 0 16px rgba(255,90,106,.18)}
+.ecard.dead{opacity:.3;filter:grayscale(1);pointer-events:none}
+.ecard .eg{font-size:30px;line-height:1}
+.ecard .en{font-size:12px;font-weight:600;margin-top:2px}
+.ecard .el{font-family:var(--mono);font-size:9.5px;color:var(--muted)}
+.cb-mid{flex:1;display:flex;gap:10px;padding:0 12px;min-height:0}
+.cb-stage{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
+#cb-turn{font-family:var(--serif);font-size:15px;color:var(--parch);text-align:center}
+#cb-turn b{color:var(--rune)}
+.draw-wrap{position:relative;width:min(62vw,300px);max-width:46vh;aspect-ratio:1/1}
+#draw{width:100%;height:100%;display:block;background:radial-gradient(circle at 50% 50%, #160f24, #0a0713 70%);
+  border:1px solid var(--line2);border-radius:14px;touch-action:none;box-shadow:inset 0 0 30px rgba(116,224,255,.06)}
+.cb-actions{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;max-width:340px}
+.cb-actions button{padding:9px 13px;font-size:13.5px}
+.draw-tools{display:flex;gap:8px;justify-content:center}
+#cb-readout{width:200px;font-family:var(--mono);font-size:11.5px;line-height:1.5;color:var(--muted);
+  background:rgba(10,8,20,.5);border:1px solid var(--line);border-radius:10px;padding:9px;align-self:stretch}
+#cb-readout .k{color:var(--rune2)}
+#cb-readout .big{font-family:var(--serif);font-size:15px;color:var(--parch);display:block;margin-bottom:4px}
+#cb-log{height:96px;margin:8px 12px;background:rgba(10,8,20,.6);border:1px solid var(--line);border-radius:10px;
+  padding:8px 10px;font-size:12px;line-height:1.5;overflow-y:auto}
+#cb-party{display:flex;gap:8px;padding:8px 12px 12px;border-top:1px solid var(--line);overflow-x:auto}
+.log-l{margin:2px 0}.log-l .hl{color:var(--rune)}.log-l .dmg{color:var(--hp)}.log-l .heal{color:var(--heal)}
+.log-l .sys{color:var(--gold)}.log-l .crit{color:var(--warn)}
+
+/* item / generic overlay */
+.ov{position:absolute;inset:0;background:rgba(6,5,12,.78);display:none;align-items:center;justify-content:center;padding:18px;z-index:30}
+.ov.active{display:flex}
+.ov-card{width:min(92vw,420px);max-height:84vh;background:var(--panel);border:1px solid var(--line2);border-radius:14px;
+  padding:16px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+.ov-card h3{color:var(--parch);font-size:18px}
+.list{display:flex;flex-direction:column;gap:7px;overflow-y:auto}
+.row{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px}
+.row .ri{flex:1;min-width:0}
+.row .rt{font-size:13.5px;font-weight:600}
+.row .rd{font-size:11px;color:var(--muted)}
+.row button{padding:7px 12px;font-size:12.5px}
+
+/* EVENT */
+#s-event{align-items:center;justify-content:center;padding:22px;
+  background:radial-gradient(800px 500px at 50% 30%, #181428 0%, var(--ink) 70%)}
+.event-card{width:min(92vw,460px);background:var(--panel);border:1px solid var(--line2);border-radius:16px;padding:20px;text-align:center}
+#ev-text{font-family:var(--serif);font-size:16px;line-height:1.8;color:#e6e0f2;margin-bottom:16px}
+#ev-choices{display:flex;flex-direction:column;gap:9px}
+
+/* END */
+#s-end{align-items:center;justify-content:center;text-align:center;padding:24px}
+#end-title{font-size:clamp(26px,7vw,42px);font-family:var(--serif)}
+#end-title.win{color:var(--gold);text-shadow:0 0 22px rgba(216,178,94,.35)}
+#end-title.lose{color:var(--bad)}
+#end-text{font-family:var(--serif);font-style:italic;color:var(--muted);margin:10px 0 16px;max-width:min(92vw,440px);line-height:1.7}
+#end-stats{font-family:var(--mono);font-size:12.5px;color:var(--muted);line-height:1.8;margin-bottom:20px}
+
+/* codex */
+#codex-stats{font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:10px}
+#codex-list{display:flex;flex-direction:column;gap:6px}
+.cx{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:9px 11px}
+.cx.locked{opacity:.5}
+.cx .cxh{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.cx .cxn{font-size:14px;font-weight:600}
+.cx .cxe{font-family:var(--mono);font-size:10px;color:var(--rune2)}
+.cx .cxd{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.45}
+
+.fade{animation:fade .25s ease}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:560px){
+  .ex-main{flex-direction:column}
+  .ex-side{width:100%;flex-direction:row}
+  #map{width:120px;height:120px}
+  .ex-controls{flex:1}
+  .cb-mid{flex-direction:column;align-items:center}
+  #cb-readout{width:min(62vw,300px)}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TITLE -->
+  <section id="s-title" class="screen active">
+    <svg class="title-sigil" viewBox="-50 -50 100 100" aria-hidden="true" id="sigil"></svg>
+    <div class="eyebrow">WIZARDRY × GLYPH ROGUELIKE</div>
+    <h1>始原の魔法核</h1>
+    <div class="sub">― 描いた紋様が、魔法となる ―</div>
+    <div class="title-menu">
+      <button id="btn-continue" class="btn-primary">冒険を再開</button>
+      <button id="btn-new" class="btn-gold">新たな探索を始める</button>
+      <button id="btn-howto">遊び方</button>
+      <button id="btn-codex">魔法図鑑</button>
+      <button id="btn-reset-records">記録を消去</button>
+    </div>
+    <div id="title-records"></div>
+  </section>
+
+  <!-- HOW TO -->
+  <section id="s-howto" class="screen">
+    <div class="topbar"><button id="btn-howto-back">← 戻る</button><div class="sp"></div><span class="eyebrow">GRIMOIRE</span></div>
+    <div class="doc scroll"><div class="doc-body" id="howto-body"></div></div>
+  </section>
+
+  <!-- CODEX -->
+  <section id="s-codex" class="screen">
+    <div class="topbar"><button id="btn-codex-back">← 戻る</button><div class="sp"></div><span class="eyebrow">CODEX OF GLYPHS</span></div>
+    <div class="doc scroll">
+      <div id="codex-stats"></div>
+      <div id="codex-list"></div>
+    </div>
+  </section>
+
+  <!-- EXPLORE -->
+  <section id="s-explore" class="screen">
+    <div class="ex-top">
+      <span>地下 <b id="ex-floor">1</b> 階</span><span class="sp"></span>
+      <span>金貨 <b id="ex-gold">0</b></span>
+      <span id="ex-core" style="color:var(--gold);display:none">◈ 魔法核</span>
+      <button id="btn-menu" style="padding:5px 10px;font-size:12px">メニュー</button>
+    </div>
+    <div class="ex-main">
+      <div class="ex-view">
+        <canvas id="fp"></canvas>
+        <div id="ex-msg" class="scroll"></div>
+      </div>
+      <div class="ex-side">
+        <canvas id="map" width="148" height="148"></canvas>
+        <div class="ex-controls">
+          <button id="btn-fwd">▲</button>
+          <button id="btn-left">↺</button>
+          <button id="btn-back">▼</button>
+          <button id="btn-right">↻</button>
+        </div>
+      </div>
+    </div>
+    <div id="ex-party"></div>
+    <div id="ex-menu" class="ov"><div class="ov-card">
+      <h3>メニュー</h3>
+      <button id="mn-resume" class="btn-primary">探索に戻る</button>
+      <button id="mn-codex">魔法図鑑</button>
+      <button id="mn-howto">遊び方</button>
+      <button id="mn-save">保存してタイトルへ</button>
+      <button id="mn-abandon" class="btn-gold">探索を放棄する</button>
+    </div></div>
+  </section>
+
+  <!-- COMBAT -->
+  <section id="s-combat" class="screen">
+    <div class="cb-top"><span id="cb-floor">地下 1 階</span><span class="sp"></span><span id="cb-round">第 1 巡</span></div>
+    <div id="cb-enemies"></div>
+    <div class="cb-mid">
+      <div class="cb-stage">
+        <div id="cb-turn"></div>
+        <div class="draw-wrap" id="draw-wrap"><canvas id="draw"></canvas></div>
+        <div class="draw-tools" id="draw-tools">
+          <button id="cb-cast" class="btn-primary">この紋様で詠唱</button>
+          <button id="cb-clear">描き直す</button>
+          <button id="cb-cancel">やめる</button>
+        </div>
+        <div class="cb-actions" id="cb-actions">
+          <button id="cb-act-cast" class="btn-primary">詠唱（紋様）</button>
+          <button id="cb-act-attack">攻撃</button>
+          <button id="cb-act-defend">防御</button>
+          <button id="cb-act-item">道具</button>
+          <button id="cb-act-flee">逃走</button>
+        </div>
+      </div>
+      <div id="cb-readout"></div>
+    </div>
+    <div id="cb-log" class="scroll"></div>
+    <div id="cb-party"></div>
+    <div id="cb-items" class="ov"><div class="ov-card">
+      <h3>道具を使う</h3><div class="list" id="cb-item-list"></div>
+      <button id="cb-item-close">戻る</button>
+    </div></div>
+  </section>
+
+  <!-- EVENT -->
+  <section id="s-event" class="screen">
+    <div class="event-card">
+      <div id="ev-text"></div>
+      <div id="ev-choices"></div>
+    </div>
+  </section>
+
+  <!-- END -->
+  <section id="s-end" class="screen">
+    <h1 id="end-title"></h1>
+    <div id="end-text"></div>
+    <div id="end-stats"></div>
+    <button id="btn-end-title" class="btn-primary" style="width:min(80vw,260px)">タイトルへ</button>
+  </section>
+
+</div>
+<script>
+"use strict";
+/* ===========================================================================
+   始原の魔法核 — single-file glyph-recognition dungeon roguelike
+   Chunk A: math, RNG, gesture recognizer, shape/modifier generators,
+            programmatic 320+ spell templates, party/enemy/item data.
+   =========================================================================== */
+
+/* ---------- tiny math utils ---------- */
+const TAU = Math.PI * 2;
+function dist(a, b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.hypot(dx,dy); }
+function clamp(v,lo,hi){ return v<lo?lo:(v>hi?hi:v); }
+function lerp(a,b,t){ return a+(b-a)*t; }
+function pathLen(pts){ let s=0; for(let i=1;i<pts.length;i++) s+=dist(pts[i-1],pts[i]); return s; }
+function centroid(pts){ let x=0,y=0; for(const p of pts){x+=p.x;y+=p.y;} return {x:x/pts.length,y:y/pts.length}; }
+function rotPt(p,c,s){ return {x:p.x*c - p.y*s, y:p.x*s + p.y*c}; }
+
+/* seeded PRNG (mulberry32) for dungeon/encounter determinism */
+function mulberry32(seed){
+  let a = seed>>>0;
+  return function(){
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a>>>15), 1 | a);
+    t = (t + Math.imul(t ^ (t>>>7), 61 | t)) ^ t;
+    return ((t ^ (t>>>14)) >>> 0) / 4294967296;
+  };
+}
+
+/* ---------- gesture normalization ---------- */
+const NPTS = 48;
+
+function resample(points, n){
+  if(points.length < 2) return null;
+  const I = pathLen(points) / (n - 1);
+  if(!isFinite(I) || I <= 0) return null;
+  const pts = points.slice();
+  const out = [ {x:pts[0].x, y:pts[0].y} ];
+  let D = 0;
+  for(let i=1;i<pts.length;i++){
+    const d = dist(pts[i-1], pts[i]);
+    if(D + d >= I){
+      const t = (I - D) / d;
+      const q = { x: pts[i-1].x + t*(pts[i].x-pts[i-1].x), y: pts[i-1].y + t*(pts[i].y-pts[i-1].y) };
+      out.push(q);
+      pts.splice(i, 0, q);
+      D = 0;
+    } else D += d;
+  }
+  while(out.length < n) out.push({x:pts[pts.length-1].x, y:pts[pts.length-1].y});
+  return out.slice(0, n);
+}
+
+/* remove jitter points that are too close together (noise reduction) */
+function denoise(stroke, minD){
+  if(stroke.length < 2) return stroke.slice();
+  const out=[stroke[0]];
+  for(let i=1;i<stroke.length;i++){ if(dist(out[out.length-1], stroke[i]) >= minD) out.push(stroke[i]); }
+  if(out.length<2) out.push(stroke[stroke.length-1]);
+  return out;
+}
+
+/* turn raw strokes -> normalized feature bundle */
+function makeGlyph(strokes){
+  const clean = [];
+  for(const s of strokes){ const d = denoise(s, 0.6); if(d.length>=1) clean.push(d); }
+  if(clean.length===0) return null;
+  let all=[]; for(const s of clean) all = all.concat(s);
+  if(all.length < 2) return null;
+
+  // bounding box (pre-normalization) for aspect ratio
+  let minx=Infinity,miny=Infinity,maxx=-Infinity,maxy=-Infinity;
+  for(const p of all){ if(p.x<minx)minx=p.x; if(p.x>maxx)maxx=p.x; if(p.y<miny)miny=p.y; if(p.y>maxy)maxy=p.y; }
+  const bw = Math.max(maxx-minx, 1e-3), bh = Math.max(maxy-miny, 1e-3);
+  const aspect = bw / bh;
+
+  const rs = resample(all, NPTS);
+  if(!rs) return null;
+  // center on centroid, scale by RMS radius
+  const c = centroid(rs);
+  for(const p of rs){ p.x-=c.x; p.y-=c.y; }
+  let r=0; for(const p of rs) r += p.x*p.x + p.y*p.y;
+  r = Math.sqrt(r/rs.length); if(r<1e-6) r=1;
+  for(const p of rs){ p.x/=r; p.y/=r; }
+
+  const closure = dist(rs[0], rs[NPTS-1]);          // small = closed shape
+  const plen = pathLen(rs);                          // normalized path length
+  // corner count via turning angle
+  let corners=0;
+  for(let i=1;i<NPTS-1;i++){
+    const ax=rs[i].x-rs[i-1].x, ay=rs[i].y-rs[i-1].y;
+    const bx=rs[i+1].x-rs[i].x, by=rs[i+1].y-rs[i].y;
+    const la=Math.hypot(ax,ay), lb=Math.hypot(bx,by);
+    if(la<1e-4||lb<1e-4) continue;
+    let cosA = (ax*bx+ay*by)/(la*lb); cosA=clamp(cosA,-1,1);
+    if(Math.acos(cosA) > 1.05) corners++;            // > ~60 deg turn
+  }
+  const crossings = countCrossings(rs);
+  return { pts: rs, strokeCount: clean.length, aspect, closure, plen, corners, crossings };
+}
+
+function segIntersect(a,b,c,d){
+  function ccw(p,q,r){ return (r.y-p.y)*(q.x-p.x) > (q.y-p.y)*(r.x-p.x); }
+  return ccw(a,c,d)!==ccw(b,c,d) && ccw(a,b,c)!==ccw(a,b,d);
+}
+function countCrossings(pts){
+  let n=0;
+  for(let i=0;i<pts.length-1;i++){
+    for(let j=i+2;j<pts.length-1;j++){
+      if(i===0 && j===pts.length-2) continue;
+      if(segIntersect(pts[i],pts[i+1],pts[j],pts[j+1])) n++;
+    }
+  }
+  return n;
+}
+
+/* path distance with limited rotation correction (tilt tolerance, not full rotation invariance) */
+function pathDistance(A, B){
+  let best = Infinity;
+  for(let deg=-24; deg<=24; deg+=8){
+    const a = deg*Math.PI/180, c=Math.cos(a), s=Math.sin(a);
+    let sum=0;
+    for(let i=0;i<NPTS;i++){
+      const p = rotPt(A[i], c, s);
+      const dx=p.x-B[i].x, dy=p.y-B[i].y;
+      sum += Math.sqrt(dx*dx+dy*dy);
+    }
+    const avg = sum/NPTS;
+    if(avg < best) best = avg;
+  }
+  return best;
+}
+
+/* compare an input glyph against a template glyph -> score (lower is better) */
+function glyphScore(inp, tpl){
+  let s = pathDistance(inp.pts, tpl.pts) * 1.00;
+  s += Math.abs(inp.strokeCount - tpl.strokeCount) * 0.20;
+  s += Math.abs(inp.closure - tpl.closure) * 0.30;
+  s += Math.abs(Math.log((inp.aspect+0.25)/(tpl.aspect+0.25))) * 0.28;
+  s += Math.abs(inp.plen - tpl.plen) * 0.05;
+  s += Math.abs(inp.corners - tpl.corners) * 0.045;
+  s += Math.abs(inp.crossings - tpl.crossings) * 0.10;
+  return s;
+}
+
+/* ---------- canonical shape geometry (range ~ [-1,1]) ---------- */
+function polyPath(verts, closed, perEdge){
+  const out=[]; const n=verts.length; const seg=perEdge||12;
+  const m = closed ? n : n-1;
+  for(let i=0;i<m;i++){
+    const a=verts[i], b=verts[(i+1)%n];
+    for(let j=0;j<seg;j++){ const t=j/seg; out.push({x:a.x+(b.x-a.x)*t, y:a.y+(b.y-a.y)*t}); }
+  }
+  out.push(closed ? {x:verts[0].x,y:verts[0].y} : {x:verts[n-1].x,y:verts[n-1].y});
+  return out;
+}
+function arcPath(cx,cy,r,a0,a1,seg){ const out=[]; seg=seg||24; for(let i=0;i<=seg;i++){const t=i/seg,a=a0+(a1-a0)*t; out.push({x:cx+Math.cos(a)*r, y:cy+Math.sin(a)*r});} return out; }
+function lineP(ax,ay,bx,by){ return polyPath([{x:ax,y:ay},{x:bx,y:by}],false,8); }
+function regPoly(nv,r,off){ const v=[]; for(let i=0;i<nv;i++){ const a=off + i*TAU/nv; v.push({x:Math.cos(a)*r, y:Math.sin(a)*r}); } return v; }
+
+/* 20 base shapes -> each returns array of strokes */
+const BASE_SHAPES = [
+  ["circle","円環", ()=>[arcPath(0,0,1,0,TAU,44)]],
+  ["triangle","三角", ()=>[polyPath([{x:0,y:-1},{x:0.92,y:0.8},{x:-0.92,y:0.8}],true)]],
+  ["invTri","逆三", ()=>[polyPath([{x:0,y:1},{x:-0.92,y:-0.8},{x:0.92,y:-0.8}],true)]],
+  ["square","方陣", ()=>[polyPath(regPoly(4,1.05,-Math.PI/4),true)]],
+  ["diamond","菱形", ()=>[polyPath([{x:0,y:-1},{x:0.95,y:0},{x:0,y:1},{x:-0.95,y:0}],true)]],
+  ["pentagon","五芒", ()=>[polyPath(regPoly(5,1,-Math.PI/2),true)]],
+  ["star","星辰", ()=>{ const v=[]; for(let i=0;i<10;i++){ const r=i%2?0.45:1; const a=-Math.PI/2 + i*Math.PI/5; v.push({x:Math.cos(a)*r,y:Math.sin(a)*r}); } return [polyPath(v,true)]; }],
+  ["spiralCW","右螺旋", ()=>{ const o=[]; for(let i=0;i<=72;i++){ const t=i/72; const a=t*TAU*2; const r=0.12+t*0.95; o.push({x:Math.cos(a)*r,y:Math.sin(a)*r}); } return [o]; }],
+  ["spiralCCW","左螺旋", ()=>{ const o=[]; for(let i=0;i<=72;i++){ const t=i/72; const a=-t*TAU*2; const r=0.12+t*0.95; o.push({x:Math.cos(a)*r,y:Math.sin(a)*r}); } return [o]; }],
+  ["zigzag","稲妻", ()=>{ const o=[]; const n=6; for(let i=0;i<=n;i++){ const x=-1+2*i/n; const y=(i%2?0.7:-0.7); o.push({x,y}); } return [o]; }],
+  ["wave","波紋", ()=>{ const o=[]; for(let i=0;i<=48;i++){ const t=i/48; o.push({x:-1+2*t, y:0.6*Math.sin(t*TAU*1.5)}); } return [o]; }],
+  ["cross","十字", ()=>[lineP(0,-1,0,1), lineP(-1,0,1,0)]],
+  ["xCross","交叉", ()=>[lineP(-0.9,-0.9,0.9,0.9), lineP(0.9,-0.9,-0.9,0.9)]],
+  ["crescent","三日月", ()=>{ const a=arcPath(0,0,1,Math.PI*0.32,Math.PI*1.68,26); const b=arcPath(0.5,0,0.78,Math.PI*1.55,Math.PI*0.45,20); return [a.concat(b)]; }],
+  ["hourglass","砂時計", ()=>[polyPath([{x:-0.9,y:-0.9},{x:0.9,y:-0.9},{x:-0.9,y:0.9},{x:0.9,y:0.9}],true)]],
+  ["infinity","無限", ()=>{ const o=[]; for(let i=0;i<=64;i++){ const t=i/64*TAU; const d=1+Math.sin(t)*Math.sin(t); o.push({x:1.1*Math.cos(t)/d, y:1.1*Math.sin(t)*Math.cos(t)/d}); } return [o]; }],
+  ["chevron","山形", ()=>[polyPath([{x:-0.9,y:0.6},{x:0,y:-0.7},{x:0.9,y:0.6}],false)]],
+  ["trident","三叉", ()=>[lineP(0,1,0,-0.45), polyPath([{x:-0.72,y:-1},{x:-0.72,y:-0.4},{x:0.72,y:-0.4},{x:0.72,y:-1}],false)]],
+  ["serpent","蛇", ()=>{ const o=[]; for(let i=0;i<=48;i++){ const t=i/48; o.push({x:0.72*Math.sin(t*TAU*1.5), y:-1+2*t}); } return [o]; }],
+  ["runeS","古印", ()=>[polyPath([{x:0.6,y:-1},{x:-0.45,y:-0.55},{x:0.45,y:0.05},{x:-0.6,y:0.6},{x:0.35,y:1}],false)]],
+];
+
+/* 16 modifiers -> each returns array of EXTRA strokes ([] for none) */
+const MODIFIERS = [
+  ["none","", ()=>[]],
+  ["verticalLine","縦", ()=>[lineP(0,-0.92,0,0.92)]],
+  ["horizontalLine","横", ()=>[lineP(-0.92,0,0.92,0)]],
+  ["slashFwd","斜", ()=>[lineP(-0.7,0.7,0.7,-0.7)]],
+  ["slashBack","逆斬", ()=>[lineP(-0.7,-0.7,0.7,0.7)]],
+  ["innerCircle","内環", ()=>[arcPath(0,0,0.34,0,TAU,20)]],
+  ["doubleRing","双環", ()=>[arcPath(0,0,0.62,0,TAU,28)]],
+  ["upperArc","上弧", ()=>[arcPath(0,-0.15,0.85,Math.PI*1.18,Math.PI*1.82,16)]],
+  ["lowerArc","下弧", ()=>[arcPath(0,0.15,0.85,Math.PI*0.18,Math.PI*0.82,16)]],
+  ["leftHook","左鉤", ()=>[polyPath([{x:-0.9,y:-0.2},{x:-1.02,y:0.18},{x:-0.72,y:0.46},{x:-0.5,y:0.3}],false)]],
+  ["rightHook","右鉤", ()=>[polyPath([{x:0.9,y:-0.2},{x:1.02,y:0.18},{x:0.72,y:0.46},{x:0.5,y:0.3}],false)]],
+  ["tail","尾", ()=>[polyPath([{x:0.25,y:0.55},{x:0.55,y:0.92},{x:0.88,y:0.78}],false)]],
+  ["radialTicks","輪歯", ()=>[polyPath([{x:0,y:-1.05},{x:0,y:-0.78},{x:1.05,y:0},{x:0.78,y:0},{x:0,y:1.05},{x:0,y:0.78},{x:-1.05,y:0},{x:-0.78,y:0}],false)]],
+  ["smallLoop","小輪", ()=>[arcPath(0.5,0.5,0.24,0,TAU,16)]],
+  ["crossMark","印", ()=>[polyPath([{x:-0.22,y:-0.22},{x:0.22,y:0.22},{x:0.22,y:-0.22},{x:-0.22,y:0.22}],false)]],
+  ["brokenLine","断", ()=>[polyPath([{x:0,y:-0.9},{x:0.09,y:-0.45},{x:-0.09,y:-0.05},{x:0.09,y:0.35},{x:0,y:0.9}],false)]],
+];
+
+/* ---------- spell metadata generation ---------- */
+const ELEM = ["火","氷","雷","地","風","水","聖","闇","秘","無"];
+const ELEM_COLOR = {火:"#ff7a4d",氷:"#7fd6ff",雷:"#ffe06a",地:"#c39a5e",風:"#9fe6b0",水:"#6aa6ff",聖:"#ffe9a8",闇:"#b07fff",秘:"#74e0ff",無:"#cfc8e0"};
+// category per base shape index
+const BASE_CAT = ["defense","attack","attack","defense","defense","summon","summon","attack","heal","attack","attack","purify","attack","status","status","defense","attack","attack","status","dispel"];
+const CAT_INFO = {
+  attack:{suffix:"撃",pow:1.15,mp:0,verb:"敵一体に"},
+  heal:{suffix:"癒",pow:1.0,mp:1,verb:"味方一体を"},
+  defense:{suffix:"盾",pow:1.0,mp:0,verb:"味方全体に"},
+  status:{suffix:"呪",pow:0.6,mp:0,verb:"敵一体に"},
+  purify:{suffix:"浄",pow:0.8,mp:1,verb:"味方全体を"},
+  summon:{suffix:"召",pow:1.3,mp:3,verb:"敵全体に"},
+  dispel:{suffix:"解",pow:0.7,mp:0,verb:"敵一体の"},
+};
+const MOD_DIFF = [0,1,1,1,1,2,2,1,1,2,2,1,2,2,1,1];
+const STATUS_BY_SHAPE = {crescent:"凍",hourglass:"鈍",serpent:"毒"};
+
+function catDesc(cat,elem,shapeJa,modJa){
+  const m = modJa? `（${modJa}の修飾）`:"";
+  switch(cat){
+    case "attack": return `${shapeJa}の紋様に${elem}の力を宿し、敵一体を撃つ攻撃魔法。${m}`;
+    case "heal":   return `${shapeJa}の紋様が生命の流れを整え、味方一体のHPを回復する。${m}`;
+    case "defense":return `${shapeJa}の結界を編み、味方全体の防御を一定の巡だけ高める。${m}`;
+    case "status": return `${shapeJa}の呪印で敵一体に状態異常を刻む呪詛の魔法。${m}`;
+    case "purify": return `${shapeJa}の浄化光で味方全体の状態異常を払い、わずかに癒す。${m}`;
+    case "summon": return `${shapeJa}より${elem}の眷属を呼び、敵全体を薙ぎ払う召喚魔法。${m}`;
+    case "dispel": return `${shapeJa}の解呪で敵一体の耐性と防御を崩す術。${m}`;
+  }
+  return "";
+}
+
+let SPELLS = [];   // all templates with geometry + metadata
+function buildSpells(){
+  SPELLS = [];
+  let idx=0;
+  for(let bi=0; bi<BASE_SHAPES.length; bi++){
+    const [bk,bja,bfn] = BASE_SHAPES[bi];
+    const baseStrokes = bfn();
+    const cat = BASE_CAT[bi];
+    for(let mi=0; mi<MODIFIERS.length; mi++){
+      const [mk,mja,mfn] = MODIFIERS[mi];
+      const strokes = baseStrokes.map(s=>s.map(p=>({x:p.x,y:p.y}))).concat(mfn());
+      const glyph = makeGlyph(strokes);
+      if(!glyph) continue;
+      const elem = ELEM[(bi*3 + mi) % ELEM.length];
+      const difficulty = clamp(1 + Math.round((glyph.corners*0.18) + MOD_DIFF[mi] + (baseStrokes.length-1)*0.6), 1, 6);
+      const ci = CAT_INFO[cat];
+      const mp = Math.round(4 + difficulty*2 + ci.mp*2);
+      const basePower = Math.round((7 + difficulty*4.2) * ci.pow);
+      const name = elem + bja + ci.suffix + (mja?("・"+mja):"");
+      SPELLS.push({
+        id: bk+"-"+mk, idx: idx++,
+        name, elem, cat, difficulty, mp, basePower,
+        status: STATUS_BY_SHAPE[bk]||null,
+        desc: catDesc(cat, elem, bja, mja),
+        glyph, strokes
+      });
+    }
+  }
+}
+
+/* fizzle / misfire outcomes (not chosen at random as a "spell type"; they
+   are deterministic consequences of poor recognition) */
+const FIZZLES = [
+  {name:"不発",  text:"紋様が霧散し、魔力だけが空に溶けた。"},
+  {name:"逆流",  text:"術式が乱れ、魔力が術者へ逆流した。"},
+  {name:"暴れ火",text:"制御を失った魔力が四方に飛び散った。"},
+  {name:"残響",  text:"紋様の残響だけが弱々しく揺らいだ。"},
+];
+
+/* ---------- party classes ---------- */
+const CLASSES = {
+  warrior:{ja:"戦士", glyph:"⚔", color:"#ff9a7a", base:{hp:62,mp:14,atk:14,def:11,agi:7,con:6,spr:5}, grow:{hp:11,mp:2,atk:3.0,def:2.4,agi:1.1,con:0.8,spr:0.7}, names:["ガレス","ブリュンヒルデ","ロルフ","セルウィン"]},
+  thief:{ja:"盗賊", glyph:"🗡", color:"#9fe6b0", base:{hp:48,mp:18,atk:11,def:8,agi:13,con:8,spr:6}, grow:{hp:8,mp:3,atk:2.3,def:1.6,agi:2.4,con:1.2,spr:0.9}, names:["フィン","ニーナ","カイル","レーヴ"]},
+  priest:{ja:"僧侶", glyph:"✝", color:"#ffe9a8", base:{hp:50,mp:30,atk:9,def:9,agi:8,con:10,spr:13}, grow:{hp:8,mp:5,atk:1.8,def:1.8,agi:1.2,con:1.6,spr:2.4}, names:["セラ","アルベルト","ミリアム","ヨナ"]},
+  mage:{ja:"魔術師", glyph:"✶", color:"#b794ff", base:{hp:40,mp:40,atk:7,def:6,agi:9,con:14,spr:11}, grow:{hp:6,mp:7,atk:1.4,def:1.3,agi:1.5,con:2.4,spr:1.9}, names:["エルメス","ヴェスナ","オルト","リリス"]},
+};
+const PARTY_ORDER = ["warrior","thief","priest","mage"];
+
+/* ---------- enemy archetypes (scaled by floor at spawn) ---------- */
+const ENEMY_TYPES = [
+  {key:"slime",  name:"洞窟スライム", glyph:"🟢", el:"水", weak:["雷"], resist:["水"], hp:30,atk:9,def:4,agi:5, ai:"basic", minF:1},
+  {key:"bat",    name:"影コウモリ",   glyph:"🦇", el:"闇", weak:["聖"], resist:["闇"], hp:24,atk:11,def:3,agi:12, ai:"swift", minF:1},
+  {key:"goblin", name:"坑道ゴブリン", glyph:"👺", el:"地", weak:["火"], resist:[], hp:38,atk:13,def:6,agi:7, ai:"basic", minF:1},
+  {key:"spider", name:"毒蜘蛛",       glyph:"🕷", el:"地", weak:["火"], resist:["地"], hp:34,atk:10,def:5,agi:9, ai:"poison", minF:2},
+  {key:"skel",   name:"骸骨剣士",     glyph:"💀", el:"闇", weak:["聖","地"], resist:["闇","氷"], hp:46,atk:15,def:9,agi:6, ai:"guard", minF:2},
+  {key:"golem",  name:"石守の像",     glyph:"🗿", el:"地", weak:["水"], resist:["地","火","物"], hp:80,atk:16,def:16,agi:3, ai:"guard", minF:3},
+  {key:"wisp",   name:"火の精",       glyph:"🔥", el:"火", weak:["水","氷"], resist:["火"], hp:40,atk:18,def:5,agi:10, ai:"caster", minF:3},
+  {key:"wraith", name:"嘆きの亡霊",   glyph:"👻", el:"闇", weak:["聖"], resist:["物","闇"], hp:54,atk:17,def:8,agi:11, ai:"drain", minF:4},
+  {key:"knight", name:"堕ちた騎士",   glyph:"🛡", el:"無", weak:["雷","聖"], resist:["物"], hp:78,atk:22,def:14,agi:8, ai:"guard", minF:4},
+  {key:"hydra",  name:"沼の多頭竜",   glyph:"🐉", el:"水", weak:["雷"], resist:["火","水"], hp:96,atk:24,def:12,agi:7, ai:"poison", minF:5},
+];
+const BOSS = {key:"core_keeper", name:"始原の番人", glyph:"👁", el:"秘", weak:["聖"], resist:["闇","秘","物"], hp:340,atk:30,def:18,agi:10, ai:"boss", minF:99, boss:true};
+
+/* ---------- items ---------- */
+const ITEMS = {
+  potion:   {name:"治癒の水",   tag:"hp",    val:65, desc:"味方一体のHPを65回復",  glyph:"🧪"},
+  ether:    {name:"賢者の滴",   tag:"mp",    val:40, desc:"味方一体のMPを40回復",  glyph:"🔷"},
+  panacea:  {name:"万能薬",     tag:"cure",  val:0,  desc:"味方一体の状態異常を治す", glyph:"🍃"},
+  bomb:     {name:"火炎弾",     tag:"bomb",  val:55, desc:"敵一体に55の火ダメージ",  glyph:"💥"},
+  ash:      {name:"蘇生の灰",   tag:"revive",val:0,  desc:"戦闘不能の味方を半分のHPで蘇生", glyph:"🪶"},
+  elixir:   {name:"聖別の塩",   tag:"hpall", val:45, desc:"味方全体のHPを45回復",   glyph:"🧂"},
+};
+const ITEM_KEYS = Object.keys(ITEMS);
+
+/* ===========================================================================
+   Chunk B: DOM helpers, state, save/load, dungeon, explore render, movement.
+   =========================================================================== */
+const $ = id => document.getElementById(id);
+const DX=[0,1,0,-1], DY=[-1,0,1,0];
+const DIR_JA=["北","東","南","西"];
+const TOTAL_FLOORS = 6;
+
+let G = null;             // active run
+let R = null;             // persistent records
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el=$(id); el.classList.add('active'); el.classList.remove('fade'); void el.offsetWidth; el.classList.add('fade');
+}
+
+/* ---------- persistent records + run save ---------- */
+const LS_REC="genma_records_v1", LS_RUN="genma_run_v1";
+function defaultRecords(){ return {maxFloor:1, kills:0, clears:0, runs:0, discovered:{}}; }
+function loadRecords(){
+  try{ const j=JSON.parse(localStorage.getItem(LS_REC)); R = j&&typeof j==='object'? Object.assign(defaultRecords(),j) : defaultRecords(); }
+  catch(e){ R=defaultRecords(); }
+  if(!R.discovered) R.discovered={};
+}
+function saveRecords(){ try{ localStorage.setItem(LS_REC, JSON.stringify(R)); }catch(e){} }
+function discoverSpell(id){ if(!R.discovered[id]){ R.discovered[id]=1; R.discoveredCount=(R.discoveredCount||0); saveRecords(); } }
+function discoveredCount(){ return Object.keys(R.discovered||{}).length; }
+
+function saveRun(){
+  if(!G){ return; }
+  try{
+    const slim = {
+      seed:G.seed, floor:G.floor, gold:G.gold, hasCore:G.hasCore, steps:G.steps,
+      lastFightStep:G.lastFightStep, inv:G.inv,
+      party:G.party.map(c=>({cls:c.cls,name:c.name,lvl:c.lvl,exp:c.exp,hp:c.hp,mp:c.mp,
+        maxhp:c.maxhp,maxmp:c.maxmp,atk:c.atk,def:c.def,agi:c.agi,con:c.con,spr:c.spr,alive:c.alive})),
+      px:G.map.px,py:G.map.py,dir:G.map.dir
+    };
+    localStorage.setItem(LS_RUN, JSON.stringify(slim));
+  }catch(e){}
+}
+function clearRun(){ try{ localStorage.removeItem(LS_RUN); }catch(e){} }
+function hasSavedRun(){ try{ return !!localStorage.getItem(LS_RUN); }catch(e){ return false; } }
+
+/* ---------- party ---------- */
+function makeChar(cls){
+  const C=CLASSES[cls];
+  const nm=C.names[Math.floor(Math.random()*C.names.length)];
+  const c={cls, name:nm, lvl:1, exp:0, alive:true,
+    maxhp:C.base.hp, maxmp:C.base.mp, hp:C.base.hp, mp:C.base.mp,
+    atk:C.base.atk, def:C.base.def, agi:C.base.agi, con:C.base.con, spr:C.base.spr,
+    status:{}, defending:false, barrier:0};
+  return c;
+}
+function makeParty(){ return PARTY_ORDER.map(makeChar); }
+
+function expToNext(lvl){ return Math.floor(18*lvl*lvl + 28*lvl); }
+function levelUp(c, logFn){
+  const g=CLASSES[c.cls].grow;
+  c.lvl++;
+  c.maxhp+=Math.round(g.hp); c.maxmp+=Math.round(g.mp);
+  c.atk=+(c.atk+g.atk).toFixed(1); c.def=+(c.def+g.def).toFixed(1);
+  c.agi=+(c.agi+g.agi).toFixed(1); c.con=+(c.con+g.con).toFixed(1); c.spr=+(c.spr+g.spr).toFixed(1);
+  c.hp=c.maxhp; c.mp=Math.min(c.maxmp, c.mp+Math.round(g.mp*2));
+  if(logFn) logFn(`<span class="sys">★ ${c.name} は Lv${c.lvl} になった！</span>`);
+}
+function gainExp(amount, logFn){
+  const living=G.party.filter(c=>c.alive);
+  if(living.length===0) return;
+  const share=Math.max(1, Math.round(amount/living.length));
+  for(const c of living){
+    c.exp+=share;
+    let guard=0;
+    while(c.exp>=expToNext(c.lvl) && guard++<20){ c.exp-=expToNext(c.lvl); levelUp(c, logFn); }
+  }
+}
+
+/* ---------- dungeon generation ---------- */
+function fk(x,y){ return x+","+y; }
+function genFloor(floor){
+  const w=15,h=15;
+  const grid=Array.from({length:h},()=>Array(w).fill(0));
+  const r=mulberry32((G.seed + floor*1013904223)>>>0);
+  const rooms=[];
+  for(let i=0;i<9;i++){
+    const rw=3+Math.floor(r()*4), rh=3+Math.floor(r()*4);
+    const rx=1+Math.floor(r()*(w-rw-2)), ry=1+Math.floor(r()*(h-rh-2));
+    const rm={x:rx,y:ry,w:rw,h:rh,cx:rx+(rw>>1),cy:ry+(rh>>1)};
+    rooms.push(rm);
+    for(let y=ry;y<ry+rh;y++) for(let x=rx;x<rx+rw;x++) grid[y][x]=1;
+  }
+  const carveH=(x1,x2,y)=>{ for(let x=Math.min(x1,x2);x<=Math.max(x1,x2);x++) grid[y][x]=1; };
+  const carveV=(y1,y2,x)=>{ for(let y=Math.min(y1,y2);y<=Math.max(y1,y2);y++) grid[y][x]=1; };
+  for(let i=1;i<rooms.length;i++){
+    const a=rooms[i-1], b=rooms[i];
+    if(r()<0.5){ carveH(a.cx,b.cx,a.cy); carveV(a.cy,b.cy,b.cx); }
+    else { carveV(a.cy,b.cy,a.cx); carveH(a.cx,b.cx,b.cy); }
+  }
+  const feats={};
+  const first=rooms[0], last=rooms[rooms.length-1];
+  feats[fk(first.cx,first.cy)]={type:'up'};
+  if(floor<TOTAL_FLOORS) feats[fk(last.cx,last.cy)]={type:'down'};
+  else feats[fk(last.cx,last.cy)]={type:'boss', armed:true};
+  for(let i=1;i<rooms.length-1;i++){
+    const rm=rooms[i];
+    const fx=rm.x+Math.floor(r()*rm.w), fy=rm.y+Math.floor(r()*rm.h);
+    if(feats[fk(fx,fy)] || grid[fy][fx]!==1) continue;
+    const roll=r();
+    if(roll<0.42) feats[fk(fx,fy)]={type:'chest', armed:true};
+    else if(roll<0.72) feats[fk(fx,fy)]={type:'trap', armed:true};
+    else feats[fk(fx,fy)]={type:'event', armed:true};
+  }
+  const seen=Array.from({length:h},()=>Array(w).fill(false));
+  return {grid,w,h,feats,seen, px:first.cx, py:first.cy, dir:2, entrance:{x:first.cx,y:first.cy}};
+}
+function enterFloor(floor, atEntrance){
+  const m=genFloor(floor);
+  G.map=m; G.floor=floor;
+  if(R.maxFloor<floor){ R.maxFloor=floor; saveRecords(); }
+  // pick a facing that is open
+  for(let d=0;d<4;d++){ const nx=m.px+DX[d], ny=m.py+DY[d]; if(inB(nx,ny)&&m.grid[ny][nx]===1){ m.dir=d; break; } }
+  reveal();
+}
+function inB(x,y){ return x>=0&&y>=0&&x<G.map.w&&y<G.map.h; }
+function walkable(x,y){ return inB(x,y)&&G.map.grid[y][x]===1; }
+function featAt(x,y){ return G.map.feats[fk(x,y)]; }
+function reveal(){
+  const m=G.map, R0=2;
+  for(let dy=-R0;dy<=R0;dy++) for(let dx=-R0;dx<=R0;dx++){
+    const x=m.px+dx, y=m.py+dy; if(inB(x,y)) m.seen[y][x]=true;
+  }
+}
+
+/* ---------- explore: messages ---------- */
+function exMsg(html){
+  const box=$('ex-msg');
+  const d=document.createElement('div'); d.className='log-l'; d.innerHTML=html;
+  box.appendChild(d); box.scrollTop=box.scrollHeight;
+  while(box.children.length>40) box.removeChild(box.firstChild);
+}
+
+/* ---------- explore render: pseudo-3D first person ---------- */
+let fpCv,fpCtx,fpW,fpH;
+function fpCell(fwd,side){
+  const m=G.map, rd=(m.dir+1)%4;
+  const x=m.px + DX[m.dir]*fwd + DX[rd]*side;
+  const y=m.py + DY[m.dir]*fwd + DY[rd]*side;
+  if(!inB(x,y)) return {wall:true,feat:null};
+  return {wall:m.grid[y][x]!==1, feat:m.feats[fk(x,y)], x, y};
+}
+function shade(hex, mul){
+  const n=parseInt(hex.slice(1),16); let r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  r=Math.round(r*mul);g=Math.round(g*mul);b=Math.round(b*mul);
+  return `rgb(${clamp(r,0,255)},${clamp(g,0,255)},${clamp(b,0,255)})`;
+}
+function drawFP(){
+  if(!fpCtx) return;
+  const ctx=fpCtx, W=fpW, H=fpH, cx=W/2, cy=H*0.5;
+  // sky/ground base
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#0a0816'); bg.addColorStop(0.5,'#0b0914'); bg.addColorStop(1,'#070510');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+  const maxD=5;
+  const hw=d=>(W*0.5)*Math.pow(0.60,d);
+  const hh=d=>(H*0.46)*Math.pow(0.60,d);
+  let blockD=maxD+1;
+  for(let d=1;d<=maxD;d++){ if(fpCell(d,0).wall){ blockD=d; break; } }
+  const wallBase='#3a3450';
+  for(let d=blockD-1; d>=0; d--){
+    const wn=hw(d),hn=hh(d),wf=hw(d+1),hf=hh(d+1);
+    const nl=cx-wn, nr=cx+wn, nt=cy-hn, nb=cy+hn;
+    const fl=cx-wf, fr=cx+wf, ft=cy-hf, fb=cy+hf;
+    const sm=1-d*0.13;
+    // ceiling
+    ctx.fillStyle=shade('#1c1830',sm); ctx.beginPath();
+    ctx.moveTo(nl,nt);ctx.lineTo(nr,nt);ctx.lineTo(fr,ft);ctx.lineTo(fl,ft);ctx.closePath();ctx.fill();
+    // floor
+    ctx.fillStyle=shade('#241d2e',sm); ctx.beginPath();
+    ctx.moveTo(nl,nb);ctx.lineTo(nr,nb);ctx.lineTo(fr,fb);ctx.lineTo(fl,fb);ctx.closePath();ctx.fill();
+    // left
+    const lc=fpCell(d,-1);
+    ctx.beginPath();ctx.moveTo(nl,nt);ctx.lineTo(fl,ft);ctx.lineTo(fl,fb);ctx.lineTo(nl,nb);ctx.closePath();
+    ctx.fillStyle = lc.wall? shade(wallBase,sm) : '#08060f'; ctx.fill();
+    if(lc.wall){ ctx.strokeStyle='rgba(0,0,0,.4)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(fl,(ft+fb)/2);ctx.lineTo(nl,(nt+nb)/2);ctx.stroke(); }
+    // right
+    const rc=fpCell(d,1);
+    ctx.beginPath();ctx.moveTo(nr,nt);ctx.lineTo(fr,ft);ctx.lineTo(fr,fb);ctx.lineTo(nr,nb);ctx.closePath();
+    ctx.fillStyle = rc.wall? shade(wallBase,sm) : '#08060f'; ctx.fill();
+    if(rc.wall){ ctx.strokeStyle='rgba(0,0,0,.4)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(fr,(ft+fb)/2);ctx.lineTo(nr,(nt+nb)/2);ctx.stroke(); }
+    // feature glyph on floor of this depth cell
+    const here=fpCell(d,0);
+    if(here.feat){ drawFeatGlyph(ctx, cx, cy+hh(d)*0.42, hh(d)*0.9, here.feat.type); }
+  }
+  // front wall at blockD
+  if(blockD<=maxD){
+    const wf=hw(blockD),hf=hh(blockD), l=cx-wf,r=cx+wf,t=cy-hf,b=cy+hf, sm=1-blockD*0.13;
+    ctx.fillStyle=shade(wallBase,sm); ctx.fillRect(l,t,r-l,b-t);
+    ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=1;
+    for(let gy=1;gy<3;gy++){ const yy=t+(b-t)*gy/3; ctx.beginPath();ctx.moveTo(l,yy);ctx.lineTo(r,yy);ctx.stroke(); }
+  }
+  // torch vignette
+  const vg=ctx.createRadialGradient(cx,cy,H*0.12,cx,cy,H*0.75);
+  vg.addColorStop(0,'rgba(116,224,255,0.05)'); vg.addColorStop(0.5,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.55)');
+  ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
+  // compass
+  ctx.fillStyle='rgba(231,220,192,.7)'; ctx.font='12px ui-monospace,monospace'; ctx.textAlign='left';
+  ctx.fillText(DIR_JA[G.map.dir]+'を向いている', 10, 18);
+}
+function drawFeatGlyph(ctx,x,y,size,type){
+  const map={down:'▽',up:'△',chest:'🎁',trap:'⚠',event:'❖',boss:'👁'};
+  ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font=Math.max(12,size*0.7)+'px serif';
+  ctx.fillStyle = type==='boss'?'#ff7a8a':(type==='down'?'#8fe6ff':(type==='chest'?'#ffd76a':'#b794ff'));
+  ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=10;
+  ctx.fillText(map[type]||'?', x, y);
+  ctx.restore();
+}
+
+/* ---------- minimap ---------- */
+function drawMap(){
+  const cv=$('map'); if(!cv) return; const ctx=cv.getContext('2d');
+  const m=G.map, S=cv.width, cell=Math.floor(S/Math.max(m.w,m.h));
+  ctx.clearRect(0,0,S,S); ctx.fillStyle='#080714'; ctx.fillRect(0,0,S,S);
+  const ox=Math.floor((S-cell*m.w)/2), oy=Math.floor((S-cell*m.h)/2);
+  for(let y=0;y<m.h;y++) for(let x=0;x<m.w;x++){
+    if(!m.seen[y][x]) continue;
+    const px=ox+x*cell, py=oy+y*cell;
+    if(m.grid[y][x]===1){
+      ctx.fillStyle='#241d3a'; ctx.fillRect(px,py,cell-1,cell-1);
+      const f=m.feats[fk(x,y)];
+      if(f){ ctx.fillStyle = f.type==='down'?'#8fe6ff':f.type==='up'?'#9fe6b0':f.type==='boss'?'#ff7a8a':f.type==='chest'?'#ffd76a':'#b794ff';
+        ctx.fillRect(px+1,py+1,cell-3,cell-3); }
+    } else { ctx.fillStyle='#0f0c1a'; ctx.fillRect(px,py,cell-1,cell-1); }
+  }
+  // player arrow
+  const px=ox+m.px*cell+cell/2, py=oy+m.py*cell+cell/2, a=[-Math.PI/2,0,Math.PI/2,Math.PI][m.dir];
+  ctx.save(); ctx.translate(px,py); ctx.rotate(a); ctx.fillStyle='#74e0ff'; ctx.shadowColor='#74e0ff';ctx.shadowBlur=6;
+  ctx.beginPath(); ctx.moveTo(cell*0.5,0); ctx.lineTo(-cell*0.35,cell*0.35); ctx.lineTo(-cell*0.35,-cell*0.35); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+/* ---------- party HUD ---------- */
+function renderHUD(containerId, opts){
+  opts=opts||{};
+  const box=$(containerId); box.innerHTML='';
+  G.party.forEach((c,i)=>{
+    const card=document.createElement('div');
+    card.className='pcard'+(c.alive?'':' dead')+((opts.activeIndex===i)?' active':'');
+    if(opts.clickable){ card.style.cursor='pointer'; card.onclick=()=>opts.onClick&&opts.onClick(i); }
+    const cl=CLASSES[c.cls];
+    const tags=[];
+    for(const k in c.status){ if(c.status[k]>0) tags.push(`<span class="tag">${k}</span>`); }
+    if(c.barrier>0) tags.push(`<span class="tag buff">盾</span>`);
+    card.innerHTML=`
+      <div class="nm"><span>${c.alive?c.name:'✝ '+c.name}</span><span style="color:${cl.color}">${cl.glyph}</span></div>
+      <div class="cl">${cl.ja} Lv${c.lvl}</div>
+      <div class="bar hp"><i style="width:${Math.max(0,c.hp/c.maxhp*100)}%"></i></div>
+      <div class="bar mp"><i style="width:${Math.max(0,c.mp/c.maxmp*100)}%"></i></div>
+      <div class="vals"><span>HP ${Math.max(0,Math.round(c.hp))}/${c.maxhp}</span><span>MP ${Math.round(c.mp)}/${c.maxmp}</span></div>
+      <div class="tags">${tags.join('')}</div>`;
+    box.appendChild(card);
+  });
+}
+function refreshExplore(){
+  $('ex-floor').textContent=G.floor;
+  $('ex-gold').textContent=G.gold;
+  $('ex-core').style.display=G.hasCore?'inline':'none';
+  drawFP(); drawMap(); renderHUD('ex-party');
+}
+
+/* ---------- movement & step handling ---------- */
+let busy=false;
+function turn(left){ G.map.dir=(G.map.dir+(left?3:1))%4; refreshExplore(); }
+function step(forward){
+  if(busy) return;
+  const m=G.map, d=forward? m.dir : (m.dir+2)%4;
+  const nx=m.px+DX[d], ny=m.py+DY[d];
+  if(!walkable(nx,ny)){ exMsg('<span class="muted">石壁に阻まれた。</span>'); drawFP(); return; }
+  m.px=nx; m.py=ny; G.steps++; reveal(); refreshExplore();
+  onStep(nx,ny);
+}
+function onStep(x,y){
+  const f=featAt(x,y);
+  if(f && f.armed!==false){
+    if(handleFeature(f,x,y)) return;     // returns true if it took over the screen
+  }
+  encounterCheck();
+  saveRun();
+}
+function handleFeature(f,x,y){
+  switch(f.type){
+    case 'up':
+      if(G.floor===1){
+        if(G.hasCore){ victory(); return true; }
+        exMsg('<span class="muted">入口の階段。「始原の魔法核」を持ち帰れば、ここから生還できる。</span>');
+        return false;
+      }
+      stairPrompt(true); return true;
+    case 'down':
+      stairPrompt(false); return true;
+    case 'boss':
+      f.armed=false;
+      bossIntro();
+      return true;
+    case 'chest': openChest(f,x,y); return false;
+    case 'trap':  springTrap(f,x,y); return false;
+    case 'event': f.armed=false; triggerEvent(); return true;
+  }
+  return false;
+}
+let pendingStairs=null;
+function offerStairs(up){ pendingStairs={up}; }
+function takeStairs(){
+  if(!pendingStairs) return;
+  const up=pendingStairs.up; pendingStairs=null;
+  if(up){ enterFloor(G.floor-1, false); exMsg(`<span class="sys">地下${G.floor}階へ移動した。</span>`); }
+  else { enterFloor(G.floor+1, true); exMsg(`<span class="sys">地下${G.floor}階へ降りた。深部ほど敵は強大になる。</span>`); }
+  refreshExplore(); saveRun();
+}
+
+function openChest(f,x,y){
+  f.armed=false; delete G.map.feats[fk(x,y)];
+  const thief=G.party.find(c=>c.cls==='thief'&&c.alive);
+  const trapped = Math.random() < (0.28 - (thief?0.2:0));
+  if(trapped){
+    const dmg=8+G.floor*4;
+    G.party.filter(c=>c.alive).forEach(c=>{ c.hp=Math.max(0,c.hp-dmg); if(c.hp<=0)c.alive=false; });
+    exMsg(`<span class="dmg">宝箱は罠だった！ 全員が${dmg}のダメージ。</span>`);
+    checkWipe();
+  } else {
+    const g=10+Math.floor(Math.random()*(15+G.floor*8))+(thief?8:0);
+    G.gold+=g;
+    let msg=`宝箱を開けた。<span class="hl">金貨${g}</span>を得た。`;
+    if(Math.random()<0.55){ const k=ITEM_KEYS[Math.floor(Math.random()*ITEM_KEYS.length)]; G.inv[k]=(G.inv[k]||0)+1; msg+=` <span class="heal">${ITEMS[k].name}</span>を見つけた！`; }
+    exMsg(msg);
+  }
+  refreshExplore();
+}
+function springTrap(f,x,y){
+  f.armed=false; delete G.map.feats[fk(x,y)];
+  const thief=G.party.find(c=>c.cls==='thief'&&c.alive);
+  if(thief && Math.random()<0.4+thief.agi*0.02){ exMsg(`<span class="hl">${thief.name}が罠を見抜き、回避した。</span>`); return; }
+  const kind=Math.random();
+  if(kind<0.6){
+    const dmg=6+G.floor*3+Math.floor(Math.random()*6);
+    G.party.filter(c=>c.alive).forEach(c=>{ c.hp=Math.max(0,c.hp-dmg); if(c.hp<=0)c.alive=false; });
+    exMsg(`<span class="dmg">毒針の罠！ 全員が${dmg}のダメージ。</span>`);
+    checkWipe();
+  } else {
+    const v=G.party.filter(c=>c.alive); if(v.length){ const t=v[Math.floor(Math.random()*v.length)]; t.status['鈍']=3; exMsg(`<span class="dmg">鈍化の罠！ ${t.name}の動きが鈍った。</span>`); }
+  }
+  refreshExplore();
+}
+function checkWipe(){ if(G.party.every(c=>!c.alive)){ defeat('罠と暗闇に呑まれ、一行はここに果てた。'); return true; } return false; }
+
+/* ---------- encounters ---------- */
+function scaleEnemy(t, floor){
+  const f=floor;
+  const hp=Math.round(t.hp*(1+(f-1)*0.30));
+  return {
+    key:t.key, name:t.name, glyph:t.glyph, el:t.el, weak:t.weak||[], resist:t.resist||[],
+    maxhp:hp, hp:hp,
+    atk:Math.round(t.atk*(1+(f-1)*0.17)),
+    def:Math.round(t.def*(1+(f-1)*0.12)),
+    agi:t.agi+(f-1), ai:t.ai, alive:true, status:{}, defDown:0,
+    exp:Math.round((t.hp*0.45+t.atk*1.4)*(1+(f-1)*0.32)),
+    gold:Math.round((3+t.atk*0.6)*(0.7+0.25*f)),
+    boss:!!t.boss
+  };
+}
+function genEncounter(floor){
+  const pool=ENEMY_TYPES.filter(t=>t.minF<=floor);
+  const count = floor<=1?1 : (floor<=3 ? (Math.random()<0.6?2:1) : (1+Math.floor(Math.random()*3)));
+  const arr=[];
+  for(let i=0;i<count;i++){ const t=pool[Math.floor(Math.random()*pool.length)]; arr.push(scaleEnemy(t,floor)); }
+  return arr;
+}
+function encounterCheck(){
+  if(G.steps - G.lastFightStep < 2) return;
+  const p=0.13+G.floor*0.013;
+  if(Math.random()<p){ G.lastFightStep=G.steps; startCombat(genEncounter(G.floor), false); }
+}
+
+/* ===========================================================================
+   Chunk C: glyph drawing surface, recognition outcome, turn-based combat,
+            events, codex/howto/records, run lifecycle, boot & wiring.
+   =========================================================================== */
+
+/* ---------- outcome labels ---------- */
+const OUTCOME_JA = {fail:"失敗", misfire:"暴発", weak:"弱発動", normal:"通常発動", full:"完全発動"};
+
+/* ---------- recognition ----------
+   Pure shape matching against every template. The spell TYPE is NEVER random:
+   it is the nearest template. Only the *quality* of the cast (and misfire
+   targeting) is influenced by confidence / ambiguity. */
+function recognize(strokes, conBonus){
+  const g = makeGlyph(strokes);
+  if(!g) return {spell:null, second:null, confidence:0, outcome:'fail', powerMult:0, margin:0};
+  let best=null,bestS=Infinity, second=null,secondS=Infinity;
+  for(const sp of SPELLS){
+    const s = glyphScore(g, sp.glyph);
+    if(s < bestS){ secondS=bestS; second=best; bestS=s; best=sp; }
+    else if(s < secondS){ secondS=s; second=sp; }
+  }
+  let sim = clamp(1 - bestS/1.7, 0, 1);          // 0..1 similarity
+  sim = clamp(sim + (conBonus||0), 0, 1);         // concentration sharpens reading
+  const margin = secondS - bestS;                 // ambiguity: small => unclear
+  let outcome, powerMult;
+  if(sim < 0.30){ outcome='fail'; powerMult=0; }
+  else if(margin < 0.05 && sim < 0.62){ outcome='misfire'; powerMult=0.5; }
+  else if(sim < 0.50){ outcome='weak'; powerMult=0.55; }
+  else if(sim < 0.78){ outcome='normal'; powerMult=1.0; }
+  else { outcome='full'; powerMult=1.2; }
+  return {spell:best, second, confidence:Math.round(sim*100), outcome, powerMult, margin};
+}
+
+/* ---------- drawing surface ---------- */
+let drawCv=null, drawCtx=null, drawW=0, drawH=0;
+let drawing=false, curStroke=[], allStrokes=[];
+
+function sizeDrawCanvas(){
+  if(!drawCv) return;
+  const r = drawCv.getBoundingClientRect();
+  if(r.width < 4) return;
+  const dpr = Math.max(1, Math.min(window.devicePixelRatio||1, 2.5));
+  drawW=r.width; drawH=r.height;
+  drawCv.width=Math.round(drawW*dpr); drawCv.height=Math.round(drawH*dpr);
+  drawCtx.setTransform(dpr,0,0,dpr,0,0);
+  redrawDraw();
+}
+function drawPoint(e){
+  const r=drawCv.getBoundingClientRect();
+  return {x:e.clientX-r.left, y:e.clientY-r.top};
+}
+function drawGuide(){
+  const ctx=drawCtx, w=drawW, h=drawH, cx=w/2, cy=h/2, R=Math.min(w,h)*0.42;
+  ctx.save();
+  ctx.strokeStyle='rgba(116,224,255,0.09)'; ctx.lineWidth=1;
+  for(const rr of [R, R*0.66, R*0.34]){ ctx.beginPath(); ctx.arc(cx,cy,rr,0,TAU); ctx.stroke(); }
+  // faint pentagram to evoke a casting circle
+  const pts=[];
+  for(let i=0;i<5;i++){ const a=-Math.PI/2 + i*TAU/5; pts.push({x:cx+Math.cos(a)*R*0.82, y:cy+Math.sin(a)*R*0.82}); }
+  ctx.strokeStyle='rgba(183,148,255,0.08)';
+  ctx.beginPath();
+  for(let i=0;i<5;i++){ const p=pts[(i*2)%5]; if(i===0)ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y); }
+  ctx.closePath(); ctx.stroke();
+  ctx.restore();
+}
+function strokeLine(s){
+  if(s.length<1) return;
+  const ctx=drawCtx;
+  ctx.beginPath(); ctx.moveTo(s[0].x,s[0].y);
+  for(let i=1;i<s.length;i++) ctx.lineTo(s[i].x,s[i].y);
+  if(s.length===1) ctx.lineTo(s[0].x+0.1,s[0].y+0.1);
+  ctx.stroke();
+}
+function redrawDraw(){
+  if(!drawCtx) return;
+  drawCtx.clearRect(0,0,drawW,drawH);
+  drawGuide();
+  drawCtx.save();
+  drawCtx.lineJoin='round'; drawCtx.lineCap='round';
+  drawCtx.shadowColor='#74e0ff'; drawCtx.shadowBlur=10;
+  drawCtx.strokeStyle='#bdecff'; drawCtx.lineWidth=3.2;
+  for(const s of allStrokes) strokeLine(s);
+  if(curStroke.length) strokeLine(curStroke);
+  drawCtx.restore();
+}
+function clearDraw(){ allStrokes=[]; curStroke=[]; redrawDraw(); }
+function onDrawDown(e){
+  if(CB.mode!=='draw') return;
+  e.preventDefault();
+  drawing=true; curStroke=[drawPoint(e)];
+  if(drawCv.setPointerCapture){ try{ drawCv.setPointerCapture(e.pointerId); }catch(_){} }
+}
+function onDrawMove(e){
+  if(!drawing) return;
+  e.preventDefault();
+  curStroke.push(drawPoint(e)); redrawDraw();
+}
+function onDrawUp(e){
+  if(!drawing) return;
+  e.preventDefault();
+  drawing=false;
+  if(curStroke.length>1) allStrokes.push(curStroke);
+  curStroke=[]; redrawDraw();
+}
+
+/* ---------- combat state ---------- */
+let CB = {mode:'done', over:true, enemies:[], selEnemy:0, isBoss:false, round:0, queue:[], qi:0, actor:null};
+
+function cbLog(html){
+  const box=$('cb-log');
+  const d=document.createElement('div'); d.className='log-l'; d.innerHTML=html;
+  box.appendChild(d); box.scrollTop=box.scrollHeight;
+  while(box.children.length>60) box.removeChild(box.firstChild);
+}
+function livingParty(){ return G.party.filter(c=>c.alive); }
+function livingEnemies(){ return CB.enemies.filter(e=>e.alive); }
+function elementMult(elem, e){
+  if(e.weak && e.weak.includes(elem)) return 1.6;
+  if(e.resist && e.resist.includes(elem)) return 0.5;
+  return 1.0;
+}
+function effAgi(o){ return (o.agi||0) * (o.status && o.status['鈍']>0 ? 0.6 : 1); }
+
+function startCombat(enemies, isBoss){
+  CB = {mode:'init', over:false, enemies:enemies, selEnemy:0, isBoss:!!isBoss, round:0, queue:[], qi:0, actor:null};
+  // first living enemy selected
+  CB.selEnemy = CB.enemies.findIndex(e=>e.alive); if(CB.selEnemy<0) CB.selEnemy=0;
+  $('cb-floor').textContent = '地下 '+G.floor+' 階';
+  $('cb-log').innerHTML='';
+  $('cb-readout').innerHTML='<span class="muted">紋様を描いて詠唱せよ。</span>';
+  showScreen('s-combat');
+  showActionMenu(false);
+  if(isBoss) cbLog('<span class="crit">『始原の番人』が立ちはだかる！</span>');
+  else cbLog('<span class="sys">'+enemies.map(e=>e.name).join('・')+' が現れた！</span>');
+  renderEnemies(); renderHUD('cb-party',{});
+  beginRound();
+}
+
+function beginRound(){
+  if(CB.over) return;
+  CB.round++;
+  $('cb-round').textContent = '第 '+CB.round+' 巡';
+  // barrier decays between rounds
+  for(const c of G.party){ if(c.barrier>0) c.barrier=Math.round(c.barrier*0.55); }
+  const ents=[];
+  livingParty().forEach(c=>ents.push({side:'party', o:c}));
+  livingEnemies().forEach(e=>ents.push({side:'enemy', o:e}));
+  ents.sort((a,b)=>effAgi(b.o)-effAgi(a.o));
+  CB.queue=ents; CB.qi=0;
+  renderEnemies(); renderHUD('cb-party',{});
+  nextTurn();
+}
+function nextTurn(){
+  if(CB.over) return;
+  if(livingEnemies().length===0){ endCombat(true); return; }
+  if(livingParty().length===0){ CB.over=true; defeat('魔物に倒れ、一行の冒険はここで潰えた。'); return; }
+  if(CB.qi >= CB.queue.length){ beginRound(); return; }
+  const ent=CB.queue[CB.qi];
+  if(!ent.o.alive){ CB.qi++; nextTurn(); return; }
+  const nm = ent.o.name;
+  const st = processTurnStatus(ent.o, nm);
+  renderEnemies(); renderHUD('cb-party',{});
+  if(st.dead || !ent.o.alive){ CB.qi++; setTimeout(nextTurn, 360); return; }
+  if(st.skip){ CB.qi++; setTimeout(nextTurn, 520); return; }
+  if(ent.side==='enemy'){
+    CB.mode='enemy'; $('cb-turn').textContent = nm+' の行動…';
+    setTimeout(()=>{ if(CB.over) return; enemyAct(ent.o); CB.qi++; setTimeout(nextTurn, 560); }, 560);
+  } else {
+    startPlayerTurn(ent.o);
+  }
+}
+function processTurnStatus(o, nm){
+  let skip=false;
+  if(o.status['毒']>0){
+    const d=Math.max(2, Math.round(o.maxhp*0.05));
+    o.hp=Math.max(0,o.hp-d); o.status['毒']--;
+    cbLog('<span class="dmg">'+nm+' は毒で '+d+' のダメージ。</span>');
+    if(o.hp<=0){ o.alive=false; cbLog('<span class="sys">'+nm+' は力尽きた。</span>'); return {skip:true,dead:true}; }
+  }
+  if(o.status['凍']>0){ o.status['凍']--; cbLog('<span class="hl">'+nm+' は凍りつき動けない。</span>'); skip=true; }
+  if(o.status['鈍']>0){ o.status['鈍']--; }
+  return {skip,dead:false};
+}
+
+function startPlayerTurn(c){
+  CB.mode='idle'; CB.actor=c; c.defending=false;
+  $('cb-turn').textContent = c.name+' の番';
+  ensureSel();
+  showActionMenu(true);
+  $('cb-readout').innerHTML='<span class="muted">行動を選べ。詠唱なら紋様を描く。</span>';
+  const idx=G.party.indexOf(c);
+  renderEnemies(); renderHUD('cb-party',{activeIndex:idx});
+}
+function endPlayerAction(){
+  CB.mode='resolving'; CB.actor=null;
+  showActionMenu(true);
+  CB.qi++;
+  renderEnemies(); renderHUD('cb-party',{});
+  setTimeout(nextTurn, 480);
+}
+
+/* ---------- view toggles within combat stage ---------- */
+function showActionMenu(showActions){
+  // showActions=true -> action buttons; false -> hide both menus (during enemy turn)
+  $('cb-actions').style.display = (CB.mode==='draw') ? 'none' : (showActions ? 'flex' : 'none');
+  const drawOn = (CB.mode==='draw');
+  $('draw-wrap').style.display = drawOn ? 'block' : 'none';
+  $('draw-tools').style.display = drawOn ? 'flex' : 'none';
+}
+function enterDrawMode(){
+  if(CB.mode!=='idle') return;
+  CB.mode='draw';
+  $('cb-actions').style.display='none';
+  $('draw-wrap').style.display='block';
+  $('draw-tools').style.display='flex';
+  clearDraw();
+  requestAnimationFrame(sizeDrawCanvas);
+  $('cb-readout').innerHTML='<span class="muted">円内に紋様を描き、「詠唱」を押す。</span>';
+}
+function exitDrawMode(){
+  CB.mode='idle';
+  $('draw-wrap').style.display='none';
+  $('draw-tools').style.display='none';
+  $('cb-actions').style.display='flex';
+}
+
+function ensureSel(){
+  if(!CB.enemies[CB.selEnemy] || !CB.enemies[CB.selEnemy].alive){
+    const i=CB.enemies.findIndex(e=>e.alive); if(i>=0) CB.selEnemy=i;
+  }
+}
+function selectEnemy(i){ if(CB.enemies[i] && CB.enemies[i].alive){ CB.selEnemy=i; renderEnemies(); } }
+function renderEnemies(){
+  const box=$('cb-enemies'); box.innerHTML='';
+  CB.enemies.forEach((e,i)=>{
+    const card=document.createElement('div');
+    card.className='ecard'+(e.alive?'':' dead')+((i===CB.selEnemy&&e.alive)?' sel':'');
+    const tags=[]; for(const k in e.status){ if(e.status[k]>0) tags.push(k); }
+    if(e.defDown>0) tags.push('防↓');
+    card.innerHTML =
+      '<div class="eg">'+e.glyph+'</div><div class="en">'+e.name+'</div>'+
+      '<div class="bar hp" style="margin:5px 0 3px"><i style="width:'+Math.max(0,e.hp/e.maxhp*100)+'%"></i></div>'+
+      '<div class="el">HP '+Math.max(0,e.hp)+'/'+e.maxhp+(tags.length?' · '+tags.join(' '):'')+'</div>';
+    if(e.alive) card.onclick=()=>selectEnemy(i);
+    box.appendChild(card);
+  });
+}
+function updateReadout(rec, mpUsed){
+  const secName = rec.second ? rec.second.name : '—';
+  $('cb-readout').innerHTML =
+    '<span class="big">'+(rec.spell?rec.spell.name:'不明な紋様')+'</span>'+
+    '信頼度 <span class="k">'+rec.confidence+'%</span><br>'+
+    '判定 <span class="k">'+OUTCOME_JA[rec.outcome]+'</span><br>'+
+    '近似候補 <span class="k">'+secName+'</span><br>'+
+    '威力補正 <span class="k">×'+rec.powerMult.toFixed(2)+'</span><br>'+
+    '消費MP <span class="k">'+(mpUsed||0)+'</span>';
+}
+
+/* ---------- player cast ---------- */
+function doCast(){
+  if(CB.mode!=='draw') return;
+  const actor=CB.actor; if(!actor) return;
+  if(allStrokes.length===0){ $('cb-readout').innerHTML='<span class="dmg">紋様が描かれていない。</span>'; return; }
+  const conBonus=(actor.con-8)*0.012;
+  const rec=recognize(allStrokes, conBonus);
+  exitDrawMode();
+  resolveCast(actor, rec);
+}
+function resolveCast(actor, rec){
+  const spell=rec.spell;
+  let mpUsed=0;
+  let powerMult=rec.powerMult;
+  if(rec.outcome!=='fail' && spell){
+    const cost=spell.mp;
+    if(actor.mp < cost){ powerMult*=0.6; rec.outcome = (rec.outcome==='full'?'normal':'weak'); }
+    mpUsed=Math.min(actor.mp, cost); actor.mp-=mpUsed;
+    discoverSpell(spell.id);
+  } else { mpUsed=Math.min(actor.mp,2); actor.mp-=mpUsed; }
+  updateReadout(Object.assign({}, rec, {powerMult}), mpUsed);
+
+  if(rec.outcome==='fail' || !spell){
+    const fz=FIZZLES[Math.floor(Math.random()*FIZZLES.length)];
+    cbLog('<span class="muted">'+actor.name+'の詠唱は'+fz.name+'——'+fz.text+'</span>');
+    endPlayerAction(); return;
+  }
+  if(rec.outcome==='misfire'){
+    cbLog('<span class="crit">'+actor.name+'の'+spell.name+'が暴発した！</span>');
+    const roll=Math.random();
+    if(roll<0.5){
+      const dmg=Math.max(3, Math.round(spell.basePower*0.5));
+      actor.hp=Math.max(0,actor.hp-dmg); if(actor.hp<=0)actor.alive=false;
+      cbLog('<span class="dmg">魔力が逆流し、'+actor.name+'に'+dmg+'のダメージ。</span>');
+    } else {
+      const le=livingEnemies(); if(le.length){ const t=le[Math.floor(Math.random()*le.length)];
+        const dmg=Math.max(1, Math.round(spell.basePower*0.6*elementMult(spell.elem,t)));
+        applyEnemyDamage(t, dmg, spell.elem, false);
+      }
+    }
+    endPlayerAction(); return;
+  }
+
+  const conF = 0.75 + actor.con/200;
+  const sprF = 1.0 + actor.spr/95;
+  const base = spell.basePower * powerMult;
+
+  switch(spell.cat){
+    case 'attack': {
+      ensureSel(); const t=CB.enemies[CB.selEnemy];
+      if(t && t.alive){
+        const dmg=Math.max(1, Math.round(base*conF*1.7*elementMult(spell.elem,t)) - Math.round((t.def-(t.defDown||0))*0.25));
+        cbLog('<span class="hl">'+actor.name+'は'+spell.name+'を放った。</span>');
+        applyEnemyDamage(t, dmg, spell.elem, rec.outcome==='full');
+      }
+      break;
+    }
+    case 'summon': {
+      cbLog('<span class="hl">'+actor.name+'は'+spell.name+'を唱えた。眷属が敵全体を薙ぐ！</span>');
+      livingEnemies().forEach(t=>{
+        const dmg=Math.max(1, Math.round(base*conF*1.15*elementMult(spell.elem,t)));
+        applyEnemyDamage(t, dmg, spell.elem, false);
+      });
+      break;
+    }
+    case 'heal': {
+      const wounded=livingParty().sort((a,b)=>(a.hp/a.maxhp)-(b.hp/b.maxhp))[0];
+      if(wounded){ const amt=Math.round(base*sprF*1.8); wounded.hp=Math.min(wounded.maxhp,wounded.hp+amt);
+        cbLog('<span class="heal">'+actor.name+'の'+spell.name+'。'+wounded.name+'のHPが'+amt+'回復した。</span>'); }
+      break;
+    }
+    case 'defense': {
+      const val=Math.round(base*sprF*0.9);
+      livingParty().forEach(c=>{ c.barrier=Math.min(160,(c.barrier||0)+val); });
+      cbLog('<span class="heal">'+actor.name+'の'+spell.name+'。味方全体に'+val+'の魔法障壁を張った。</span>');
+      break;
+    }
+    case 'status': {
+      ensureSel(); const t=CB.enemies[CB.selEnemy];
+      if(t && t.alive){
+        const stat=spell.status||'鈍';
+        const chance = rec.outcome==='full'?1 : (rec.outcome==='normal'?0.8:0.5);
+        if(Math.random()<chance){ t.status[stat]=Math.max(t.status[stat]||0, stat==='毒'?4:3);
+          cbLog('<span class="hl">'+actor.name+'の'+spell.name+'。'+t.name+'は'+stat+'に冒された。</span>'); }
+        else cbLog('<span class="muted">'+spell.name+'は'+t.name+'に効かなかった。</span>');
+        // status spells also chip a little
+        const dmg=Math.max(1, Math.round(base*conF*0.6*elementMult(spell.elem,t)));
+        applyEnemyDamage(t, dmg, spell.elem, false);
+      }
+      break;
+    }
+    case 'purify': {
+      let n=0; livingParty().forEach(c=>{ if(Object.keys(c.status).some(k=>c.status[k]>0)){ c.status={}; n++; } const amt=Math.round(base*sprF*0.7); c.hp=Math.min(c.maxhp,c.hp+amt); });
+      cbLog('<span class="heal">'+actor.name+'の'+spell.name+'。味方の状態異常を払い、わずかに癒した。</span>');
+      break;
+    }
+    case 'dispel': {
+      ensureSel(); const t=CB.enemies[CB.selEnemy];
+      if(t && t.alive){ t.defDown=(t.defDown||0)+Math.round(6+base*0.25); t.resist=[];
+        cbLog('<span class="hl">'+actor.name+'の'+spell.name+'。'+t.name+'の守りと耐性が崩れた。</span>'); }
+      break;
+    }
+  }
+  renderEnemies(); renderHUD('cb-party',{});
+  endPlayerAction();
+}
+function applyEnemyDamage(e, dmg, elem, crit){
+  const m=elementMult(elem,e);
+  e.hp=Math.max(0,e.hp-dmg);
+  let note=''; if(m>1) note=' <span class="crit">弱点！</span>'; else if(m<1) note=' <span class="muted">(耐性)</span>';
+  cbLog('<span class="dmg">'+e.name+'に '+dmg+' のダメージ。'+(crit?'<span class="crit">（完全発動）</span>':'')+'</span>'+note);
+  if(e.hp<=0){ e.alive=false; cbLog('<span class="sys">'+e.name+'を倒した！</span>'); }
+}
+
+/* ---------- player non-magic actions ---------- */
+function doAttack(){
+  if(CB.mode!=='idle') return; const actor=CB.actor; if(!actor) return;
+  ensureSel(); const t=CB.enemies[CB.selEnemy]; if(!t||!t.alive) return;
+  const rmul = (t.resist&&t.resist.includes('物'))?0.5:1;
+  const dmg=Math.max(1, Math.round(actor.atk*(0.9+Math.random()*0.3)*rmul) - Math.round((t.def-(t.defDown||0))*0.5));
+  cbLog('<span class="hl">'+actor.name+'の攻撃！</span>');
+  applyEnemyDamage(t, dmg, '物', false);
+  renderEnemies(); endPlayerAction();
+}
+function doDefend(){
+  if(CB.mode!=='idle') return; const actor=CB.actor; if(!actor) return;
+  actor.defending=true;
+  cbLog('<span class="muted">'+actor.name+'は身を護る構えをとった。</span>');
+  endPlayerAction();
+}
+function doFlee(){
+  if(CB.mode!=='idle') return;
+  if(CB.isBoss){ cbLog('<span class="dmg">『始原の番人』からは逃げられない！</span>'); endPlayerAction(); return; }
+  const pa=livingParty().reduce((s,c)=>s+c.agi,0)/Math.max(1,livingParty().length);
+  const ea=livingEnemies().reduce((s,e)=>s+e.agi,0)/Math.max(1,livingEnemies().length);
+  const chance=clamp(0.45+(pa-ea)*0.03, 0.12, 0.9);
+  if(Math.random()<chance){ cbLog('<span class="sys">うまく退いた。</span>'); fleeToExplore(); }
+  else { cbLog('<span class="dmg">逃走に失敗した！</span>'); endPlayerAction(); }
+}
+function openItems(){
+  if(CB.mode!=='idle') return;
+  const list=$('cb-item-list'); list.innerHTML='';
+  const keys=ITEM_KEYS.filter(k=>(G.inv[k]||0)>0);
+  if(keys.length===0){ list.innerHTML='<div class="muted" style="padding:8px">所持品がない。</div>'; }
+  keys.forEach(k=>{
+    const it=ITEMS[k];
+    const b=document.createElement('button');
+    b.innerHTML=it.glyph+' '+it.name+' ×'+G.inv[k]+'<br><span class="muted" style="font-size:11px">'+it.desc+'</span>';
+    b.onclick=()=>useItem(k);
+    list.appendChild(b);
+  });
+  $('cb-items').classList.add('active');
+}
+function closeItems(){ $('cb-items').classList.remove('active'); }
+function useItem(k){
+  const it=ITEMS[k]; if(!it||(G.inv[k]||0)<=0) return;
+  const actor=CB.actor;
+  if(it.tag==='hp'){ const w=livingParty().sort((a,b)=>(a.hp/a.maxhp)-(b.hp/b.maxhp))[0]; if(w){ w.hp=Math.min(w.maxhp,w.hp+it.val); cbLog('<span class="heal">'+w.name+'のHPが'+it.val+'回復。</span>'); } }
+  else if(it.tag==='mp'){ const w=livingParty().sort((a,b)=>(a.mp/a.maxmp)-(b.mp/b.maxmp))[0]; if(w){ w.mp=Math.min(w.maxmp,w.mp+it.val); cbLog('<span class="heal">'+w.name+'のMPが'+it.val+'回復。</span>'); } }
+  else if(it.tag==='cure'){ const w=livingParty().find(c=>Object.keys(c.status).some(s=>c.status[s]>0))||actor; if(w){ w.status={}; cbLog('<span class="heal">'+w.name+'の状態異常を治した。</span>'); } }
+  else if(it.tag==='hpall'){ livingParty().forEach(c=>c.hp=Math.min(c.maxhp,c.hp+it.val)); cbLog('<span class="heal">味方全体のHPが'+it.val+'回復。</span>'); }
+  else if(it.tag==='revive'){ const d=G.party.find(c=>!c.alive); if(d){ d.alive=true; d.hp=Math.round(d.maxhp*0.5); d.status={}; cbLog('<span class="sys">'+d.name+'が蘇生した！</span>'); } else { cbLog('<span class="muted">蘇生できる仲間がいない。</span>'); closeItems(); return; } }
+  else if(it.tag==='bomb'){ ensureSel(); const t=CB.enemies[CB.selEnemy]; if(t&&t.alive){ cbLog('<span class="hl">火炎弾を投げた！</span>'); applyEnemyDamage(t, Math.round(it.val*elementMult('火',t)), '火', false); } }
+  G.inv[k]--; if(G.inv[k]<=0) delete G.inv[k];
+  closeItems(); renderEnemies(); renderHUD('cb-party',{}); endPlayerAction();
+}
+
+/* ---------- enemy AI ---------- */
+function hitChar(e, target, mult, elem){
+  let dmg=Math.max(1, Math.round(e.atk*(0.85+Math.random()*0.3)*(mult||1)) - Math.round(target.def*0.5));
+  if(elem){ dmg=Math.round(dmg*1); }
+  if(target.defending) dmg=Math.round(dmg*0.5);
+  if(target.barrier>0){ const ab=Math.min(target.barrier,dmg); target.barrier-=ab; dmg-=ab; if(ab>0) cbLog('<span class="muted">障壁が'+ab+'を防いだ。</span>'); }
+  target.hp=Math.max(0,target.hp-dmg);
+  cbLog('<span class="dmg">'+target.name+'は'+dmg+'のダメージ。</span>');
+  if(target.hp<=0){ target.alive=false; cbLog('<span class="sys">'+target.name+'は倒れた…</span>'); }
+  return dmg;
+}
+function randTarget(){ const lp=livingParty(); return lp.length?lp[Math.floor(Math.random()*lp.length)]:null; }
+function enemyAct(e){
+  if(!e.alive) return;
+  const t=randTarget(); if(!t){ return; }
+  switch(e.ai){
+    case 'swift':
+      cbLog('<span class="hl">'+e.name+'は素早く斬りかかる。</span>'); hitChar(e,t,0.85);
+      if(Math.random()<0.5){ const t2=randTarget(); if(t2) hitChar(e,t2,0.7); }
+      break;
+    case 'guard':
+      if(e.hp < e.maxhp*0.35 && Math.random()<0.5){ e.defDown=Math.max(0,(e.defDown||0)-3); cbLog('<span class="muted">'+e.name+'は守りを固めた。</span>'); }
+      else { cbLog('<span class="hl">'+e.name+'の重い一撃！</span>'); hitChar(e,t,1.2); }
+      break;
+    case 'poison':
+      cbLog('<span class="hl">'+e.name+'が牙を立てる。</span>'); hitChar(e,t,0.9);
+      if(t.alive && Math.random()<0.5){ t.status['毒']=4; cbLog('<span class="dmg">'+t.name+'は毒に冒された。</span>'); }
+      break;
+    case 'caster':
+      cbLog('<span class="hl">'+e.name+'が'+e.el+'の術を放つ。</span>'); hitChar(e,t,1.25,e.el);
+      break;
+    case 'drain':
+      cbLog('<span class="hl">'+e.name+'が生気を啜る。</span>'); { const d=hitChar(e,t,1.0); const heal=Math.round(d*0.6); e.hp=Math.min(e.maxhp,e.hp+heal); if(heal>0) cbLog('<span class="muted">'+e.name+'はHPを'+heal+'吸収した。</span>'); }
+      break;
+    case 'boss': {
+      const r=Math.random();
+      if(r<0.34){ cbLog('<span class="crit">番人の波動が全体を打つ！</span>'); livingParty().forEach(c=>hitChar(e,c,0.7,e.el)); }
+      else if(r<0.55){ cbLog('<span class="crit">番人の呪詛！</span>'); if(t){ hitChar(e,t,1.1); if(t.alive&&Math.random()<0.6){ t.status['鈍']=3; cbLog('<span class="dmg">'+t.name+'の動きが鈍る。</span>'); } } }
+      else { cbLog('<span class="crit">番人の渾身の一撃！</span>'); hitChar(e,t,1.5); }
+      break;
+    }
+    default:
+      cbLog('<span class="hl">'+e.name+'の攻撃。</span>'); hitChar(e,t,1.0);
+  }
+  renderEnemies(); renderHUD('cb-party',{});
+}
+
+/* ---------- combat resolution ---------- */
+function endCombat(win){
+  if(CB.over && CB.mode==='victory') return;
+  CB.over=true;
+  if(!win){ return; }
+  let exp=0, gold=0;
+  CB.enemies.forEach(e=>{ exp+=e.exp||0; gold+=e.gold||0; });
+  R.kills += CB.enemies.length; saveRecords();
+  G.gold += gold;
+  cbLog('<span class="sys">勝利！ 金貨'+gold+'と経験値'+exp+'を得た。</span>');
+  gainExp(exp, cbLog);
+  // loot chance
+  if(Math.random() < (CB.isBoss?1:0.4)){
+    const k=ITEM_KEYS[Math.floor(Math.random()*ITEM_KEYS.length)];
+    G.inv[k]=(G.inv[k]||0)+1; cbLog('<span class="heal">'+ITEMS[k].name+'を拾った。</span>');
+  }
+  if(CB.isBoss) bossDefeat();
+  renderHUD('cb-party',{});
+  CB.mode='victory';
+  $('cb-turn').innerHTML='<span class="sys">▶ タップして探索へ戻る</span>';
+  $('cb-actions').style.display='none'; $('draw-wrap').style.display='none'; $('draw-tools').style.display='none';
+}
+function returnToExplore(){
+  CB.mode='done'; CB.over=true;
+  G.lastFightStep=G.steps;
+  // heal a sliver of MP after battle to keep magic flowing
+  G.party.forEach(c=>{ if(c.alive){ c.mp=Math.min(c.maxmp, c.mp+Math.round(c.maxmp*0.12)); } });
+  showScreen('s-explore'); refreshExplore(); saveRun();
+}
+function fleeToExplore(){
+  CB.mode='done'; CB.over=true; G.lastFightStep=G.steps;
+  showScreen('s-explore'); refreshExplore(); exMsg('<span class="muted">戦いを切り抜けて先へ進んだ。</span>'); saveRun();
+}
+
+/* ---------- boss ---------- */
+function bossIntro(){
+  const boss=scaleEnemy(BOSS, 1);
+  boss.maxhp=BOSS.hp; boss.hp=BOSS.hp; boss.exp=950; boss.gold=600; boss.boss=true;
+  showEvent(
+    '最深部の祭壇に、巨大な眼を持つ守護者が浮かんでいる。その背後で「始原の魔法核」が脈打っている。<br><br>逃げ場はない。紋様を研ぎ澄まし、対峙せよ。',
+    [['対峙する', ()=>startCombat([boss], true)]]
+  );
+}
+function bossDefeat(){
+  G.hasCore=true;
+  cbLog('<span class="sys">守護者は砕け、「始原の魔法核」を手にした！</span>');
+  cbLog('<span class="hl">地上（地下1階の入口）まで生還せよ。</span>');
+}
+
+/* ---------- victory / defeat ---------- */
+function endStats(){
+  return '最高到達 地下'+R.maxFloor+'階<br>'+
+         '討伐数 '+R.kills+'体<br>'+
+         '所持金貨 '+G.gold+'<br>'+
+         'パーティ Lv '+G.party.map(c=>c.lvl).join(' / ')+'<br>'+
+         '発見した紋様 '+discoveredCount()+' / '+SPELLS.length+' 種';
+}
+function victory(){
+  R.clears=(R.clears||0)+1; saveRecords(); clearRun();
+  $('end-title').textContent='生 還'; $('end-title').classList.remove('lose');
+  $('end-text').innerHTML='「始原の魔法核」を携え、一行は地上の光のもとへ帰還した。古き坑道の伝説は、こうして語り継がれることになる。';
+  $('end-stats').innerHTML=endStats();
+  showScreen('s-end');
+}
+function defeat(reason){
+  saveRecords(); clearRun();
+  $('end-title').textContent='全 滅'; $('end-title').classList.add('lose');
+  $('end-text').innerHTML=reason+'<br>坑道の闇は、また一つの物語を呑み込んだ。';
+  $('end-stats').innerHTML=endStats();
+  showScreen('s-end');
+}
+
+/* ---------- events & stair prompts ---------- */
+function showEvent(text, choices){
+  $('ev-text').innerHTML=text;
+  const box=$('ev-choices'); box.innerHTML='';
+  choices.forEach(([label,fn])=>{
+    const b=document.createElement('button'); b.textContent=label; b.className='btn-primary';
+    b.onclick=()=>{ fn(); };
+    box.appendChild(b);
+  });
+  showScreen('s-event');
+}
+function backToExploreFromEvent(){ showScreen('s-explore'); refreshExplore(); saveRun(); }
+
+function stairPrompt(up){
+  if(up){
+    showEvent('螺旋を描く上り階段。ひとつ上の階へ続いている。',
+      [['昇る（地下'+(G.floor-1)+'階へ）', ()=>doTakeStairs(true)],
+       ['とどまる', backToExploreFromEvent]]);
+  } else {
+    showEvent('暗い下り階段が口を開けている。深部ほど敵は強大になるが、報酬も豊かになる。',
+      [['降りる（地下'+(G.floor+1)+'階へ）', ()=>doTakeStairs(false)],
+       ['とどまる', backToExploreFromEvent]]);
+  }
+}
+function doTakeStairs(up){
+  enterFloor(up?G.floor-1:G.floor+1, !up);
+  showScreen('s-explore'); refreshExplore();
+  exMsg('<span class="sys">地下'+G.floor+'階に入った。</span>');
+  saveRun();
+}
+
+function triggerEvent(){
+  const events=[
+    function(){ showEvent('苔むした祭壇が淡く光っている。手をかざすと温かい。',
+      [['祈る（全員HP回復）', ()=>{ G.party.forEach(c=>{ if(c.alive)c.hp=Math.min(c.maxhp,c.hp+Math.round(c.maxhp*0.5)); }); exMsg('<span class="heal">祭壇の光が傷を癒した。</span>'); backToExploreFromEvent(); }],
+       ['立ち去る', ()=>{ backToExploreFromEvent(); }]]); },
+    function(){ showEvent('青く澄んだ魔力の泉が湧いている。',
+      [['魔力を汲む（全員MP回復）', ()=>{ G.party.forEach(c=>{ if(c.alive)c.mp=Math.min(c.maxmp,c.mp+Math.round(c.maxmp*0.6)); }); exMsg('<span class="heal">泉の魔力が満ちた。</span>'); backToExploreFromEvent(); }],
+       ['触れない', ()=>{ backToExploreFromEvent(); }]]); },
+    function(){ showEvent('行商の亡霊がほほえみ、品を差し出す。「金貨と引き換えに、いかがかな」',
+      [['買う（金貨30で道具）', ()=>{ if(G.gold>=30){ G.gold-=30; const k=ITEM_KEYS[Math.floor(Math.random()*ITEM_KEYS.length)]; G.inv[k]=(G.inv[k]||0)+1; exMsg('<span class="heal">'+ITEMS[k].name+'を手に入れた。</span>'); } else { exMsg('<span class="muted">金貨が足りない。</span>'); } backToExploreFromEvent(); }],
+       ['断る', ()=>{ backToExploreFromEvent(); }]]); },
+    function(){ const sp=SPELLS[Math.floor(Math.random()*SPELLS.length)]; showEvent('壁面に古い知識の碑文が刻まれている。読み解けば、新たな紋様の知識が得られそうだ。',
+      [['読み解く', ()=>{ discoverSpell(sp.id); exMsg('<span class="hl">紋様「'+sp.name+'」を図鑑に記録した。</span>'); backToExploreFromEvent(); }],
+       ['立ち去る', ()=>{ backToExploreFromEvent(); }]]); },
+    function(){ showEvent('床の宝石が誘うように光る。だが、罠の気配もする。',
+      [['取る', ()=>{ if(Math.random()<0.6){ const g=20+Math.floor(Math.random()*40); G.gold+=g; exMsg('<span class="hl">金貨'+g+'を得た。</span>'); } else { const d=10+G.floor*3; G.party.filter(c=>c.alive).forEach(c=>{ c.hp=Math.max(0,c.hp-d); if(c.hp<=0)c.alive=false; }); exMsg('<span class="dmg">罠だった！ 全員'+d+'のダメージ。</span>'); checkWipe(); } backToExploreFromEvent(); }],
+       ['見送る', ()=>{ backToExploreFromEvent(); }]]); },
+  ];
+  events[Math.floor(Math.random()*events.length)]();
+}
+
+/* ---------- codex / howto / records ---------- */
+function openCodex(from){ codexReturn=from; renderCodex(); showScreen('s-codex'); }
+function renderCodex(){
+  $('codex-stats').innerHTML='発見した紋様：<span style="color:var(--rune2)">'+discoveredCount()+'</span> / '+SPELLS.length+' 種';
+  const list=$('codex-list'); list.innerHTML='';
+  const found=SPELLS.filter(s=>R.discovered[s.id]);
+  if(found.length===0){ list.innerHTML='<div class="muted" style="padding:10px">まだ紋様を発見していない。戦闘で紋様を成功させると、ここに記録される。</div>'; return; }
+  found.forEach(s=>{
+    const cl=ELEM_COLOR[s.elem]||'#cfc8e0';
+    const div=document.createElement('div'); div.className='cx';
+    div.innerHTML='<div class="cxh"><span class="cxn">'+s.name+'</span><span class="cxe" style="color:'+cl+'">'+s.elem+' / 難'+s.difficulty+' / MP'+s.mp+'</span></div>'+
+      '<div class="cxd">'+s.desc+'</div>';
+    list.appendChild(div);
+  });
+}
+function openHowto(from){ howtoReturn=from; renderHowto(); showScreen('s-howto'); }
+function renderHowto(){
+  $('howto-body').innerHTML =
+    '<h3>物語</h3><p>あなたは坑道の最深部に眠る「始原の魔法核」を求める冒険者パーティを率いる。核を手に入れ、地上まで生還することが目的だ。</p>'+
+    '<h3>探索</h3><p>一人称視点で迷宮を進む。<b>前進・後退</b>で移動し、<b>左回り・右回り</b>で向きを変える。右の小地図で現在地と向きを確認できる。階段・宝箱・罠・イベントが各階に配置されている。</p>'+
+    '<h3>戦闘 — 紋様を描く</h3><p>戦闘はターン制。あなたの番に「詠唱（紋様）」を選び、円の中に魔法陣を<b>マウスやタッチで描く</b>。複数のストロークも認識される。描き終えたら「この紋様で詠唱」を押す。</p>'+
+    '<p>魔法はランダムではなく、<b>描いた形に最も近い紋様</b>が発動する。形の正確さ・ストローク数・閉じ具合・縦横比・向きなどから<b>信頼度</b>が算出され、低いと弱発動や暴発、極端に曖昧だと失敗になる。魔術師など<b>集中力</b>の高い者ほど認識が安定する。</p>'+
+    '<h3>紋様の系統</h3><p>基本図形20種 × 修飾記号16種で320種以上の紋様が存在する。系統は攻撃・回復・防御・状態異常・浄化・召喚・解呪。例：円環＝防御、三角＝攻撃、星辰＝召喚、十字＝浄化、三日月＝凍結。属性は敵の弱点・耐性に影響する。</p>'+
+    '<h3>その他の行動</h3><p>物理「攻撃」、ダメージを半減する「防御」、回復・蘇生などの「道具」、戦線離脱の「逃走」も選べる。敵カードをタップで攻撃対象を選択。</p>'+
+    '<h3>ローグライク</h3><p>ダンジョンはシードから毎回生成される。深い階ほど敵は強く報酬も良い。全滅すればランは終了（記録は残る）。中断セーブからは再開できる。</p>';
+}
+function renderTitleRecords(){
+  $('title-records').innerHTML =
+    '最高到達：地下 '+R.maxFloor+' 階 ／ 討伐数：'+R.kills+' 体<br>'+
+    '発見した紋様：'+discoveredCount()+' / '+SPELLS.length+' 種<br>'+
+    'クリア回数：'+(R.clears||0)+' ／ 挑戦回数：'+(R.runs||0);
+  $('btn-continue').disabled = !hasSavedRun();
+  $('btn-continue').style.opacity = hasSavedRun()? '1':'0.45';
+}
+let codexReturn='s-title', howtoReturn='s-title';
+
+/* ---------- run lifecycle ---------- */
+function newRun(){
+  R.runs=(R.runs||0)+1; saveRecords();
+  const seed=((Date.now()>>>0) ^ (Math.floor(Math.random()*0xffffffff)))>>>0;
+  G={ seed, floor:1, gold:0, hasCore:false, steps:0, lastFightStep:-99,
+      inv:{potion:3, ether:1, panacea:1, ash:1}, party:makeParty(), map:null };
+  enterFloor(1, true);
+  showScreen('s-explore'); refreshExplore();
+  $('ex-msg').innerHTML='';
+  exMsg('<span class="sys">地下1階。冒険が始まった。</span>');
+  exMsg('<span class="muted">最深部で「始原の魔法核」を手に入れ、ここまで帰還せよ。</span>');
+  saveRun();
+}
+function continueRun(){
+  let slim=null; try{ slim=JSON.parse(localStorage.getItem(LS_RUN)); }catch(e){ slim=null; }
+  if(!slim){ newRun(); return; }
+  G={ seed:slim.seed, floor:slim.floor, gold:slim.gold||0, hasCore:!!slim.hasCore,
+      steps:slim.steps||0, lastFightStep:(slim.lastFightStep!=null?slim.lastFightStep:-99),
+      inv:slim.inv||{}, party:[], map:null };
+  G.party=(slim.party||[]).map(p=>{
+    const c=makeChar(p.cls);
+    return Object.assign(c,{name:p.name,lvl:p.lvl,exp:p.exp,hp:p.hp,mp:p.mp,maxhp:p.maxhp,maxmp:p.maxmp,
+      atk:p.atk,def:p.def,agi:p.agi,con:p.con,spr:p.spr,alive:p.alive,status:{},defending:false,barrier:0});
+  });
+  if(G.party.length===0){ newRun(); return; }
+  enterFloor(G.floor, false);
+  if(typeof slim.px==='number'){ G.map.px=slim.px; G.map.py=slim.py; G.map.dir=slim.dir; reveal(); }
+  showScreen('s-explore'); refreshExplore();
+  exMsg('<span class="sys">冒険を再開した。</span>');
+}
+function resetRecords(){
+  if(!window.confirm('すべての記録（到達階・討伐数・発見紋様・クリア回数）と中断データを消去します。よろしいですか？')) return;
+  R=defaultRecords(); saveRecords(); clearRun(); renderTitleRecords();
+}
+function abandonRun(){
+  if(!window.confirm('現在の冒険を放棄してタイトルへ戻ります。よろしいですか？（記録は残ります）')) return;
+  clearRun(); G=null; $('ex-menu').classList.remove('active');
+  renderTitleRecords(); showScreen('s-title');
+}
+
+/* ---------- title sigil ---------- */
+function drawSigil(){
+  const svg=$('sigil'); if(!svg) return;
+  svg.setAttribute('viewBox','0 0 200 200');
+  const cx=100,cy=100;
+  let s='';
+  s+='<circle cx="100" cy="100" r="92" fill="none" stroke="#74e0ff" stroke-opacity="0.5" stroke-width="1.3"/>';
+  s+='<circle cx="100" cy="100" r="74" fill="none" stroke="#b794ff" stroke-opacity="0.35" stroke-width="1"/>';
+  s+='<circle cx="100" cy="100" r="40" fill="none" stroke="#74e0ff" stroke-opacity="0.3" stroke-width="1"/>';
+  const P=[]; for(let i=0;i<5;i++){ const a=-Math.PI/2+i*TAU/5; P.push([cx+Math.cos(a)*74, cy+Math.sin(a)*74]); }
+  let d='M'+P[0][0].toFixed(1)+' '+P[0][1].toFixed(1);
+  for(let i=1;i<=5;i++){ const p=P[(i*2)%5]; d+=' L'+p[0].toFixed(1)+' '+p[1].toFixed(1); }
+  s+='<path d="'+d+' Z" fill="none" stroke="#bdecff" stroke-opacity="0.55" stroke-width="1.2"/>';
+  // rune ticks around the ring
+  for(let i=0;i<12;i++){ const a=i*TAU/12; const x1=cx+Math.cos(a)*92,y1=cy+Math.sin(a)*92,x2=cx+Math.cos(a)*82,y2=cy+Math.sin(a)*82;
+    s+='<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="#74e0ff" stroke-opacity="0.4" stroke-width="1.4"/>'; }
+  s+='<circle cx="100" cy="100" r="6" fill="#bdecff" fill-opacity="0.8"/>';
+  svg.innerHTML=s;
+}
+
+/* ---------- explore canvas sizing ---------- */
+function sizeExploreCanvases(){
+  const fp=$('fp');
+  if(fp){
+    const r=fp.getBoundingClientRect();
+    if(r.width>4){
+      const dpr=Math.max(1,Math.min(window.devicePixelRatio||1,2.5));
+      fpCv=fp; fpCtx=fp.getContext('2d'); fpW=r.width; fpH=r.height;
+      fp.width=Math.round(fpW*dpr); fp.height=Math.round(fpH*dpr);
+      fpCtx.setTransform(dpr,0,0,dpr,0,0);
+    }
+  }
+  const mp=$('map');
+  if(mp){
+    const r=mp.getBoundingClientRect();
+    if(r.width>4){
+      const dpr=Math.max(1,Math.min(window.devicePixelRatio||1,2.5));
+      const s=Math.round(Math.min(r.width,r.height)*dpr);
+      if(mp.width!==s){ mp.width=s; mp.height=s; }
+    }
+  }
+}
+// wrap refreshExplore so canvases are correctly sized before drawing
+const _refreshExploreCore = refreshExplore;
+refreshExplore = function(){ sizeExploreCanvases(); _refreshExploreCore(); };
+
+/* ---------- wiring ---------- */
+function wireEvents(){
+  // title
+  $('btn-continue').onclick=()=>{ if(hasSavedRun()) continueRun(); };
+  $('btn-new').onclick=()=>{ if(hasSavedRun() && !window.confirm('進行中の冒険があります。新しく始めると失われます。よろしいですか？')) return; newRun(); };
+  $('btn-howto').onclick=()=>openHowto('s-title');
+  $('btn-codex').onclick=()=>openCodex('s-title');
+  $('btn-reset-records').onclick=resetRecords;
+  // howto / codex back
+  $('btn-howto-back').onclick=()=>{ showScreen(howtoReturn); if(howtoReturn==='s-explore'&&G) refreshExplore(); if(howtoReturn==='s-title') renderTitleRecords(); };
+  $('btn-codex-back').onclick=()=>{ showScreen(codexReturn); if(codexReturn==='s-explore'&&G) refreshExplore(); if(codexReturn==='s-title') renderTitleRecords(); };
+  // explore controls
+  $('btn-fwd').onclick=()=>{ if(G) step(true); };
+  $('btn-back').onclick=()=>{ if(G) step(false); };
+  $('btn-left').onclick=()=>{ if(G) turn(true); };
+  $('btn-right').onclick=()=>{ if(G) turn(false); };
+  // explore menu
+  $('btn-menu').onclick=()=>$('ex-menu').classList.toggle('active');
+  $('mn-resume').onclick=()=>$('ex-menu').classList.remove('active');
+  $('mn-codex').onclick=()=>{ $('ex-menu').classList.remove('active'); openCodex('s-explore'); };
+  $('mn-howto').onclick=()=>{ $('ex-menu').classList.remove('active'); openHowto('s-explore'); };
+  $('mn-save').onclick=()=>{ saveRun(); $('ex-menu').classList.remove('active'); exMsg('<span class="sys">冒険を記録した。</span>'); };
+  $('mn-abandon').onclick=abandonRun;
+  // combat actions
+  $('cb-act-cast').onclick=enterDrawMode;
+  $('cb-act-attack').onclick=doAttack;
+  $('cb-act-defend').onclick=doDefend;
+  $('cb-act-item').onclick=openItems;
+  $('cb-act-flee').onclick=doFlee;
+  $('cb-cast').onclick=doCast;
+  $('cb-clear').onclick=clearDraw;
+  $('cb-cancel').onclick=exitDrawMode;
+  $('cb-item-close').onclick=closeItems;
+  $('cb-turn').onclick=()=>{ if(CB.mode==='victory') returnToExplore(); };
+  // end
+  $('btn-end-title').onclick=()=>{ renderTitleRecords(); showScreen('s-title'); };
+  // draw canvas pointer events
+  drawCv=$('draw'); drawCtx=drawCv.getContext('2d');
+  drawCv.style.touchAction='none';
+  drawCv.addEventListener('pointerdown', onDrawDown, {passive:false});
+  drawCv.addEventListener('pointermove', onDrawMove, {passive:false});
+  drawCv.addEventListener('pointerup', onDrawUp, {passive:false});
+  drawCv.addEventListener('pointercancel', onDrawUp, {passive:false});
+  drawCv.addEventListener('pointerleave', onDrawUp, {passive:false});
+  // keyboard (desktop)
+  window.addEventListener('keydown', (e)=>{
+    if(!$('s-explore').classList.contains('active') || !G) return;
+    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','W','A','S','D'].includes(e.key)) e.preventDefault();
+    if(e.key==='ArrowUp'||e.key==='w'||e.key==='W') step(true);
+    else if(e.key==='ArrowDown'||e.key==='s'||e.key==='S') step(false);
+    else if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') turn(true);
+    else if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') turn(false);
+  });
+  // resize
+  window.addEventListener('resize', ()=>{
+    if($('s-explore').classList.contains('active') && G) refreshExplore();
+    if($('s-combat').classList.contains('active') && CB.mode==='draw') sizeDrawCanvas();
+  });
+}
+
+/* ---------- boot ---------- */
+function boot(){
+  buildSpells();
+  loadRecords();
+  drawSigil();
+  wireEvents();
+  renderTitleRecords();
+  showScreen('s-title');
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot);
+else boot();
+
+</script>
+</body>
+</html>
