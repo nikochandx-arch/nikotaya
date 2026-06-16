@@ -1,5 +1,5 @@
 // ============================================
-// icons.js  (for v14.10+)
+// icons.js  (for v14.13+)
 // ============================================
 // Nikotaya Mining Roguelike のSVGアイコン定義ファイル。
 // SVG_ICONS オブジェクトを定義する。index.html 本体より
@@ -637,5 +637,43 @@ const SVG_ICONS = {
       <line x1="116" y1="70" x2="124" y2="71" stroke="#52525b" stroke-width="1.8" stroke-linecap="round"/>
       <line x1="116" y1="74" x2="123" y2="77" stroke="#52525b" stroke-width="1.8" stroke-linecap="round"/>
     </g>
+  </svg>`,
+  chuunibyou: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em;vertical-align:-0.2em;display:inline-block;">
+  <circle cx="55" cy="50" r="32" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="3 6" opacity="0.35"/>
+  <circle cx="55" cy="50" r="26" fill="none" stroke="#c084fc" stroke-width="0.8" opacity="0.2"/>
+  <path d="M 48 42 C 30 45, 18 65, 10 90 C 25 85, 38 92, 50 82 C 60 92, 75 88, 85 92 C 78 70, 72 50, 60 42 Z" fill="none" stroke="#18181b" stroke-width="8" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M 48 42 C 30 45, 18 65, 10 90 C 25 85, 38 92, 50 82 C 60 92, 75 88, 85 92 C 78 70, 72 50, 60 42 Z" fill="#4c1d95" stroke="#18181b" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M 44 45 C 32 50, 24 68, 16 85 C 24 82, 34 87, 46 78 Z" fill="#6d28d9" opacity="0.7"/>
+  <path d="M 52 78 C 58 84, 68 83, 76 86 C 72 70, 68 55, 58 45 Z" fill="#3b0764" opacity="0.6"/>
+  <g fill="#09090b" stroke="#71717a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M 48 45 C 40 60, 42 82, 54 82 C 62 82, 60 60, 54 45 Z" stroke-width="2.5"></path>
+    <path d="M 46 80 L 38 102 L 42 115" stroke-width="4"></path>
+    <path d="M 42 115 L 32 115" stroke-width="4"></path>
+    <path d="M 54 80 L 62 102 L 58 115" stroke-width="4"></path>
+    <path d="M 58 115 L 68 115" stroke-width="4"></path>
+    <path d="M 42 48 L 28 42 L 48 35" stroke-width="4"></path>
+    <path d="M 56 48 L 70 54 L 84 44" stroke-width="4"></path>
+    <circle cx="50" cy="32" r="9" stroke-width="3"></circle>
+  </g>
+  <path d="M 41 30 L 51 34" stroke="#e2e8f0" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M 43 27 L 49 35" stroke="#e2e8f0" stroke-width="1.5" stroke-linecap="round"/>
+  <rect x="42" y="28" width="5" height="5" fill="#e2e8f0" stroke="#71717a" stroke-width="0.5" transform="rotate(15 44 30)"/>
+  <circle cx="54" cy="32" r="1.5" fill="#ef4444" stroke="none"/>
+  <circle cx="54" cy="32" r="3.5" fill="none" stroke="#f87171" stroke-width="0.8" opacity="0.7"/>
+  <g fill="none" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M 84 44 Q 92 42 98 28 Q 90 32 86 38" fill="#8b5cf6" stroke="#4c1d95" stroke-width="1.5"/>
+    <path d="M 82 46 Q 96 52 104 40 Q 92 44 86 42" fill="#a78bfa" stroke="#6d28d9" stroke-width="1"/>
+    <path d="M 85 40 Q 94 30 102 32" stroke="#d8b4fe" stroke-width="1" opacity="0.8"/>
+    <path d="M 80 48 Q 92 56 95 48" stroke="#d8b4fe" stroke-width="0.8" opacity="0.6"/>
+  </g>
+  <circle cx="25" cy="35" r="1" fill="#c084fc">
+    <animate attributeName="opacity" values="0.2;1;0.2" dur="3s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="95" cy="65" r="1.2" fill="#c084fc">
+    <animate attributeName="opacity" values="1;0.2;1" dur="2.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="35" cy="75" r="0.8" fill="#f87171">
+    <animate attributeName="opacity" values="0.1;0.9;0.1" dur="2s" repeatCount="indefinite"/>
+  </circle>
   </svg>`,
 };

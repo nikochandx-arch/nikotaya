@@ -877,7 +877,7 @@ line-height: 1.3;
 
 <div id="top">
   <div id="header">
-    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v14.12</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
+    <h2 style="margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;"><span id="title-icon" style="margin-right:8px;display:inline-flex;align-items:center;"></span>Nikotaya Mining Roguelike <span style="font-size:20px;color:#fff;font-weight:normal;margin-left:12px;">v14.13</span><span id="se-toggle" onclick="toggleSE()" style="cursor:pointer;font-size:48px;padding-right:24px;margin-left:auto;"></span></h2>
     <div id="status"></div>
   </div>
   <div id="event-row">
@@ -2895,6 +2895,15 @@ ${relicsHTML}
       });
       // ボタンは下のswitchで描画するのでここではスキップ
     } else
+    if(state.mode === "event_chuunibyou"){
+      renderPersonEvent(ce, ceText, ceIcon, {
+        icon: SVG_ICONS.chuunibyou.replace("width:1em;height:1em;","width:2em;height:2em;"),
+        title: "†闇に眠る者†",
+        titleColor: "#a855f7",
+        body: "『ククク…選ぶがいい。汝の血を捧げ財を得るか、財を差し出し生きながらえるか…』",
+      });
+      // ボタンは下のswitchで描画するのでここではスキップ
+    } else
     if(state.mode === "event_merchant"){
       // 段階別セリフ（getMerchantTier）に応じて切り替え。
       // 商品の価格はボタンに表示されるので、メイン画面の価格表示はなし。
@@ -3061,6 +3070,9 @@ ${relicsHTML}
       // プラスorプラスの強制2択（無視なし）。両方とも得なのでボタンは緑系で統一
       btn("モフモフする", catPet, "main");
       btn("餌をやる", catFeed, "main");
+      break;
+    case "event_chuunibyou":
+      renderChuunibyouEvent();
       break;
     case "event_bat":
       renderBatEvent();
@@ -4263,6 +4275,15 @@ const HEAVY_EVENTS = [
     }
   },
   {
+    id: "chuunibyou", name: "闇に眠る者", weight: 15,
+    condition: null,
+    fn: () => {
+      playSE("select");
+      state.mode = "event_chuunibyou";
+      addLog("†闇に眠る者†");
+    }
+  },
+  {
     id: "bat", name: "コウモリ", weight: 30,
     condition: null,
     fn: () => {
@@ -5226,6 +5247,25 @@ function renderYoukiEvent(){
   btn("無視する", ignoreYouki, "skip");
 }
 
+// 闇に眠る者の選択ボタン。強制2択（無視なし）。
+// 血＝HPを失う→danger(赤)、財＝HPが回復する→main(緑)でボタン色から効果を直感表示。
+// 財側は確定スクラップが要るので、不足時は陽キャと同方式でグレーアウト無効化。
+function renderChuunibyouEvent(){
+  btn("血を捧げる", chuuniBlood, "danger");
+  let canPay = state.scrap >= chuuniGoldCost();
+  let b = document.createElement("button");
+  b.innerText = "財を捧げる";
+  let s = canPay ? BTN_STYLES.main : BTN_STYLES.skip;
+  b.style.borderColor = s.color;
+  b.style.color       = s.color;
+  b.style.background   = s.bg;
+  b.style.boxShadow    = `0 0 10px ${s.color}66`;
+  b.style.opacity      = canPay ? "1" : "0.4";
+  b.disabled           = !canPay;
+  if(canPay) b.onclick = () => { playSE("select"); chuuniGold(); };
+  document.getElementById("actions").appendChild(b);
+}
+
 function helpYouki(){
   state.scrap -= YOUKI_COST;
   state.runStats.youki = 1;  // ラン中フラグ：commitStats時に永続statsに加算される
@@ -5464,6 +5504,36 @@ function catFeed(){
   gainScrap(g);
   playSE("coin");
   addLog(`餌のお礼のようだ スクラップ +${g.toLocaleString()}`, "sub");
+  state.mode = "explore";
+  render();
+}
+
+// 闇に眠る者（厨二）：血と財の確定交換。残HPと懐で最適解が変わる強制2択。
+// 財コストの基準額。calcScrapの乱数(±7%)を除いた確定値で、表示判定(canPay)と
+// 徴収でブレないようにする。血の報酬は採掘2回分、財コストは採掘3回分相当＝
+// 「HPの方が構造的に強い資産」ゆえ財→HP側を割高にしてバランスを取る（仮値）。
+function chuuniGoldCost(){
+  let bonus = Math.floor((state.floor - 1) / 10) + 1;
+  return Math.floor(state.power * bonus * getMiningMultiplier() * 3);
+}
+// 血を捧げる：HP10%を自傷（非物理ダメージ＝防具無視かつHP1で止まり死なない）→スクラップ獲得
+function chuuniBlood(){
+  damage(Math.ceil(state.maxHp * 0.1), true);
+  let g = Math.floor(calcScrap() * getMiningMultiplier() * 2);
+  gainScrap(g);
+  playSE("coin");
+  addLog(`血の対価だ スクラップ +${g.toLocaleString()}`, "sub");
+  state.mode = "explore";
+  render();
+}
+// 財を捧げる：確定スクラップを払いHP回復（割高設定）。財不足時はボタン側で無効化済み
+function chuuniGold(){
+  let cost = chuuniGoldCost();
+  gainScrap(-cost);
+  let h = Math.ceil(state.maxHp * 0.10);
+  heal(h);
+  playSE("heal");
+  addLog(`財の対価だ HP +${h}`, "sub");
   state.mode = "explore";
   render();
 }
