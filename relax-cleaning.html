@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>relax cleaning</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:#141019;color:#8a8172;
+    font-family:system-ui,-apple-system,"Hiragino Sans",sans-serif;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:12px;min-height:100dvh;padding:18px;
+  }
+  .stage{
+    position:relative;width:min(46vh,92vw);aspect-ratio:9/16;
+    border-radius:20px;overflow:hidden;
+    box-shadow:0 24px 60px -20px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.04);
+  }
+  canvas{display:block;width:100%;height:100%;}
+  .bar{display:flex;align-items:center;gap:10px;font-size:12px;letter-spacing:.04em;}
+  button{
+    font:inherit;font-size:12px;letter-spacing:.04em;color:#efe7d8;
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+    padding:8px 16px;border-radius:999px;cursor:pointer;transition:background .2s;
+  }
+  button:hover{background:rgba(255,255,255,.12);}
+  button:focus-visible{outline:2px solid #e0a458;outline-offset:2px;}
+  .cap{opacity:.6;font-variant-numeric:tabular-nums;}
+</style>
+</head>
+<body>
+  <div class="stage"><canvas id="c"></canvas></div>
+  <div class="bar">
+    <button id="reseed">↻ 別の部屋</button>
+    <span class="cap" id="cap"></span>
+  </div>
+
+<script>
+// ================= パラメータ（URLで指定可） =================
+// 例: ?seed=7&sec=90   → シード7・約90秒ぶんの散らかりで生成
+const P = new URLSearchParams(location.search);
+let SEED = parseInt(P.get('seed')); if(!Number.isFinite(SEED)) SEED = 7;
+let SEC  = parseFloat(P.get('sec')); if(!Number.isFinite(SEC)) SEC = 60;
+
+const cv=document.getElementById('c'), ctx=cv.getContext('2d');
+const capEl=document.getElementById('cap');
+const W=810,H=1440;
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function resize(){const r=cv.getBoundingClientRect();const d=Math.min(window.devicePixelRatio||1,2);
+  cv.width=Math.round(r.width*d);cv.height=Math.round(r.height*d);}
+window.addEventListener('resize',resize);
+
+// ---- シード付き乱数（同じseedなら毎回同じ画＝レンダリング向き）----
+let _s=0;
+function seedRng(n){_s=(n>>>0)||1;}
+function rng(){_s|=0;_s=_s+0x6D2B79F5|0;let t=Math.imul(_s^_s>>>15,1|_s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}
+const rr=(a,b)=>a+(b-a)*rng();
+const pick=a=>a[Math.floor(rng()*a.length)];
+const lerp=(a,b,t)=>a+(b-a)*t, clamp=(v,a,b)=>Math.max(a,Math.min(b,v)), easeOut=t=>1-Math.pow(1-t,3);
+
+// ---- 色ヘルパ ----
+function hex(h){h=h.replace('#','');return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+function mixHex(a,b,t){const A=hex(a),B=hex(b);return A.map((v,i)=>Math.round(lerp(v,B[i],t)));}
+function rgb(a){return`rgb(${a[0]},${a[1]},${a[2]})`;}
+function shade(a,f){return a.map(v=>Math.round(clamp(v*f,0,255)));}
+// 「くすんで冷たい状態」を作る： 明るい完成色 → 冷たいグレーへ寄せて暗く
+function dirty(h){return shade(mixHex(h,'#585a6b',0.5),0.82);}
+// clean(0..1) に応じて dirty→完成 を補間
+let CLEAN=0;
+function warm(h){return rgb(mixHex(dirty(h), hex(h), CLEAN));}
+
+// ---- テーマ（seedで部屋の色が変わる。完成時は必ず暖色寄り）----
+const THEMES=[
+  {wall:'#e9dcc4',floor:'#c19a68',light:'#fff2cf'},
+  {wall:'#ecd9d0',floor:'#c79a86',light:'#ffe9dd'},
+  {wall:'#dbe0cf',floor:'#b3a878',light:'#f2f4d9'},
+  {wall:'#e5dbe6',floor:'#b39a88',light:'#f3e7f4'},
+  {wall:'#ece4d2',floor:'#c7ab7e',light:'#fff6e4'},
+];
+const CAPS=['#d98b45','#c65b52','#5f8a72','#6a6fae','#b98bbf'];
+const BODIES=['#3e3b4a','#43434f','#38424a'];
+let theme,capCol,bodyCol;
+
+// ================= 状態 =================
+const FLOOR_TYPES=['dust','dust','dust','trash','paper','cup','sock','stain'];
+let mess=[], particles=[], motes=[];
+let cleanedN=0, totalN=0;
+let phase='intro', phaseT=0;
+const INTRO=1.2, HOLD=2.6, FADE=1.3;
+const SPEED=reduce?175:148, CLEAN_DUR=1.25, SEC_PER_ITEM=2.6;
+
+const g={x:405,y:1375,tx:405,ty:1375,face:1,walk:0,state:'idle',ct:0,active:null};
+
+function insideRect(x,y,r){return x>r[0]&&x<r[2]&&y>r[1]&&y<r[3];}
+const PLANT_RECT=[620,1160,780,1320];
+
+function build(){
+  seedRng(SEED);
+  theme=THEMES[Math.abs(SEED)%THEMES.length];
+  capCol=CAPS[Math.abs(SEED)%CAPS.length];
+  bodyCol=BODIES[Math.abs(SEED)%BODIES.length];
+
+  // 尺 → 散らかり数（1個 ≒ 2.6秒。1分で約21個）
+  const N=clamp(Math.round((SEC-5)/SEC_PER_ITEM),8,220);
+  mess=[];
+  // 上隅のクモの巣
+  mess.push({x:120,y:120,type:'web',r:70,a:1,done:false});
+  mess.push({x:690,y:130,type:'web',r:70,a:1,done:false});
+  // 残りを床にばら撒く（植物の鉢は避ける）
+  let guard=0;
+  while(mess.length<N && guard<N*40){
+    guard++;
+    const x=rr(90,720), y=rr(960,1360);
+    if(insideRect(x,y,PLANT_RECT)) continue;
+    const t=pick(FLOOR_TYPES);
+    mess.push({x,y,type:t,r:t==='stain'?rr(70,100):rr(34,48),a:1,done:false});
+  }
+  totalN=mess.length; cleanedN=0; CLEAN=0;
+  particles=[];
+  motes=Array.from({length:reduce?0:28},()=>({x:rr(0,W),y:rr(60,860),s:rr(1.5,4),v:rr(6,16),ph:rr(0,6.28)}));
+  g.x=405;g.y=1375;g.state='idle';g.active=null;g.ct=0;g.walk=0;
+  pickTarget();
+  phase='intro'; phaseT=0;
+  capEl.textContent=`seed ${SEED} · ${Math.round(SEC)}s · ${totalN}items`;
+}
+
+function pickTarget(){
+  let best=null,bd=1e9;
+  for(const m of mess){if(m.done)continue;const d=(m.x-g.x)**2+(m.y-g.y)**2;if(d<bd){bd=d;best=m;}}
+  if(best){g.active=best;g.tx=clamp(best.x,90,720);g.ty=best.y<900?940:clamp(best.y+66,960,1360);
+    g.face=g.tx>=g.x?1:-1;g.state='walk';}
+  else{g.active=null;g.state='done';}
+}
+
+function poof(x,y,c,n){for(let i=0;i<n;i++){const a=rr(0,6.28),sp=rr(20,90);
+  particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-30,life:rr(.6,1.2),t:0,r:rr(3,7),c,gg:160});}}
+function sparkle(x,y){particles.push({x,y,vx:rr(-14,14),vy:rr(-42,-8),life:rr(.8,1.4),t:0,r:rr(4,9),c:'#fff3cf',gg:-20,star:true});}
+
+// ================= 更新 =================
+function update(dt){
+  phaseT+=dt;
+  if(phase==='intro'){ if(phaseT>=INTRO){phase='clean';phaseT=0;} }
+  else if(phase==='clean'){ stepGnome(dt); if(g.state==='done'){phase='outro';phaseT=0;} }
+  else if(phase==='outro'){
+    if(!reduce && phaseT<HOLD && rng()<dt*10) sparkle(rr(60,W-60),rr(140,1300));
+    if(phaseT>=HOLD+FADE) build(); // ループ
+  }
+  CLEAN=lerp(CLEAN,cleanedN/totalN,dt*2.5);
+
+  for(const p of particles){p.t+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=p.gg*dt;p.vx*=0.98;}
+  particles=particles.filter(p=>p.t<p.life);
+  for(const m of motes){m.ph+=dt;m.y+=Math.sin(m.ph)*0.3+dt*m.v*0.2;if(m.y>880)m.y=60;}
+}
+
+function stepGnome(dt){
+  if(g.state==='walk'){
+    const dx=g.tx-g.x,dy=g.ty-g.y,d=Math.hypot(dx,dy),sp=SPEED*dt;
+    if(d<sp){g.x=g.tx;g.y=g.ty;g.state='clean';g.ct=0;}
+    else{g.x+=dx/d*sp;g.y+=dy/d*sp;g.walk+=dt*10;}
+    if(Math.abs(dx)>4)g.face=dx>0?1:-1;
+  }else if(g.state==='clean'){
+    g.ct+=dt;const m=g.active;
+    if(m){ if(rng()<dt*12){poof(m.x+rr(-12,12),Math.min(m.y,g.y-6)+30,'#cfc6b4',1);} m.a=lerp(m.a,0,dt*3.6); }
+    if(g.ct>CLEAN_DUR){ if(m){m.done=true;cleanedN++;for(let i=0;i<5;i++)sparkle(m.x+rr(-20,20),m.y+rr(-20,20));} pickTarget(); }
+  }
+}
+
+// ================= 描画 =================
+function rrect(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r);}
+
+function drawRoom(){
+  // 壁
+  const wg=ctx.createLinearGradient(0,0,0,900);
+  wg.addColorStop(0,warm(theme.wall));
+  wg.addColorStop(1,rgb(shade(mixHex(dirty(theme.wall),hex(theme.wall),CLEAN),0.94)));
+  ctx.fillStyle=wg;ctx.fillRect(0,0,W,900);
+  // 床
+  const fg=ctx.createLinearGradient(0,900,0,H);
+  fg.addColorStop(0,warm(theme.floor));
+  fg.addColorStop(1,rgb(shade(mixHex(dirty(theme.floor),hex(theme.floor),CLEAN),0.86)));
+  ctx.fillStyle=fg;ctx.fillRect(0,900,W,H-900);
+  ctx.strokeStyle='rgba(60,44,26,.16)';ctx.lineWidth=3;
+  for(let i=1;i<6;i++){ctx.beginPath();ctx.moveTo(0,900+i*90);ctx.lineTo(W,900+i*90);ctx.stroke();}
+  ctx.fillStyle=warm(theme.floor);ctx.fillRect(0,884,W,20);
+
+  // 窓
+  ctx.fillStyle=warm('#8fb0c2');rrect(500,170,250,380,18);ctx.fill();
+  ctx.fillStyle='#fff';ctx.globalAlpha=.12+CLEAN*.25;rrect(512,182,226,356,12);ctx.fill();ctx.globalAlpha=1;
+  ctx.strokeStyle=warm('#8a7a5c');ctx.lineWidth=8;rrect(500,170,250,380,18);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(625,178);ctx.lineTo(625,542);ctx.moveTo(506,360);ctx.lineTo(744,360);ctx.stroke();
+  // 光の帯（clean で濃く）
+  const L=hex(theme.light);
+  const lg=ctx.createLinearGradient(620,540,300,1200);
+  lg.addColorStop(0,`rgba(${L[0]},${L[1]},${L[2]},${.12+CLEAN*.24})`);
+  lg.addColorStop(1,`rgba(${L[0]},${L[1]},${L[2]},0)`);
+  ctx.fillStyle=lg;ctx.beginPath();ctx.moveTo(500,540);ctx.lineTo(750,540);ctx.lineTo(560,1220);ctx.lineTo(210,1220);ctx.closePath();ctx.fill();
+
+  // 棚＋本
+  ctx.fillStyle=warm('#8a6f4e');rrect(70,640,300,26,6);ctx.fill();
+  const books=[['#b5654a',54],['#4a6b6b',40],['#c9a24b',60],['#6a5a7a',46]];let bx=96;
+  for(const[c,h]of books){ctx.fillStyle=warm(c);rrect(bx,640-h,26,h,4);ctx.fill();bx+=34;}
+  // 布団
+  ctx.fillStyle='rgba(0,0,0,.10)';rrect(70,1180,380,60,30);ctx.fill();
+  ctx.fillStyle=warm('#9fb6c2');rrect(60,1010,390,190,26);ctx.fill();
+  ctx.fillStyle=warm('#fbf4e6');rrect(78,1024,150,120,20);ctx.fill();
+  // 植物
+  ctx.fillStyle=warm('#b0724f');rrect(640,1180,120,120,14);ctx.fill();
+  ctx.fillStyle=warm('#5f8a52');
+  for(let i=0;i<5;i++){const a=-1.4+i*0.35;ctx.save();ctx.translate(700,1180);ctx.rotate(a);
+    ctx.beginPath();ctx.ellipse(0,-80,26,80,0,0,6.28);ctx.fill();ctx.restore();}
+}
+
+function drawMess(m){
+  if(m.a<=0.02)return;ctx.save();ctx.globalAlpha=clamp(m.a,0,1);ctx.translate(m.x,m.y);
+  if(m.type==='web'){ctx.strokeStyle='rgba(230,230,235,.5)';ctx.lineWidth=2.5;
+    for(let i=0;i<5;i++){ctx.beginPath();ctx.moveTo(0,0);const a=(i/5)*1.6-0.1;ctx.lineTo(Math.cos(a)*m.r,Math.sin(a)*m.r);ctx.stroke();}
+    for(let r=18;r<m.r;r+=18){ctx.beginPath();for(let i=0;i<=5;i++){const a=(i/5)*1.6-0.1;const px=Math.cos(a)*r,py=Math.sin(a)*r;i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.stroke();}
+  }else if(m.type==='stain'){ctx.fillStyle='rgba(70,55,40,.38)';
+    ctx.beginPath();ctx.ellipse(0,0,m.r,m.r*.6,0,0,6.28);ctx.fill();
+    ctx.beginPath();ctx.ellipse(m.r*.5,10,m.r*.4,m.r*.3,0,0,6.28);ctx.fill();
+  }else if(m.type==='paper'){ctx.fillStyle='#efe9dc';ctx.strokeStyle='#c9c1af';ctx.lineWidth=2;
+    for(let i=0;i<3;i++){ctx.save();ctx.rotate(i*0.5-0.4);rrect(-m.r*.6,-m.r*.5-i*4,m.r*1.2,m.r*.9,4);ctx.fill();ctx.stroke();ctx.restore();}
+  }else if(m.type==='trash'){ctx.fillStyle='#8f8674';ctx.beginPath();
+    for(let i=0;i<8;i++){const a=i/8*6.28,rad=m.r*(0.7+((i*37)%10)/22);const px=Math.cos(a)*rad,py=Math.sin(a)*rad;i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.closePath();ctx.fill();
+  }else if(m.type==='cup'){ctx.fillStyle='#d9d2c4';rrect(-m.r*.5,-m.r*.5,m.r,m.r*1.1,8);ctx.fill();
+    ctx.strokeStyle='#d9d2c4';ctx.lineWidth=8;ctx.beginPath();ctx.arc(m.r*.5,0,m.r*.4,-1,1);ctx.stroke();
+    ctx.fillStyle='rgba(90,60,40,.55)';ctx.beginPath();ctx.ellipse(0,-m.r*.4,m.r*.42,m.r*.16,0,0,6.28);ctx.fill();
+  }else if(m.type==='sock'){ctx.fillStyle='#c98a86';rrect(-m.r*.6,-m.r*.4,m.r*1.1,m.r*.7,10);ctx.fill();rrect(-m.r*.6,-m.r*.4,m.r*.4,m.r,10);ctx.fill();
+  }else{ctx.fillStyle='rgba(190,184,170,.82)';
+    for(let i=0;i<6;i++){const a=i/6*6.28;ctx.beginPath();ctx.arc(Math.cos(a)*m.r*.5,Math.sin(a)*m.r*.5,m.r*.42,0,6.28);ctx.fill();}}
+  ctx.restore();
+}
+
+function drawGnome(){
+  ctx.save();ctx.translate(g.x,g.y);
+  const bob=g.state==='walk'?Math.sin(g.walk)*4:0;
+  ctx.scale(g.face,1);
+  ctx.fillStyle='rgba(0,0,0,.16)';ctx.beginPath();ctx.ellipse(0,6,44,14,0,0,6.28);ctx.fill();
+  ctx.translate(0,bob);
+  const sweep=g.state==='clean'?Math.sin(g.ct*10)*0.35:0.12;
+  ctx.save();ctx.translate(30,-4);ctx.rotate(sweep+0.5);
+  ctx.strokeStyle='#9a6f3f';ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,70);ctx.stroke();
+  ctx.fillStyle='#d9a860';ctx.beginPath();ctx.moveTo(-16,70);ctx.lineTo(16,70);ctx.lineTo(24,102);ctx.lineTo(-24,102);ctx.closePath();ctx.fill();
+  ctx.restore();
+  ctx.fillStyle=bodyCol;ctx.beginPath();ctx.moveTo(-42,10);ctx.quadraticCurveTo(-46,-46,0,-52);ctx.quadraticCurveTo(46,-46,42,10);ctx.closePath();ctx.fill();
+  ctx.fillStyle=shade(hex(bodyCol),0.7);const step=g.state==='walk'?Math.sin(g.walk)*8:0;
+  ctx.fillStyle=rgb(shade(hex(bodyCol),0.7));
+  ctx.beginPath();ctx.ellipse(-16+step,14,12,8,0,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.ellipse(16-step,14,12,8,0,0,6.28);ctx.fill();
+  ctx.fillStyle='#f0d9bf';ctx.beginPath();ctx.arc(0,-40,20,0,6.28);ctx.fill();
+  ctx.fillStyle='#2c2a36';ctx.beginPath();ctx.arc(7,-42,3,0,6.28);ctx.fill();
+  ctx.fillStyle=capCol;ctx.beginPath();ctx.moveTo(-24,-48);ctx.quadraticCurveTo(-6,-108,26,-56);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#f0d9bf';ctx.beginPath();ctx.arc(26,-56,7,0,6.28);ctx.fill();
+  ctx.restore();
+}
+
+function drawParticles(){
+  for(const p of particles){const a=1-p.t/p.life;ctx.globalAlpha=clamp(a,0,1);
+    if(p.star){ctx.fillStyle=p.c;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.t*3);
+      const s=p.r*(0.6+a*0.6);ctx.beginPath();
+      for(let i=0;i<8;i++){const a2=i/8*6.28,rad=i%2?s*.4:s;const px=Math.cos(a2)*rad,py=Math.sin(a2)*rad;i?ctx.lineTo(px,py):ctx.moveTo(px,py);}
+      ctx.closePath();ctx.fill();ctx.restore();
+    }else{ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(p.x,p.y,p.r*(0.5+a*0.6),0,6.28);ctx.fill();}}
+  ctx.globalAlpha=1;
+}
+
+function fadeAlpha(){
+  if(phase==='intro')return clamp(1-phaseT/INTRO,0,1);
+  if(phase==='outro')return phaseT<HOLD?0:clamp((phaseT-HOLD)/FADE,0,1);
+  return 0;
+}
+
+function frame(now){
+  const dt=Math.min(0.033,(now-(frame.last||now))/1000);frame.last=now;
+  update(dt);
+  ctx.setTransform(cv.width/W,0,0,cv.height/H,0,0);
+  ctx.clearRect(0,0,W,H);
+  drawRoom();
+  // 空気中のホコリ（clean で消える）
+  ctx.fillStyle='rgba(210,205,190,1)';
+  for(const m of motes){ctx.globalAlpha=(1-CLEAN)*.55;ctx.beginPath();ctx.arc(m.x,m.y,m.s,0,6.28);ctx.fill();}
+  ctx.globalAlpha=1;
+  for(const m of mess)drawMess(m);
+  drawParticles();
+  drawGnome();
+  // くすみオーバーレイ（最初だけ寒色で暗い）
+  ctx.fillStyle=`rgba(40,42,60,${0.20*(1-CLEAN)})`;ctx.fillRect(0,0,W,H);
+  // フェード（イントロ／アウトロ）
+  const fa=fadeAlpha();if(fa>0){ctx.fillStyle=`rgba(12,10,16,${fa})`;ctx.fillRect(0,0,W,H);}
+  requestAnimationFrame(frame);
+}
+
+document.getElementById('reseed').addEventListener('click',()=>{SEED=Math.floor(Math.random()*9999);build();});
+resize();build();requestAnimationFrame(frame);
+</script>
+</body>
+</html>
